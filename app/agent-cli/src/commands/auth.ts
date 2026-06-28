@@ -131,7 +131,7 @@ export async function authCmd(flags: Flags): Promise<number> {
 
   if (sub === "login") {
     if (!provider) {
-      console.error("uso: auth login <provider>   (anthropic | openai)");
+      console.error("uso: typermagic login <provider>   (anthropic | openai)");
       return 2;
     }
     return login(provider);

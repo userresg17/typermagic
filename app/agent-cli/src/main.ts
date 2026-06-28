@@ -39,7 +39,8 @@ const HELP = [
   "  memory  [recall <q>]    grafo (ascii) ou recall da memória v2",
   "  skills  <q>             skills verificadas relevantes",
   "  handoff                 âncora de handoff em camadas",
-  "  auth    status|login|logout|set   API key (BYOK) ou login com a assinatura (OAuth)",
+  "  login   <provider>      entra com a assinatura (OAuth): anthropic | openai",
+  "  auth    status|set|logout  API key (BYOK), status, ou sair (login = atalho do auth login)",
   "  gateway telegram|fake   sobe o agente num canal (allowlist + rate-limit)",
   "  schedule list|run|daemon tarefas cron (autonomia gateada pelo policy gate)",
   "  trajectory list|verify|export  trajetórias assinadas (use --record nas tarefas)",
@@ -68,7 +69,8 @@ async function main(): Promise<void> {
   }
 
   const known = new Set([
-    "run", "edit", "chat", "tools", "memory", "skills", "handoff", "auth", "gateway", "schedule", "trajectory", "repl",
+    "run", "edit", "chat", "tools", "memory", "skills", "handoff", "auth", "login", "logout",
+    "gateway", "schedule", "trajectory", "repl",
   ]);
   if (!known.has(cmd)) {
     // 1º token não é comando → atalho: trata tudo como `run <prompt>`
@@ -100,6 +102,13 @@ async function main(): Promise<void> {
       break;
     case "auth":
       process.exit(await authCmd(flags));
+      break;
+    // atalhos de topo: `typermagic login <provider>` == `auth login <provider>`
+    case "login":
+      process.exit(await authCmd({ ...flags, rest: ["login", ...flags.rest] }));
+      break;
+    case "logout":
+      process.exit(await authCmd({ ...flags, rest: ["logout", ...flags.rest] }));
       break;
     case "gateway":
       process.exit(await gatewayCmd(flags));
