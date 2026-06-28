@@ -14,6 +14,7 @@ import type {
 } from "./provider.js";
 import { resolveAuth, authHeaders } from "./auth.js";
 import { buildFimMessages, cleanFimCompletion } from "./fim.js";
+import { chatViaChatGptBackend, fimViaChatGptBackend } from "./openai-responses.js";
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
 
@@ -67,6 +68,11 @@ export class OpenAIProvider implements Provider {
         "Sem credencial OpenAI. Defina TYPER_OPENAI_KEY, um token OAuth (TYPER_OPENAI_OAUTH) ou grave no keychain.",
       );
     }
+    // Login com a assinatura do ChatGPT → backend privado (Responses API), não api.openai.com.
+    if (auth.kind === "oauth") {
+      yield* chatViaChatGptBackend(req, auth);
+      return;
+    }
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "content-type": "application/json", ...authHeaders(auth, "bearer") },
@@ -93,6 +99,7 @@ export class OpenAIProvider implements Provider {
         "Sem credencial OpenAI. Defina TYPER_OPENAI_KEY, um token OAuth (TYPER_OPENAI_OAUTH) ou grave no keychain.",
       );
     }
+    if (auth.kind === "oauth") return fimViaChatGptBackend(req, auth);
     const { system, messages } = buildFimMessages(req.prefix, req.suffix, req.context);
     const res = await fetch(API_URL, {
       method: "POST",

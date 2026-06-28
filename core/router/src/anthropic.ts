@@ -10,7 +10,7 @@ import type {
   Message,
   ToolSpec,
 } from "./provider.js";
-import { resolveAuth, authHeaders } from "./auth.js";
+import { resolveAuth, authHeaders, type Auth } from "./auth.js";
 import { buildFimMessages, cleanFimCompletion } from "./fim.js";
 
 /** Mensagens no formato content-block da Messages API (tool_use/tool_result). */
@@ -50,6 +50,40 @@ export function toAnthropicTools(tools?: ToolSpec[]): unknown[] | undefined {
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const API_VERSION = "2023-06-01";
+// Header exigido quando a credencial é um token OAuth do Claude Code (não API key).
+// Valor público do client oficial — CONFIRMAR contra a versão atual do Claude Code.
+const OAUTH_BETA = "oauth-2025-04-20";
+
+// Com token OAuth (assinatura), o PRIMEIRO bloco de system precisa ser exatamente esta
+// identidade — é o que faz a Anthropic rotear a cobrança p/ o plano Pro/Max. Sem isso, a
+// request com token OAuth não é aceita no plano.
+const CLAUDE_CODE_IDENTITY = "You are Claude Code, Anthropic's official CLI for Claude.";
+
+/** Headers da Anthropic conforme a credencial. Com OAuth, manda anthropic-beta e
+ *  nunca x-api-key (authHeaders já devolve só o Bearer p/ oauth). */
+function anthropicHeaders(auth: Auth): Record<string, string> {
+  return {
+    "content-type": "application/json",
+    ...authHeaders(auth, "x-api-key"),
+    "anthropic-version": API_VERSION,
+    ...(auth.kind === "oauth" ? { "anthropic-beta": OAUTH_BETA } : {}),
+  };
+}
+
+type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
+
+/** Monta o campo `system`. Sem OAuth: comportamento original (string, ou bloco com
+ *  cache_control quando o cache está ligado). Com OAuth: array começando pela identidade
+ *  do Claude Code (exigência da Anthropic p/ rotear ao plano), seguida do system real. */
+function buildSystem(text: string | undefined, cache: boolean | undefined, isOauth: boolean): string | SystemBlock[] | undefined {
+  if (!isOauth) {
+    if (text && cache) return [{ type: "text", text, cache_control: { type: "ephemeral" } }];
+    return text;
+  }
+  const blocks: SystemBlock[] = [{ type: "text", text: CLAUDE_CODE_IDENTITY }];
+  if (text) blocks.push(cache ? { type: "text", text, cache_control: { type: "ephemeral" } } : { type: "text", text });
+  return blocks;
+}
 
 export class AnthropicProvider implements Provider {
   readonly id = "anthropic";
@@ -68,26 +102,13 @@ export class AnthropicProvider implements Provider {
       .join("\n\n");
     const systemText = req.system ?? (joinedSystem || undefined);
 
-    // Cache de prompt (2.7): o system é o prefixo estável. Com cache ligado,
-    // marca um breakpoint ephemeral nele; o medidor registra leitura/escrita.
-    const system =
-      systemText && req.cache
-        ? [
-            {
-              type: "text",
-              text: systemText,
-              cache_control: { type: "ephemeral" },
-            },
-          ]
-        : systemText;
+    // Cache de prompt (2.7): o system é o prefixo estável. Com cache ligado, marca um
+    // breakpoint ephemeral nele. Com OAuth, a identidade do Claude Code entra na frente.
+    const system = buildSystem(systemText, req.cache, auth.kind === "oauth");
 
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...authHeaders(auth, "x-api-key"),
-        "anthropic-version": API_VERSION,
-      },
+      headers: anthropicHeaders(auth),
       body: JSON.stringify({
         model: req.model,
         max_tokens: req.maxTokens ?? 1024,
@@ -126,15 +147,11 @@ export class AnthropicProvider implements Provider {
       : user;
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...authHeaders(auth, "x-api-key"),
-        "anthropic-version": API_VERSION,
-      },
+      headers: anthropicHeaders(auth),
       body: JSON.stringify({
         model: req.model,
         max_tokens: req.multiline ? 512 : 256,
-        system,
+        system: buildSystem(system, req.cache, auth.kind === "oauth"),
         messages: [{ role: "user", content: userBlock }],
       }),
       ...(req.signal ? { signal: req.signal } : {}),

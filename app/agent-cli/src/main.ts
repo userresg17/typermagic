@@ -38,7 +38,7 @@ const HELP = [
   "  memory  [recall <q>]    grafo (ascii) ou recall da memória v2",
   "  skills  <q>             skills verificadas relevantes",
   "  handoff                 âncora de handoff em camadas",
-  "  auth    status|set      BYOK (chave por provider)",
+  "  auth    status|login|logout|set   API key (BYOK) ou login com a assinatura (OAuth)",
   "  gateway telegram|fake   sobe o agente num canal (allowlist + rate-limit)",
   "  schedule list|run|daemon tarefas cron (autonomia gateada pelo policy gate)",
   "  trajectory list|verify|export  trajetórias assinadas (use --record nas tarefas)",

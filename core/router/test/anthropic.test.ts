@@ -74,6 +74,34 @@ describe("AnthropicProvider.chat — cache e uso real", () => {
     expect(body.system[0].cache_control).toEqual({ type: "ephemeral" });
   });
 
+  it("OAuth: manda anthropic-beta, sem x-api-key, e identidade Claude Code no system", async () => {
+    delete process.env[KEY]; // sem API key → cai no token OAuth do env
+    process.env.TYPER_ANTHROPIC_OAUTH = "oauth-tok";
+    process.env.TYPER_AUTH_FILE = "/tmp/typer-nonexistent-auth.json";
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      body: sseStream([{ type: "content_block_delta", delta: { text: "x" } }]),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const p = new AnthropicProvider();
+    for await (const _ of p.chat({
+      messages: [{ role: "user", content: "oi" }],
+      model: "claude-opus-4-8",
+      system: "instrução do usuário",
+    })) {
+      void _;
+    }
+    const init = fetchMock.mock.calls[0]![1]! as { headers: Record<string, string>; body: string };
+    expect(init.headers["authorization"]).toBe("Bearer oauth-tok");
+    expect(init.headers["anthropic-beta"]).toBe("oauth-2025-04-20");
+    expect(init.headers["x-api-key"]).toBeUndefined();
+    const body = JSON.parse(init.body);
+    expect(body.system[0].text).toBe("You are Claude Code, Anthropic's official CLI for Claude.");
+    expect(body.system[1].text).toBe("instrução do usuário");
+    delete process.env.TYPER_ANTHROPIC_OAUTH;
+  });
+
   it("manda system como string simples quando cache=false", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,

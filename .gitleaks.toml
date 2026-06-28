@@ -12,6 +12,10 @@ regexes = [
   '''TYPER_[A-Z]+_KEY''',
   '''sk-\.\.\.''',
   '''sk-ant-\.\.\.''',
+  # client_id PÚBLICOS dos apps oficiais (Claude Code / Codex), usados no login OAuth
+  # "com a assinatura". São identificadores públicos do client, NÃO segredos.
+  '''9d1c250a-e61b-44d9-88ed-5944d1962f5e''',
+  '''app_EMoamEEZ73f0CkXaXp7hrann''',
 ]
 paths = [
   '''(.*?)\.md$''',

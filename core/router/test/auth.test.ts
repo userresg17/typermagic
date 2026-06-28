@@ -21,7 +21,7 @@ describe("resolveAuth", () => {
 
   it("oauth via env quando não há key", async () => {
     process.env.TYPER_ZZAUTH_OAUTH = "tok";
-    expect(await resolveAuth("zzauth")).toEqual({ kind: "oauth", token: "tok" });
+    expect(await resolveAuth("zzauth")).toEqual({ kind: "oauth", token: "tok", provider: "zzauth" });
   });
 });
 
@@ -33,7 +33,9 @@ describe("authHeaders", () => {
     expect(authHeaders({ kind: "apiKey", key: "k" }, "bearer")).toEqual({ authorization: "Bearer k" });
   });
   it("oauth sempre vira Bearer", () => {
-    expect(authHeaders({ kind: "oauth", token: "t" }, "x-api-key")).toEqual({ authorization: "Bearer t" });
+    expect(authHeaders({ kind: "oauth", token: "t", provider: "x" }, "x-api-key")).toEqual({
+      authorization: "Bearer t",
+    });
   });
   it("none não manda header", () => {
     expect(authHeaders({ kind: "none" }, "bearer")).toEqual({});
