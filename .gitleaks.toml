@@ -19,4 +19,6 @@ regexes = [
 ]
 paths = [
   '''(.*?)\.md$''',
+  # arte de terminal (logo TYPER MAGO) embarcada em base64 — decorativa, não é segredo.
+  '''app/agent-cli/src/banner\.ts$''',
 ]

@@ -19,6 +19,7 @@ import { memoryCmd } from "./commands/memory.js";
 import { skillsCmd } from "./commands/skills.js";
 import { handoffCmd } from "./commands/handoff.js";
 import { authCmd } from "./commands/auth.js";
+import { printBanner } from "./banner.js";
 import { gatewayCmd } from "./commands/gateway.js";
 import { scheduleCmd } from "./commands/schedule.js";
 import { trajectoryCmd } from "./commands/trajectory.js";
@@ -53,11 +54,15 @@ async function main(): Promise<void> {
   const cmd = argv[0];
 
   if (!cmd) {
-    if (process.stdin.isTTY) process.exit(await repl(parseFlags([])));
+    if (process.stdin.isTTY) {
+      printBanner();
+      process.exit(await repl(parseFlags([])));
+    }
     console.log(HELP);
     process.exit(0);
   }
   if (cmd === "help" || cmd === "--help" || cmd === "-h") {
+    printBanner();
     console.log(HELP);
     process.exit(0);
   }
@@ -106,6 +111,7 @@ async function main(): Promise<void> {
       process.exit(await trajectoryCmd(flags));
       break;
     case "repl":
+      printBanner();
       process.exit(await repl(flags));
       break;
   }
