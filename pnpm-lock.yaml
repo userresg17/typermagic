@@ -71,6 +71,9 @@ importers:
       '@typer/memory':
         specifier: workspace:*
         version: link:../../core/memory
+      '@typer/reach':
+        specifier: workspace:*
+        version: link:../../core/reach
       '@typer/router':
         specifier: workspace:*
         version: link:../../core/router

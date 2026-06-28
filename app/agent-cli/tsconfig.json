@@ -15,6 +15,7 @@
     { "path": "../../core/handoff" },
     { "path": "../../core/index" },
     { "path": "../../core/memory" },
+    { "path": "../../core/reach" },
     { "path": "../../core/router" },
     { "path": "../../core/skills" }
   ],

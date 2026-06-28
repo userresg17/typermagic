@@ -23,6 +23,7 @@ import { printBanner } from "./banner.js";
 import { gatewayCmd } from "./commands/gateway.js";
 import { scheduleCmd } from "./commands/schedule.js";
 import { trajectoryCmd } from "./commands/trajectory.js";
+import { reachCmd } from "./commands/reach.js";
 import { repl } from "./repl.js";
 import { dim, bold } from "./render.js";
 
@@ -44,6 +45,7 @@ const HELP = [
   "  gateway telegram|fake   sobe o agente num canal (allowlist + rate-limit)",
   "  schedule list|run|daemon tarefas cron (autonomia gateada pelo policy gate)",
   "  trajectory list|verify|export  trajetórias assinadas (use --record nas tarefas)",
+  "  reach   doctor|read|search|video|social|login|install   olhos na internet",
   "  (sem comando)           REPL interativo",
   "",
   "flags: -f/--file  -p/--provider  -m/--model  --local  --mode  --approval",
@@ -70,7 +72,7 @@ async function main(): Promise<void> {
 
   const known = new Set([
     "run", "edit", "chat", "tools", "memory", "skills", "handoff", "auth", "login", "logout",
-    "gateway", "schedule", "trajectory", "repl",
+    "gateway", "schedule", "trajectory", "reach", "repl",
   ]);
   if (!known.has(cmd)) {
     // 1º token não é comando → atalho: trata tudo como `run <prompt>`
@@ -118,6 +120,9 @@ async function main(): Promise<void> {
       break;
     case "trajectory":
       process.exit(await trajectoryCmd(flags));
+      break;
+    case "reach":
+      process.exit(await reachCmd(flags));
       break;
     case "repl":
       printBanner();
