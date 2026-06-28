@@ -153,19 +153,25 @@ const specs: Spec[] = [
   { name: "docs_lookup", args: () => ({ lib: "l", query: "q" }), expect: { err: "not_configured" } },
   { name: "browser_action", args: () => ({ action: {} }), expect: "ok" },
   { name: "image_read", args: () => ({ path: "x.png" }), expect: { err: "needs_vision" } },
+  // reach (olhos na internet) — entradas inválidas falham rápido, sem rede
+  { name: "reach_read", args: () => ({ url: "ftp://x" }), expect: { err: "bad_url" } },
+  { name: "reach_search", args: () => ({ query: "" }), expect: { err: "bad_query" } },
+  { name: "reach_video", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
+  { name: "reach_social", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
+  { name: "reach_status", args: () => ({}), expect: "ok" },
 ];
 
-describe("cobertura: todas as 50 ferramentas estão no spec", () => {
-  it("o spec cobre exatamente as 50 do registry", () => {
+describe("cobertura: todas as 55 ferramentas estão no spec", () => {
+  it("o spec cobre exatamente as 55 do registry", () => {
     const registered = new Set(registry.all().map((t) => t.name));
     const tested = new Set(specs.map((s) => s.name));
-    expect(specs).toHaveLength(50);
-    expect(registered.size).toBe(50);
+    expect(specs).toHaveLength(55);
+    expect(registered.size).toBe(55);
     for (const n of registered) expect(tested.has(n)).toBe(true);
   });
 });
 
-describe("validação 1-a-1 das 50 ferramentas", () => {
+describe("validação 1-a-1 das 55 ferramentas", () => {
   for (const spec of specs) {
     const label =
       spec.expect === "ok" ? "→ ok" : spec.expect === "valid" ? "→ resultado válido" : `→ erro ${spec.expect.err}`;

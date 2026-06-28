@@ -116,6 +116,9 @@ importers:
       '@typer/memory':
         specifier: workspace:*
         version: link:../memory
+      '@typer/reach':
+        specifier: workspace:*
+        version: link:../reach
       '@typer/retrieval':
         specifier: workspace:*
         version: link:../retrieval

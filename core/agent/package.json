@@ -20,6 +20,7 @@
     "@typer/handoff": "workspace:*",
     "@typer/index": "workspace:*",
     "@typer/memory": "workspace:*",
+    "@typer/reach": "workspace:*",
     "@typer/retrieval": "workspace:*",
     "@typer/router": "workspace:*",
     "@typer/seal": "workspace:*",

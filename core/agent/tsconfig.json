@@ -11,6 +11,7 @@
     { "path": "../index" },
     { "path": "../retrieval" },
     { "path": "../memory" },
+    { "path": "../reach" },
     { "path": "../skills" },
     { "path": "../handoff" }
   ],

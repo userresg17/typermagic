@@ -18,6 +18,7 @@ import { orchestrationTools } from "./orchestration.js";
 import { lspTools } from "./lsp.js";
 import { sandboxTools } from "./sandbox.js";
 import { webTools } from "./web.js";
+import { reachTools } from "./reach.js";
 
 export * from "./types.js";
 export { DefaultToolRegistry } from "./registry.js";
@@ -25,7 +26,7 @@ export type { ToolRegistry } from "./registry.js";
 export { dispatch } from "./dispatch.js";
 export { runSubprocess, StubMicroVm } from "./executors.js";
 
-/** Todas as 50 ferramentas (core + lazy). */
+/** Todas as 55 ferramentas (core + lazy). */
 export const ALL_TOOLS: Tool[] = [
   ...fileTools,
   ...searchTools,
@@ -37,9 +38,10 @@ export const ALL_TOOLS: Tool[] = [
   ...lspTools,
   ...sandboxTools,
   ...webTools,
+  ...reachTools,
 ];
 
-/** Registry com as 50 ferramentas registradas. */
+/** Registry com as ferramentas registradas. */
 export function buildDefaultRegistry(): DefaultToolRegistry {
   const registry = new DefaultToolRegistry();
   for (const tool of ALL_TOOLS) registry.register(tool);
