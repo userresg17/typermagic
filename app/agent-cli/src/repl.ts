@@ -8,13 +8,18 @@ import { createEngine } from "@typer/engine";
 import { isModeName, type ModeName } from "@typer/agent";
 import { buildEngineConfig, type Flags } from "./config.js";
 import { makeHost } from "./host.js";
-import { runAndRender, dim, cyan, bold } from "./render.js";
+import { clearOAuth } from "@typer/router";
+import { loginMenu, status as authStatus } from "./commands/auth.js";
+import { runAndRender, dim, cyan, bold, green } from "./render.js";
 
 function printHelp(): void {
   console.log(
     [
       dim("comandos:"),
-      "  /mode <code|ask|architect|debug|gather>   muda o modo",
+      "  /login                                     entrar (chave de API ou assinatura)",
+      "  /logout <anthropic|openai>                 sair de um provider",
+      "  /status                                    o que está logado",
+      "  /mode <code|ask|architect|debug|gather>    muda o modo",
       "  /files <a> <b> ...                         arquivos-âncora do contexto",
       "  /provider <anthropic|openai|ollama|fake>   provider BYOK",
       "  /local                                     alterna modelo local (Ollama)",
@@ -45,7 +50,16 @@ export async function repl(flags: Flags): Promise<number> {
       const [cmd, ...args] = line.slice(1).trim().split(/\s+/);
       if (cmd === "exit" || cmd === "quit" || cmd === "q") break;
       else if (cmd === "help") printHelp();
-      else if (cmd === "mode") {
+      else if (cmd === "login") {
+        await loginMenu((q) => rl.question(q));
+      } else if (cmd === "logout") {
+        if (args[0]) {
+          const ok = await clearOAuth(args[0]);
+          console.log(ok ? green(`✓ login de ${args[0]} removido`) : dim(`${args[0]} não tinha login`));
+        } else console.log(dim("uso: /logout <anthropic|openai>"));
+      } else if (cmd === "status") {
+        await authStatus();
+      } else if (cmd === "mode") {
         if (args[0] && isModeName(args[0])) mode = args[0];
         else console.log(dim("modos: code, ask, architect, debug, gather"));
       } else if (cmd === "files") {
@@ -73,6 +87,12 @@ export async function repl(flags: Flags): Promise<number> {
     const prompt = buffer.join("\n").trim();
     buffer = [];
     if (!prompt) continue;
+
+    // pegou uma palavra solta que é um comando? lembra da barra em vez de virar chat.
+    if (["login", "logout", "status", "help", "exit", "quit", "clear"].includes(prompt.toLowerCase())) {
+      console.log(dim(`dica: use /${prompt.toLowerCase()} (com barra)`));
+      continue;
+    }
 
     const engine = createEngine(buildEngineConfig(flags, mode), makeHost(flags.yes));
     try {
