@@ -149,13 +149,36 @@ export async function reachCmd(flags: Flags): Promise<number> {
     return 0;
   }
   if (sub === "install") {
-    console.error(bold("reach install — semeando allowlist + checando canais"));
+    console.error(bold("reach install — setup completo (safe-mode, nada é instalado sem você)"));
+    // 1) allowlist de hosts no policy gate (assim o agente lê sem pedir aprovação a cada host)
     await seedPolicy();
-    console.error(green(`✓ hosts do reach na allowlist de .typer/policy.json`));
+    console.error(green("✓ hosts do reach na allowlist de .typer/policy.json"));
+    // 2) doctor: o que já funciona
     console.log(formatReport(await checkAll(await ctx())));
+    // 3) backends OPCIONAIS (CLIs) — detecta e dá a dica de instalação
+    console.error(bold("\nbackends opcionais (CLIs) — instale só se quiser os fallbacks:"));
+    for (const [bin, hint] of [
+      ["yt-dlp", "pip install -U yt-dlp  (fallback de transcrição/áudio)"],
+      ["gh", "https://cli.github.com  (fallback do GitHub, rate limit maior)"],
+    ] as [string, string][]) {
+      const has = await runArgv(bin, ["--version"]).then((r) => r.code === 0).catch(() => false);
+      console.error(`  ${has ? green("✓") : dim("·")} ${bin.padEnd(8)} ${has ? "instalado" : hint}`);
+    }
+    // 4) MCP opcional (plataformas anti-scraping) — mostra o stanza p/ .typer/mcp.json
+    console.error(bold("\nplataformas via MCP (opcional, robusto p/ as anti-scraping):"));
     console.error(
       dim(
-        "dica: 'reach login exa <key>' p/ busca semântica; 'reach login github <token>' p/ rate limit.",
+        '  registre no .typer/mcp.json: { "servers": [{ "name": "xiaohongshu",\n' +
+          '    "command": "npx", "args": ["xiaohongshu-mcp"] }] } — o agente usa via use_mcp_tool.',
+      ),
+    );
+    // 5) credenciais
+    console.error(bold("\ncredenciais (opcional):"));
+    console.error(
+      dim(
+        "  reach login exa <key>      busca semântica\n" +
+          "  reach login github <token> rate limit do GitHub\n" +
+          "  reach login twitter|reddit|linkedin|xueqiu|xiaohongshu <cookie>   plataformas com login",
       ),
     );
     return 0;

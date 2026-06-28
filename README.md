@@ -57,6 +57,11 @@ action never runs on its own.
 - **One engine, many surfaces.** A stable **Engine API** drives a standalone CLI/TUI, a
   code editor, a **messaging gateway** (Telegram, capability-scoped per sender), a
   **scheduler/daemon**, and a **serverless handler** — all speaking the same façade.
+- **Eyes on the internet.** A native **reach** capability (`@typer/reach`): read any page,
+  GitHub repo/file, YouTube transcript, RSS feed, Twitter/Reddit thread, or run a web
+  search — each channel with a **fallback chain** and a `reach doctor`. Zero per-platform
+  API fees; login-gated platforms light up with your own cookie. The agent calls it as
+  tools (`reach_read`/`reach_search`/…) — so it can finally *see* the web, not just guess.
 
 ## Architecture
 
@@ -110,6 +115,8 @@ typermagic auth status           # what's logged in   ·   REPL: /status, /logou
 ```bash
 typermagic run --test "pnpm test" "fix the bug in src/x.ts"   # edits, gated by your tests
 typermagic chat "explain this repo"                           # read-only Q&A over the code
+typermagic reach read https://github.com/openai/codex         # eyes on the internet (→ markdown)
+typermagic reach doctor            # which internet channels are ready (web/youtube/github/...)
 typermagic gateway telegram        # drive it from a chat (TYPER_TELEGRAM_TOKEN)
 typermagic schedule daemon         # autonomous scheduled tasks (irreversible still gated)
 typermagic trajectory export       # signed, reproducible run logs → dataset

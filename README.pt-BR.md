@@ -61,6 +61,11 @@ irreversível nunca roda sozinha.
   um editor de código, um **gateway de mensagens** (Telegram, capability-scoped por
   remetente), um **scheduler/daemon** e um **handler serverless** — todos falando a mesma
   fachada.
+- **Olhos na internet.** Capacidade **reach** nativa (`@typer/reach`): ler qualquer página,
+  repo/arquivo do GitHub, transcrição de YouTube, feed RSS, thread de Twitter/Reddit, ou
+  buscar na web — cada canal com **cadeia de fallback** e um `reach doctor`. Zero taxa de
+  API por plataforma; as com login acendem com o seu cookie. O agente usa como ferramentas
+  (`reach_read`/`reach_search`/…) — então ele finalmente *enxerga* a web, não chuta.
 
 ## Arquitetura
 
@@ -114,6 +119,8 @@ typermagic auth status           # o que está logado   ·   no REPL: /status, /
 ```bash
 typermagic run --test "pnpm test" "corrija o bug em src/x.ts"   # edita, gateado pelos seus testes
 typermagic chat "explique este repo"                            # perguntas (somente-leitura) sobre o código
+typermagic reach read https://github.com/openai/codex           # olhos na internet (→ markdown)
+typermagic reach doctor            # quais canais de internet estão prontos (web/youtube/github/...)
 typermagic gateway telegram        # controle por chat (TYPER_TELEGRAM_TOKEN)
 typermagic schedule daemon         # tarefas agendadas autônomas (irreversível ainda gateado)
 typermagic trajectory export       # logs assinados e reproduzíveis → dataset
