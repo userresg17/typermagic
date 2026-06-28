@@ -1,8 +1,7 @@
 // app/agent-cli/src/render.ts
 // Tradução de EngineEvent → terminal, compartilhada por todos os comandos e pelo
 // REPL. É a "tela" da superfície CLI/TUI: tokens em stdout, o resto (contexto,
-// plano, selo, custo, auditoria) em stderr, dim. Espelha o renderizador do @typer/cli,
-// mas vive aqui porque é específico desta superfície.
+// plano, selo, custo, auditoria) em stderr, dim. É específico desta superfície.
 
 import { renderPlanDiff } from "@typer/edit";
 import type { Engine, EngineEvent, TaskOutcome, TaskRequest } from "@typer/engine";

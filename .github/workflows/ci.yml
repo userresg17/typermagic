@@ -48,7 +48,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: nenhuma referência a pacotes/superfícies privadas
         run: |
-          if grep -REn '@typer/(server|cli)\b|app/server|app/editor|editor/extensions' \
+          # \b após server/editor p/ não confundir o público app/serverless com o privado app/server
+          if grep -REn '@typer/(server|cli)\b|app/server\b|app/editor\b|editor/extensions' \
                --include='*.ts' --include='*.json' core app; then
             echo "::error::referência a pacote/superfície privada encontrada no público"
             exit 1
