@@ -90,21 +90,40 @@ function buildBody(model: string, system: string | undefined, messages: Message[
   };
 }
 
-/** chat via backend do ChatGPT (assinatura). */
+// O backend do ChatGPT (Codex) só aceita os modelos da família suportada NA CONTA — o
+// modelo que o roteador escolheu p/ a API pública (ex.: "gpt-4.1") é REJEITADO aqui. Usamos
+// candidatos Codex, na ordem, com fallback automático se o backend disser "model not supported".
+// Override manual: TYPER_OPENAI_CHATGPT_MODEL=<slug>.
+function modelCandidates(): string[] {
+  const env = process.env.TYPER_OPENAI_CHATGPT_MODEL;
+  return [env, "gpt-5-codex", "gpt-5", "codex-mini-latest"].filter(
+    (m): m is string => !!m && m.trim().length > 0,
+  );
+}
+
+/** chat via backend do ChatGPT (assinatura), tentando os modelos Codex em ordem. */
 export async function* chatViaChatGptBackend(
   req: ChatRequest,
   auth: Extract<Auth, { kind: "oauth" }>,
 ): AsyncIterable<Chunk> {
-  const res = await fetch(RESPONSES_URL, {
-    method: "POST",
-    headers: backendHeaders(auth),
-    body: JSON.stringify(buildBody(req.model, req.system, req.messages, req.tools)),
-  });
-  if (!res.ok || !res.body) {
+  const cands = modelCandidates();
+  for (let i = 0; i < cands.length; i++) {
+    const res = await fetch(RESPONSES_URL, {
+      method: "POST",
+      headers: backendHeaders(auth),
+      body: JSON.stringify(buildBody(cands[i]!, req.system, req.messages, req.tools)),
+    });
+    if (res.ok && res.body) {
+      yield* parseResponsesSse(res.body);
+      return;
+    }
     const detail = await res.text().catch(() => "");
-    throw new Error(`ChatGPT backend respondeu ${res.status}. ${detail.slice(0, 300)}`);
+    const modelRejected = res.status === 400 && /model/i.test(detail);
+    if (!modelRejected || i === cands.length - 1) {
+      throw new Error(`ChatGPT backend respondeu ${res.status}. ${detail.slice(0, 300)}`);
+    }
+    // modelo não suportado nesta conta: tenta o próximo candidato
   }
-  yield* parseResponsesSse(res.body);
 }
 
 /** FIM via backend do ChatGPT: coleta os deltas de texto num resultado só. */
@@ -116,7 +135,7 @@ export async function fimViaChatGptBackend(
   const res = await fetch(RESPONSES_URL, {
     method: "POST",
     headers: backendHeaders(auth),
-    body: JSON.stringify(buildBody(req.model, system, messages)),
+    body: JSON.stringify(buildBody(modelCandidates()[0]!, system, messages)),
     ...(req.signal ? { signal: req.signal } : {}),
   });
   if (!res.ok || !res.body) {

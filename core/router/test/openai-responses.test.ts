@@ -103,4 +103,24 @@ describe("chatViaChatGptBackend", () => {
     const gen = chatViaChatGptBackend({ messages: [{ role: "user", content: "oi" }], model: "gpt-5" }, OAUTH);
     await expect(gen[Symbol.asyncIterator]().next()).rejects.toThrow(/backend respondeu 403/);
   });
+
+  it("ignora o modelo do roteador e faz fallback no 400 de 'model not supported'", async () => {
+    delete process.env.TYPER_OPENAI_CHATGPT_MODEL;
+    let call = 0;
+    const fetchMock = vi.fn(async (_url: string, init: { body: string }) => {
+      call++;
+      const model = JSON.parse(init.body).model;
+      if (call === 1) {
+        expect(model).toBe("gpt-5-codex"); // 1º candidato Codex (não o gpt-4.1 do roteador)
+        return { ok: false, status: 400, text: async () => '{"detail":"The model is not supported"}' };
+      }
+      expect(model).toBe("gpt-5"); // fallback automático
+      return { ok: true, body: sseStream([{ type: "response.output_text.delta", delta: "ok" }]) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    let text = "";
+    for await (const c of chatViaChatGptBackend({ messages: [{ role: "user", content: "oi" }], model: "gpt-4.1" }, OAUTH)) text += c.text;
+    expect(text).toBe("ok");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
