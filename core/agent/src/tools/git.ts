@@ -3,11 +3,7 @@
 // aprovação.
 
 import type { Tool } from "./types.js";
-import { runSubprocess } from "./executors.js";
-
-function shArg(s: string): string {
-  return `'${s.replace(/'/g, "'\\''")}'`; // aspas simples seguras p/ shell
-}
+import { runArgv } from "./executors.js";
 
 const gitStatus: Tool = {
   name: "git_status",
@@ -21,7 +17,7 @@ const gitStatus: Tool = {
   requiresApproval: false,
   sealGated: false,
   handler: async (_args, ctx) => {
-    const r = await runSubprocess("git status --porcelain=v1 -b", { cwd: ctx.workspace });
+    const r = await runArgv("git", ["status", "--porcelain=v1", "-b"], { cwd: ctx.workspace });
     return { ok: r.code === 0, value: r.stdout, ...(r.code !== 0 ? { error: { code: "git", message: r.stderr } } : {}) };
   },
 };
@@ -38,8 +34,8 @@ const gitDiff: Tool = {
   requiresApproval: false,
   sealGated: false,
   handler: async (args, ctx) => {
-    const ref = args.ref ? ` ${shArg(args.ref as string)}` : "";
-    const r = await runSubprocess(`git diff${ref}`, { cwd: ctx.workspace });
+    const gitArgs = ["diff", ...(args.ref ? [args.ref as string] : [])];
+    const r = await runArgv("git", gitArgs, { cwd: ctx.workspace });
     return { ok: r.code === 0, value: r.stdout, ...(r.code !== 0 ? { error: { code: "git", message: r.stderr } } : {}) };
   },
 };
@@ -57,11 +53,11 @@ const gitCommit: Tool = {
   sealGated: false,
   effect: { external: true, reversible: false, kind: "vcs" }, // commit muta histórico → irreversível
   handler: async (args, ctx) => {
-    const add = await runSubprocess("git add -A", { cwd: ctx.workspace });
+    const add = await runArgv("git", ["add", "-A"], { cwd: ctx.workspace });
     if (add.code !== 0) return { ok: false, error: { code: "git", message: add.stderr } };
-    const r = await runSubprocess(`git commit -m ${shArg(args.message as string)}`, { cwd: ctx.workspace });
+    const r = await runArgv("git", ["commit", "-m", args.message as string], { cwd: ctx.workspace });
     if (r.code !== 0) return { ok: false, error: { code: "git", message: r.stderr || r.stdout } };
-    const hash = await runSubprocess("git rev-parse HEAD", { cwd: ctx.workspace });
+    const hash = await runArgv("git", ["rev-parse", "HEAD"], { cwd: ctx.workspace });
     return { ok: true, value: hash.stdout.trim() };
   },
 };
@@ -83,19 +79,19 @@ const gitBranch: Tool = {
   effect: { external: true, reversible: true, kind: "vcs" }, // branch é reversível (switch/delete)
   handler: async (args, ctx) => {
     const op = args.op as string;
-    const name = args.name ? shArg(args.name as string) : "";
-    const cmd =
+    const name = (args.name as string) ?? "";
+    const gitArgs =
       op === "list"
-        ? "git branch"
+        ? ["branch"]
         : op === "create"
-          ? `git switch -c ${name}`
+          ? ["switch", "-c", name]
           : op === "switch"
-            ? `git switch ${name}`
+            ? ["switch", name]
             : op === "delete"
-              ? `git branch -D ${name}`
+              ? ["branch", "-D", name]
               : null;
-    if (!cmd) return { ok: false, error: { code: "bad_op", message: `op inválida: ${op}` } };
-    const r = await runSubprocess(cmd, { cwd: ctx.workspace });
+    if (!gitArgs) return { ok: false, error: { code: "bad_op", message: `op inválida: ${op}` } };
+    const r = await runArgv("git", gitArgs, { cwd: ctx.workspace });
     return { ok: r.code === 0, value: r.stdout || r.stderr, ...(r.code !== 0 ? { error: { code: "git", message: r.stderr } } : {}) };
   },
 };
@@ -112,7 +108,7 @@ const gitBlame: Tool = {
   requiresApproval: false,
   sealGated: false,
   handler: async (args, ctx) => {
-    const r = await runSubprocess(`git blame ${shArg(args.path as string)}`, { cwd: ctx.workspace });
+    const r = await runArgv("git", ["blame", args.path as string], { cwd: ctx.workspace });
     return { ok: r.code === 0, value: r.stdout, ...(r.code !== 0 ? { error: { code: "git", message: r.stderr } } : {}) };
   },
 };

@@ -71,9 +71,11 @@ describe("keyId e identidade", () => {
     // a privada assina e a pública (recarregada) verifica
     const sig = signDetached("teste", second.privateKeyPem);
     expect(verifyDetached("teste", sig, first.publicKeyPem)).toBe(true);
-    // permissão 0600 na chave privada
-    const mode = (await stat(join(dir, "identity.key"))).mode & 0o777;
-    expect(mode).toBe(0o600);
+    // permissão 0600 na chave privada (POSIX; o Windows não honra modos de arquivo)
+    if (process.platform !== "win32") {
+      const mode = (await stat(join(dir, "identity.key"))).mode & 0o777;
+      expect(mode).toBe(0o600);
+    }
     // a chave pública persistida bate
     expect((await readFile(join(dir, "identity.pub"), "utf8")).trim()).toBe(first.publicKeyPem.trim());
   });

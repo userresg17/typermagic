@@ -5,7 +5,7 @@
 // microVM real no v1, então StubMicroVm recusa com erro claro (o dispatcher já
 // barra microvm sem adaptador antes disso).
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import type { MicroVm } from "./types.js";
 
 export interface SubprocessResult {
@@ -17,17 +17,9 @@ export interface SubprocessResult {
 
 const DEFAULT_TIMEOUT = 2 * 60_000;
 
-/** Roda um comando do toolchain do usuário e devolve o resultado cru. */
-export function runSubprocess(
-  cmd: string,
-  opts: { cwd?: string; timeoutMs?: number } = {},
-): Promise<SubprocessResult> {
-  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT;
+/** Coleta stdout/stderr/código de um processo já criado, com teto de tempo. */
+function collect(child: ChildProcess, timeoutMs: number): Promise<SubprocessResult> {
   return new Promise((resolve) => {
-    const child = spawn(cmd, {
-      shell: true,
-      ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
-    });
     let stdout = "";
     let stderr = "";
     let timedOut = false;
@@ -50,6 +42,37 @@ export function runSubprocess(
       resolve({ code: code ?? -1, stdout, stderr, timedOut });
     });
   });
+}
+
+/** Roda um comando do toolchain do usuário VIA SHELL e devolve o resultado cru.
+ *  Use só para comando livre do usuário (run_command). Para binários estruturados
+ *  (git, etc.) prefira runArgv — sem shell, sem quoting, cross-platform. */
+export function runSubprocess(
+  cmd: string,
+  opts: { cwd?: string; timeoutMs?: number } = {},
+): Promise<SubprocessResult> {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT;
+  const child = spawn(cmd, {
+    shell: true,
+    ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
+  });
+  return collect(child, timeoutMs);
+}
+
+/** Roda um binário com argv explícito, SEM shell — sem quoting e cross-platform
+ *  (no Windows o cmd.exe não trata aspas simples como o /bin/sh). Também elimina
+ *  a superfície de injeção de shell. */
+export function runArgv(
+  file: string,
+  args: string[],
+  opts: { cwd?: string; timeoutMs?: number } = {},
+): Promise<SubprocessResult> {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT;
+  const child = spawn(file, args, {
+    shell: false,
+    ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
+  });
+  return collect(child, timeoutMs);
 }
 
 /** microVM ausente: recusa com erro claro. Trocável por um adaptador real. */
