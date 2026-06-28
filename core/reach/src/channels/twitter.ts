@@ -56,5 +56,6 @@ export const twitterChannel: Channel = {
   description: "Ler tweets do Twitter/X (público)",
   tier: "login",
   backends: [syndicationBackend],
-  matches: (input) => /(?:twitter\.com|x\.com)\//i.test(input),
+  // \b evita pegar "x.com" dentro de "v2ex.com" etc.
+  matches: (input) => /\b(?:twitter|x)\.com\//i.test(input),
 };

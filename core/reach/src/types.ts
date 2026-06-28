@@ -64,5 +64,7 @@ export const FEATURE_REQUIREMENTS: Record<string, string[]> = {
   twitter: ["twitter_cookie"],
   reddit: ["reddit_cookie"],
   linkedin: ["linkedin_cookie"],
+  xueqiu: ["xueqiu_cookie"],
+  xiaohongshu: ["xiaohongshu_cookie"],
   whisper: ["groq_api_key"], // ou openai_api_key
 };

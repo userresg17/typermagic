@@ -11,6 +11,13 @@ import { searchChannel } from "./channels/search.js";
 import { redditChannel } from "./channels/reddit.js";
 import { twitterChannel } from "./channels/twitter.js";
 import { linkedinChannel } from "./channels/linkedin.js";
+import {
+  v2exChannel,
+  bilibiliChannel,
+  xiaoyuzhouChannel,
+  xueqiuChannel,
+  xiaohongshuChannel,
+} from "./channels/china.js";
 
 export const CHANNELS: Channel[] = [
   youtubeChannel,
@@ -18,6 +25,11 @@ export const CHANNELS: Channel[] = [
   redditChannel,
   twitterChannel,
   linkedinChannel,
+  bilibiliChannel,
+  v2exChannel,
+  xiaoyuzhouChannel,
+  xueqiuChannel,
+  xiaohongshuChannel,
   rssChannel,
   searchChannel,
   webChannel,
