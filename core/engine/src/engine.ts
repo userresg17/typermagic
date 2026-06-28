@@ -186,8 +186,11 @@ class EngineImpl implements Engine {
       }
     }
 
-    // Ferramentas internas (F1): o agente chama as 50 sob broker + policy gate + selo.
-    if (features.tools && !toolExec) {
+    // Ferramentas internas (F1): em modos SOMENTE-LEITURA (ask/gather/architect) o agente
+    // ganha as 50 ferramentas p/ EXPLORAR o projeto de verdade (ler arquivos, listar, grep)
+    // em vez de só responder do contexto pré-recuperado. Modos de edição (code/debug) seguem
+    // no loop de edição com selo+teste. Tudo sob broker + policy gate + selo.
+    if (features.tools && !toolExec && !mode.allowsEdit) {
       toolExec = engineToolExecutor(
         await this.buildToolDeps({
           origin: "agent",

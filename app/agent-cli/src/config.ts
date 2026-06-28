@@ -13,6 +13,7 @@ export interface Flags {
   handoff: boolean;
   skills: boolean;
   mcp: boolean;
+  tools: boolean;
   consolidate: boolean;
   mode: string | null;
   approval: string | null;
@@ -35,6 +36,7 @@ export function parseFlags(argv: string[]): Flags {
     handoff: false,
     skills: false,
     mcp: false,
+    tools: true, // o agente explora o projeto com as ferramentas internas (read/grep/...)
     consolidate: false,
     mode: null,
     approval: null,
@@ -64,6 +66,7 @@ export function parseFlags(argv: string[]): Flags {
     else if (a === "--handoff") f.handoff = true;
     else if (a === "--skills") f.skills = true;
     else if (a === "--mcp") f.mcp = true;
+    else if (a === "--no-tools") f.tools = false;
     else if (a === "--consolidate") f.consolidate = true;
     else if (a === "--local") f.local = true;
     else if (a === "--record") f.record = true;
@@ -83,6 +86,7 @@ const FEATURES = (f: Flags): EngineFeatures => ({
   handoff: f.handoff,
   skills: f.skills,
   mcp: f.mcp,
+  tools: f.tools,
   consolidate: f.consolidate,
 });
 
