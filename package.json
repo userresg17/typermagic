@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "TYPER Magic — local-first, BYOK, model-agnostic coding agent that proves before it acts.",
+  "description": "TYPER Magic — local-first, BYOK, model-agnostic general-purpose agent that proves before it acts.",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.32.1",
   "engines": {
