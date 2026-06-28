@@ -8,8 +8,20 @@ import { rssChannel } from "./channels/rss.js";
 import { youtubeChannel } from "./channels/youtube.js";
 import { githubChannel } from "./channels/github.js";
 import { searchChannel } from "./channels/search.js";
+import { redditChannel } from "./channels/reddit.js";
+import { twitterChannel } from "./channels/twitter.js";
+import { linkedinChannel } from "./channels/linkedin.js";
 
-export const CHANNELS: Channel[] = [youtubeChannel, githubChannel, rssChannel, searchChannel, webChannel];
+export const CHANNELS: Channel[] = [
+  youtubeChannel,
+  githubChannel,
+  redditChannel,
+  twitterChannel,
+  linkedinChannel,
+  rssChannel,
+  searchChannel,
+  webChannel,
+];
 
 export function getChannel(name: string): Channel | undefined {
   return CHANNELS.find((c) => c.name === name);

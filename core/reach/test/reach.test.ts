@@ -10,6 +10,8 @@ import { setCred, loadConfig, resolveCred } from "../src/store.js";
 import { parseFeed } from "../src/channels/rss.js";
 import { parseVideoId, parseTimedText } from "../src/channels/youtube.js";
 import { parseRepo } from "../src/channels/github.js";
+import { formatReddit } from "../src/channels/reddit.js";
+import { parseTweetId, syndicationToken } from "../src/channels/twitter.js";
 import { htmlToText, decodeEntities } from "../src/http.js";
 
 const CTX: ReachContext = { config: {}, timeoutMs: 5000 };
@@ -44,6 +46,10 @@ describe("routeUrl", () => {
     ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "youtube"],
     ["https://youtu.be/dQw4w9WgXcQ", "youtube"],
     ["https://github.com/openai/codex", "github"],
+    ["https://www.reddit.com/r/typescript/comments/abc/x/", "reddit"],
+    ["https://x.com/user/status/1234567890", "twitter"],
+    ["https://twitter.com/user/status/1234567890", "twitter"],
+    ["https://www.linkedin.com/posts/abc", "linkedin"],
     ["https://blog.exemplo.com/feed.xml", "rss"],
     ["https://news.site/rss", "rss"],
     ["https://exemplo.com/artigo", "web"],
@@ -132,6 +138,25 @@ describe("parsers de canal (fixtures, sem rede)", () => {
       rest: ["blob", "main", "src", "x.ts"],
     });
     expect(parseRepo("semrepo")).toBeNull();
+  });
+  it("parseTweetId + syndicationToken", () => {
+    expect(parseTweetId("https://x.com/jack/status/20")).toBe("20");
+    expect(parseTweetId("https://twitter.com/u/status/1234567890123456789")).toBe("1234567890123456789");
+    expect(parseTweetId("https://x.com/u")).toBeNull();
+    expect(typeof syndicationToken("1234567890123456789")).toBe("string");
+    expect(syndicationToken("1234567890123456789")).not.toMatch(/[.0]/); // sem '.' nem zeros (regex do react-tweet)
+  });
+  it("formatReddit: thread (array) e listing (subreddit)", () => {
+    const thread = [
+      { data: { children: [{ data: { title: "T", selftext: "corpo", author: "a", subreddit: "ts", score: 9 } }] } },
+      { data: { children: [{ data: { author: "b", body: "comentário", score: 3 } }] } },
+    ];
+    const md = formatReddit(thread);
+    expect(md).toContain("# T");
+    expect(md).toContain("r/ts");
+    expect(md).toContain("u/b");
+    const listing = { data: { children: [{ data: { title: "P1", score: 5, permalink: "/r/x/1" } }] } };
+    expect(formatReddit(listing)).toContain("**P1**");
   });
 });
 
