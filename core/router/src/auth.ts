@@ -26,6 +26,7 @@ export interface OAuthRecord {
   /** epoch ms */
   expires_at?: number;
   account_id?: string;
+  id_token?: string;
 }
 
 function oauthEnvVar(provider: string): string {
@@ -71,6 +72,7 @@ export async function saveOAuth(provider: string, tok: TokenResponse): Promise<v
     ...(tok.refreshToken ? { refresh_token: tok.refreshToken } : {}),
     ...(tok.expiresAt ? { expires_at: tok.expiresAt } : {}),
     ...(tok.accountId ? { account_id: tok.accountId } : {}),
+    ...(tok.idToken ? { id_token: tok.idToken } : {}),
   };
   await writeAuthFile(data);
 }

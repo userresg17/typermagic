@@ -116,6 +116,8 @@ export interface TokenResponse {
   expiresAt?: number;
   /** id da conta/assinatura, quando o provider devolve (header de inferência). */
   accountId?: string;
+  /** id_token cru (JWT) — guardado p/ debug/token-exchange. */
+  idToken?: string;
   raw: Record<string, unknown>;
 }
 
@@ -124,12 +126,14 @@ function parseTokenResponse(data: Record<string, unknown>): TokenResponse {
   const refreshToken = typeof data.refresh_token === "string" ? data.refresh_token : undefined;
   const expiresIn = typeof data.expires_in === "number" ? data.expires_in : undefined;
   const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : undefined;
-  const accountId = typeof data.id_token === "string" ? accountIdFromIdToken(data.id_token) : undefined;
+  const idToken = typeof data.id_token === "string" ? data.id_token : undefined;
+  const accountId = idToken ? accountIdFromIdToken(idToken) : undefined;
   return {
     accessToken,
     ...(refreshToken ? { refreshToken } : {}),
     ...(expiresAt ? { expiresAt } : {}),
     ...(accountId ? { accountId } : {}),
+    ...(idToken ? { idToken } : {}),
     raw: data,
   };
 }
@@ -197,7 +201,8 @@ export const PROVIDERS: Record<string, OAuthConfig> = {
     authorizeUrl: "https://auth.openai.com/oauth/authorize",
     tokenUrl: "https://auth.openai.com/oauth/token",
     clientId: "app_EMoamEEZ73f0CkXaXp7hrann",
-    // 4 escopos básicos (os api.connectors.* são recentes e podem ser rejeitados).
+    // 4 escopos (igual à reimplementação que funciona). O acesso ao backend Codex NÃO é
+    // dado por scope — o 400 "model not supported" era só por slug de modelo velho.
     scope: "openid profile email offline_access",
     mode: "loopback",
     loopbackPort: 1455,

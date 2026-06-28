@@ -111,10 +111,10 @@ describe("chatViaChatGptBackend", () => {
       call++;
       const model = JSON.parse(init.body).model;
       if (call === 1) {
-        expect(model).toBe("gpt-5-codex"); // 1º candidato Codex (não o gpt-4.1 do roteador)
+        expect(model).toBe("gpt-5.5"); // 1º candidato Codex atual (não o gpt-4.1 do roteador)
         return { ok: false, status: 400, text: async () => '{"detail":"The model is not supported"}' };
       }
-      expect(model).toBe("gpt-5"); // fallback automático
+      expect(model).toBe("gpt-5.4"); // fallback automático
       return { ok: true, body: sseStream([{ type: "response.output_text.delta", delta: "ok" }]) };
     });
     vi.stubGlobal("fetch", fetchMock);

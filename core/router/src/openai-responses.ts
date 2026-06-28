@@ -79,24 +79,30 @@ export function toResponsesTools(tools?: ToolSpec[]): unknown[] | undefined {
 
 function buildBody(model: string, system: string | undefined, messages: Message[], tools?: ToolSpec[]) {
   const { instructions, input } = toResponsesInput(system, messages);
-  const t = toResponsesTools(tools);
+  // Body fiel ao Codex: store/stream forçados, reasoning+text+include, tools sempre presente,
+  // tool_choice auto. NÃO mandar `metadata` (o backend Codex tem allowlist estrita de params).
   return {
     model,
     ...(instructions ? { instructions } : {}),
     input,
-    stream: true,
+    tools: toResponsesTools(tools) ?? [],
+    tool_choice: "auto",
+    parallel_tool_calls: false,
+    reasoning: { effort: "medium", summary: "auto" },
+    text: { verbosity: "medium" },
+    include: ["reasoning.encrypted_content"],
     store: false,
-    ...(t ? { tools: t, tool_choice: "auto" } : {}),
+    stream: true,
   };
 }
 
-// O backend do ChatGPT (Codex) só aceita os modelos da família suportada NA CONTA — o
-// modelo que o roteador escolheu p/ a API pública (ex.: "gpt-4.1") é REJEITADO aqui. Usamos
-// candidatos Codex, na ordem, com fallback automático se o backend disser "model not supported".
-// Override manual: TYPER_OPENAI_CHATGPT_MODEL=<slug>.
+// O backend do ChatGPT (Codex) só aceita os modelos do catálogo ATUAL do Codex — o modelo
+// que o roteador escolheu p/ a API pública (ex.: "gpt-4.1") é rejeitado, e a lista ROTACIONA
+// sem aviso (gpt-5/gpt-5-codex/gpt-5.3-codex já saíram). Tentamos os atuais em ordem, com
+// fallback no 400. Override manual: TYPER_OPENAI_CHATGPT_MODEL=<slug>.
 function modelCandidates(): string[] {
   const env = process.env.TYPER_OPENAI_CHATGPT_MODEL;
-  return [env, "gpt-5-codex", "gpt-5", "codex-mini-latest"].filter(
+  return [env, "gpt-5.5", "gpt-5.4", "gpt-5.4-mini"].filter(
     (m): m is string => !!m && m.trim().length > 0,
   );
 }
@@ -121,18 +127,19 @@ export async function* chatViaChatGptBackend(
     const codexUnavailable = /not supported when using Codex with a ChatGPT account/i.test(detail);
     const modelRejected = res.status === 400 && /model/i.test(detail);
     const last = i === cands.length - 1;
-    // Todos os modelos recusados com a mesma mensagem = conta sem acesso ao Codex.
+    // Todos os candidatos recusados: a lista de modelos do Codex rotacionou (ou a assinatura
+    // expirou — a OpenAI dá o MESMO erro nos dois casos).
     if (codexUnavailable && last) {
       throw new Error(
-        "sua conta ChatGPT não está liberada para o Codex (o backend recusou todos os modelos). " +
-          "Isso pede um plano Plus/Pro/Team com Codex habilitado — abra chatgpt.com/codex uma vez para ativar. " +
-          "Funciona já: API key da OpenAI (`typermagic auth set openai`) ou Anthropic (`typermagic login anthropic`).",
+        `nenhum modelo Codex atual foi aceito (tentei: ${cands.join(", ")}). A OpenAI rotaciona a ` +
+          "lista sem aviso — force um slug com TYPER_OPENAI_CHATGPT_MODEL=<modelo> (veja o que o " +
+          "`codex` usa hoje). Se persistir, confira se a assinatura ChatGPT está ativa.",
       );
     }
     if (!modelRejected || last) {
       throw new Error(`ChatGPT backend respondeu ${res.status}. ${detail.slice(0, 300)}`);
     }
-    // modelo não suportado nesta conta: tenta o próximo candidato
+    // modelo não suportado: tenta o próximo candidato
   }
 }
 
