@@ -5,6 +5,7 @@
   "type": "module",
   "description": "TYPER Magic — CLI/TUI standalone do agente, sobre a Engine API (segunda superfície, separada do editor)",
   "bin": {
+    "typermagic": "./dist/main.js",
     "typer-agent": "./dist/main.js"
   },
   "scripts": {

@@ -8,6 +8,10 @@
 
 <p align="center"><em>The general-purpose agent you trust with real systems and real data — because it proves before it acts.</em></p>
 
+<p align="center">
+  <img src="./banner.png" alt="typermagic on the terminal" width="560" />
+</p>
+
 ---
 
 TYPER Magic is a **local-first, BYOK, model-agnostic agent** in the class of Hermes and
@@ -76,18 +80,39 @@ model is swapping an adapter, not the architecture.
 
 ```bash
 pnpm install
-# offline (no key) falls back to a deterministic Fake provider
-pnpm --filter @typer/agent-cli dev chat "what does the router do?"
-pnpm --filter @typer/agent-cli dev tools            # the 50 tools, with permission/exec
-pnpm --filter @typer/agent-cli dev memory           # the memory graph (ascii)
-pnpm --filter @typer/agent-cli dev                  # interactive REPL
+pnpm --filter @typer/agent-cli build      # builds the `typermagic` (and `typer-agent`) CLI
 
-# bring your own key, then put it to work across surfaces
-typer-agent auth set anthropic                      # or export TYPER_ANTHROPIC_KEY=...
-typer-agent run --test "pnpm test" "fix the bug in src/x.ts"
-typer-agent gateway telegram                        # drive it from a chat (TYPER_TELEGRAM_TOKEN)
-typer-agent schedule daemon                          # autonomous scheduled tasks (irreversible still gated)
-typer-agent trajectory export                        # signed, reproducible run logs → dataset
+# offline (no key) falls back to a deterministic Fake provider
+typermagic tools          # the 50 tools, with permission/exec
+typermagic memory         # the memory graph (ascii)
+typermagic                # interactive REPL (the banner above)
+```
+
+### Sign in
+
+Inside the REPL, just type **`/login`** — it opens a menu (API key or subscription,
+Anthropic or OpenAI) and you pick. From the shell:
+
+```bash
+typermagic login                 # interactive: API key or subscription, pick a provider
+typermagic auth set anthropic    # paste an API key (BYOK)  ·  or export TYPER_ANTHROPIC_KEY=...
+typermagic login anthropic       # sign in with your Claude Pro/Max subscription (OAuth)
+typermagic login openai          # sign in with your ChatGPT Plus/Pro subscription (OAuth)
+typermagic auth status           # what's logged in   ·   REPL: /status, /logout <provider>
+```
+
+> Subscription sign-in uses the providers' official OAuth (like Claude Code / Codex) and
+> consumes your own plan — it's a gray area of their terms. BYOK (an API key) carries no such
+> risk. Tokens are stored locally in `~/.typer/auth.json` (mode `0600`) and auto-refresh.
+
+### Put it to work
+
+```bash
+typermagic run --test "pnpm test" "fix the bug in src/x.ts"   # edits, gated by your tests
+typermagic chat "explain this repo"                           # read-only Q&A over the code
+typermagic gateway telegram        # drive it from a chat (TYPER_TELEGRAM_TOKEN)
+typermagic schedule daemon         # autonomous scheduled tasks (irreversible still gated)
+typermagic trajectory export       # signed, reproducible run logs → dataset
 ```
 
 ## Status
