@@ -118,8 +118,18 @@ export async function* chatViaChatGptBackend(
       return;
     }
     const detail = await res.text().catch(() => "");
+    const codexUnavailable = /not supported when using Codex with a ChatGPT account/i.test(detail);
     const modelRejected = res.status === 400 && /model/i.test(detail);
-    if (!modelRejected || i === cands.length - 1) {
+    const last = i === cands.length - 1;
+    // Todos os modelos recusados com a mesma mensagem = conta sem acesso ao Codex.
+    if (codexUnavailable && last) {
+      throw new Error(
+        "sua conta ChatGPT não está liberada para o Codex (o backend recusou todos os modelos). " +
+          "Isso pede um plano Plus/Pro/Team com Codex habilitado — abra chatgpt.com/codex uma vez para ativar. " +
+          "Funciona já: API key da OpenAI (`typermagic auth set openai`) ou Anthropic (`typermagic login anthropic`).",
+      );
+    }
+    if (!modelRejected || last) {
       throw new Error(`ChatGPT backend respondeu ${res.status}. ${detail.slice(0, 300)}`);
     }
     // modelo não suportado nesta conta: tenta o próximo candidato
