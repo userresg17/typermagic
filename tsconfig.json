@@ -19,6 +19,7 @@
     { "path": "./core/autocomplete" },
     { "path": "./core/finetune" },
     { "path": "./core/trajectory" },
+    { "path": "./core/reach" },
     { "path": "./app/agent-cli" },
     { "path": "./app/gateway" },
     { "path": "./app/scheduler" },
