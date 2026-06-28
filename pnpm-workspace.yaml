@@ -1,0 +1,6 @@
+packages:
+  - "core/*"
+  - "app/agent-cli"
+  - "app/gateway"
+  - "app/scheduler"
+  - "app/serverless"

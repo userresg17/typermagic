@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm licenses:check
+
+  # Gate de segredos: nenhum BYOK/chave/segredo pode entrar no repo público.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  # Guard: impede religar o privado por engano (server/editor/CLI antiga) — o público
+  # é só núcleo + Engine + agent-cli. Falha se qualquer referência reaparecer.
+  no-private-refs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: nenhuma referência a pacotes/superfícies privadas
+        run: |
+          if grep -REn '@typer/(server|cli)\b|app/server|app/editor|editor/extensions' \
+               --include='*.ts' --include='*.json' core app; then
+            echo "::error::referência a pacote/superfície privada encontrada no público"
+            exit 1
+          fi
+          echo "ok: sem referências privadas"

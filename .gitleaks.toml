@@ -1,0 +1,18 @@
+# Config do gitleaks p/ o repo público do TYPER Magic. Usa as regras default e
+# acrescenta um aviso de allowlist para os exemplos de chave por ENV (BYOK), que
+# NÃO são segredos — são só o NOME da variável (TYPER_<PROVIDER>_KEY).
+title = "TYPER Magic gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Falsos positivos conhecidos (nomes de variáveis BYOK, não segredos)"
+regexes = [
+  '''TYPER_[A-Z]+_KEY''',
+  '''sk-\.\.\.''',
+  '''sk-ant-\.\.\.''',
+]
+paths = [
+  '''(.*?)\.md$''',
+]

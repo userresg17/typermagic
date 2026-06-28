@@ -1,0 +1,19 @@
+{
+  "name": "@typer/finetune",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agente de fine-tuning — coleta sequências de edição, monta dataset, treina (Ollama/OpenAI) e registra o modelo de next-edit",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {}
+}

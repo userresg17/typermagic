@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "references": [
+    { "path": "../../core/agent" },
+    { "path": "../../core/crypto" },
+    { "path": "../../core/edit" },
+    { "path": "../../core/engine" },
+    { "path": "../../app/gateway" },
+    { "path": "../../app/scheduler" },
+    { "path": "../../core/trajectory" },
+    { "path": "../../core/handoff" },
+    { "path": "../../core/index" },
+    { "path": "../../core/memory" },
+    { "path": "../../core/router" },
+    { "path": "../../core/skills" }
+  ],
+  "include": ["src/**/*.ts"]
+}

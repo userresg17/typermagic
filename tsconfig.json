@@ -1,0 +1,27 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./core/router" },
+    { "path": "./core/crypto" },
+    { "path": "./core/sandbox" },
+    { "path": "./core/cost" },
+    { "path": "./core/index" },
+    { "path": "./core/memory" },
+    { "path": "./core/handoff" },
+    { "path": "./core/retrieval" },
+    { "path": "./core/edit" },
+    { "path": "./core/seal" },
+    { "path": "./core/skills" },
+    { "path": "./core/evals" },
+    { "path": "./core/agent" },
+    { "path": "./core/engine" },
+    { "path": "./core/mcp" },
+    { "path": "./core/autocomplete" },
+    { "path": "./core/finetune" },
+    { "path": "./core/trajectory" },
+    { "path": "./app/agent-cli" },
+    { "path": "./app/gateway" },
+    { "path": "./app/scheduler" },
+    { "path": "./app/serverless" }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@typer/trajectory",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Export de trajetória assinada e reproduzível — auditoria, debugging e dataset de treino (reusa @typer/finetune).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/crypto": "workspace:*",
+    "@typer/finetune": "workspace:*"
+  }
+}

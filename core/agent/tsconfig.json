@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "references": [
+    { "path": "../router" },
+    { "path": "../edit" },
+    { "path": "../seal" },
+    { "path": "../index" },
+    { "path": "../retrieval" },
+    { "path": "../memory" },
+    { "path": "../skills" },
+    { "path": "../handoff" }
+  ],
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@typer/handoff",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Handoff em camadas — schema determinístico anti-drift, ciclo de clear",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/memory": "workspace:*"
+  },
+  "devDependencies": {
+    "@typer/index": "workspace:*"
+  }
+}

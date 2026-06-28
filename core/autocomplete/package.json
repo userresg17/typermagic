@@ -1,0 +1,21 @@
+{
+  "name": "@typer/autocomplete",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Predição de próxima edição (next-edit) — o tab pra pular",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/router": "workspace:*"
+  }
+}

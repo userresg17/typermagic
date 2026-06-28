@@ -1,0 +1,21 @@
+{
+  "name": "@typer/cost",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Medidor de custo — conta token e custo por requisição, middleware no router",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/router": "workspace:*"
+  }
+}

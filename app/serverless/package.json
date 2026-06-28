@@ -1,0 +1,25 @@
+{
+  "name": "@typer/serverless",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Adaptador serverless — handler HTTP + formato Lambda/Modal que roda uma tarefa do agente sob demanda. Deploy é do dono.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "typer-serverless": "./dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "serve": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@typer/engine": "workspace:*"
+  }
+}

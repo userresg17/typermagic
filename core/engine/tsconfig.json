@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "references": [
+    { "path": "../agent" },
+    { "path": "../cost" },
+    { "path": "../edit" },
+    { "path": "../handoff" },
+    { "path": "../index" },
+    { "path": "../mcp" },
+    { "path": "../memory" },
+    { "path": "../retrieval" },
+    { "path": "../router" },
+    { "path": "../sandbox" },
+    { "path": "../seal" },
+    { "path": "../skills" },
+    { "path": "../trajectory" }
+  ],
+  "include": ["src/**/*.ts"]
+}

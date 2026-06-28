@@ -1,0 +1,21 @@
+# dependências
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+*.tsbuildinfo
+
+# ambiente e segredos — BYOK nunca entra no repo
+.env
+.env.*
+!.env.example
+*.key
+
+# armazenamento local do Typer (índice, memória, skills, handoff)
+.typer/
+
+# sistema
+.DS_Store
+*.log
+coverage/

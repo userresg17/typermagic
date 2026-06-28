@@ -1,0 +1,29 @@
+{
+  "name": "@typer/agent-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TYPER Magic — CLI/TUI standalone do agente, sobre a Engine API (segunda superfície, separada do editor)",
+  "bin": {
+    "typer-agent": "./dist/main.js"
+  },
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/agent": "workspace:*",
+    "@typer/crypto": "workspace:*",
+    "@typer/edit": "workspace:*",
+    "@typer/engine": "workspace:*",
+    "@typer/gateway": "workspace:*",
+    "@typer/handoff": "workspace:*",
+    "@typer/index": "workspace:*",
+    "@typer/memory": "workspace:*",
+    "@typer/router": "workspace:*",
+    "@typer/scheduler": "workspace:*",
+    "@typer/skills": "workspace:*",
+    "@typer/trajectory": "workspace:*"
+  }
+}

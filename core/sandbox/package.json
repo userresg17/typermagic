@@ -1,0 +1,18 @@
+{
+  "name": "@typer/sandbox",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolamento real de código não confiável — sandbox por subprocess (bubblewrap/unshare), Docker e Firecracker (opt-in). Implementa a interface MicroVm.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@typer/skills",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Skills — indução gateada pelo selo, recuperação por embedding, versionamento",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/crypto": "workspace:*",
+    "@typer/index": "workspace:*",
+    "@typer/seal": "workspace:*"
+  }
+}

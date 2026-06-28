@@ -1,0 +1,7 @@
+dist/
+node_modules/
+app/editor/
+pnpm-lock.yaml
+*.pdf
+*.png
+ROADMAP.pdf

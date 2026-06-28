@@ -1,0 +1,33 @@
+{
+  "name": "@typer/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Engine API — fachada estável do núcleo: recebe tarefa, recupera contexto, planeja, edita, verifica (selo), executa ferramenta e emite handoff. Toda superfície (CLI, editor, gateway) consome esta fachada.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/agent": "workspace:*",
+    "@typer/cost": "workspace:*",
+    "@typer/edit": "workspace:*",
+    "@typer/handoff": "workspace:*",
+    "@typer/index": "workspace:*",
+    "@typer/mcp": "workspace:*",
+    "@typer/memory": "workspace:*",
+    "@typer/retrieval": "workspace:*",
+    "@typer/router": "workspace:*",
+    "@typer/sandbox": "workspace:*",
+    "@typer/seal": "workspace:*",
+    "@typer/skills": "workspace:*",
+    "@typer/trajectory": "workspace:*"
+  }
+}

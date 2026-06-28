@@ -1,0 +1,21 @@
+{
+  "name": "@typer/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gateway de mensagens — o agente em canais (Telegram, etc.), capability-scoped, com allowlist e rate-limit por remetente. Cada canal é uma superfície gateway:* sobre a Engine.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/engine": "workspace:*"
+  }
+}
