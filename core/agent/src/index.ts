@@ -45,6 +45,7 @@ export {
   StubMicroVm,
   ALL_TOOLS,
   nowIso,
+  reachSkillSection,
 } from "./tools/index.js";
 export type {
   Tool,

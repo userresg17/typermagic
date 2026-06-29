@@ -12,6 +12,7 @@ import {
   reachChannel,
   checkAll,
   formatReport,
+  REACH_SKILL,
   type ReachContext,
   type ReachResult,
 } from "@typer/reach";
@@ -131,3 +132,10 @@ const reachStatusTool: Tool = {
 };
 
 export const reachTools: Tool[] = [reachReadTool, reachSearchTool, reachVideoTool, reachSocialTool, reachStatusTool];
+
+/** Doc de capacidade do reach p/ o system prompt — SÓ quando alguma tool reach_* está
+ *  exposta ao modelo. Ensina a metodologia (qual canal p/ qual alvo, cadeia de fallback)
+ *  e evita o "não tenho acesso à internet". Vazio quando o reach não está disponível. */
+export function reachSkillSection(tools: { name: string }[]): string {
+  return tools.some((t) => t.name.startsWith("reach_")) ? REACH_SKILL : "";
+}

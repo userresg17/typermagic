@@ -9,6 +9,7 @@ import {
   buildDefaultRegistry,
   dispatch,
   registryExecutor,
+  reachSkillSection,
   type ToolContext,
   type AuditEvent,
 } from "../src/index.js";
@@ -202,5 +203,17 @@ describe("adapter registry → ToolExecutor (runToolLoop)", () => {
     const exec = registryExecutor(registry, fakeCtx());
     const r = await exec.call("read_file", {});
     expect(r.isError).toBe(true);
+  });
+});
+
+describe("reachSkillSection (doc do reach no system prompt)", () => {
+  it("injeta o REACH_SKILL quando há tool reach_* exposta", () => {
+    const s = reachSkillSection([{ name: "fs_read" }, { name: "reach_search" }]);
+    expect(s).toContain("olhos na internet");
+    expect(s).toContain("reach_read");
+  });
+  it("vazio quando nenhuma tool reach está exposta", () => {
+    expect(reachSkillSection([{ name: "fs_read" }, { name: "web_get" }])).toBe("");
+    expect(reachSkillSection([])).toBe("");
   });
 });

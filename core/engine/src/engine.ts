@@ -11,6 +11,7 @@ import {
   resolveMode,
   runEditLoop,
   runToolLoop,
+  reachSkillSection,
   AuditTrail,
   ApprovalGate,
   type AttemptInfo,
@@ -440,7 +441,10 @@ class EngineImpl implements Engine {
     modeSystem: string,
     executor: ToolExecutor,
   ): Promise<TaskOutcome> {
-    const system = contextBlock ? `${modeSystem}\n\n${contextBlock}` : modeSystem;
+    // Injeta a doc de capacidade do reach SE as tools reach_* estão expostas (olhos na
+    // internet + metodologia de fallback). Vazio quando o reach não está disponível.
+    const skill = reachSkillSection(executor.tools());
+    const system = [modeSystem, skill, contextBlock].filter(Boolean).join("\n\n");
     emit({ type: "info", message: "tool-use: o agente pode chamar ferramentas MCP" });
     const result = await runToolLoop(prompt, {
       provider,

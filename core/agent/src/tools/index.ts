@@ -19,6 +19,7 @@ import { lspTools } from "./lsp.js";
 import { sandboxTools } from "./sandbox.js";
 import { webTools } from "./web.js";
 import { reachTools } from "./reach.js";
+export { reachSkillSection } from "./reach.js";
 
 export * from "./types.js";
 export { DefaultToolRegistry } from "./registry.js";
