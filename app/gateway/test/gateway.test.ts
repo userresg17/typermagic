@@ -105,6 +105,15 @@ describe("Gateway comandos do cofre (/set, /vault) — valor nunca vai ao modelo
     expect(ch.lastReply()).not.toContain("4111111111111234");
   });
 
+  it("/status responde a saúde do assistente", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake", features: { tools: true, memory: true }, vault: true });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/status" });
+    expect(ch.lastReply()).toMatch(/Status do assistente/);
+    expect(ch.lastReply()).toMatch(/Mem[oó]ria: on/);
+  });
+
   it("/forget apaga o campo", async () => {
     const ch = new FakeChannel();
     const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake", vault: true });

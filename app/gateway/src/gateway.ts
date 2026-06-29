@@ -37,7 +37,7 @@ const ASK_TIMEOUT_MS = 5 * 60_000;
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
-const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/help"];
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help"];
 /** 1º token do comando, normalizado — tira o sufixo @nomedobot que o Telegram anexa. */
 function commandOf(text: string): string {
   const first = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
@@ -93,6 +93,9 @@ export class Gateway {
   private vault: Vault | undefined;
   /** memória de conversa por chat (multi-turno): "quero esta opção" enxerga o que veio antes */
   private readonly history = new Map<string, Array<{ role: "user" | "assistant"; content: string }>>();
+  /** monitoramento: falhas seguidas (p/ alerta proativo) e última falha (p/ /status) */
+  private consecutiveErrors = 0;
+  private lastError = "";
 
   constructor(
     private readonly adapter: ChannelAdapter,
@@ -220,18 +223,33 @@ export class Gateway {
         buf = this.fold(buf, ev);
       }
       this.hooks.onAudit?.({ sender, result: "ok" });
+      this.consecutiveErrors = 0; // tudo certo: zera o contador de falhas
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       buf += `\n${clarifyError(message)}`;
+      this.lastError = message;
+      this.consecutiveErrors++;
       // SEGURANÇA: audita só a MENSAGEM do erro — nunca o buf (que pode conter conteúdo
       // de página/resposta). Nada de conteúdo do usuário vai pra log.
       this.hooks.onAudit?.({ sender, result: "error", detail: message });
+      // ALERTA PROATIVO: várias falhas seguidas = algo estranho (sessão/cota/rede/bloqueio).
+      if (this.consecutiveErrors >= 3) {
+        void this.notifyOwner(`⚠️ Tive ${this.consecutiveErrors} falhas seguidas. ${clarifyError(message)}`);
+        this.consecutiveErrors = 0; // evita spam; recomeça a contagem
+      }
     } finally {
       await engine.dispose();
     }
     const reply = buf.trim() || "(sem resposta)";
     await this.adapter.send(chatId, reply);
     this.remember(chatId, msg.text, reply);
+  }
+
+  /** Avisa o(s) dono(s) proativamente (DM = chatId é o próprio id da allowlist). */
+  private async notifyOwner(text: string): Promise<void> {
+    for (const id of this.config.allow) {
+      await this.adapter.send(id, text).catch(() => {});
+    }
   }
 
   /** Guarda o turno na memória da conversa (cap nos últimos 12 itens = ~6 trocas). */
@@ -291,6 +309,7 @@ export class Gateway {
           "/vault — mostra o que está guardado (cartão/senha mascarados)",
           "/forget <campo> — apaga um campo",
           "/reset — zera a memória da conversa (recomeça do zero)",
+          "/status — saúde do assistente (ferramentas, falhas, última falha)",
           "",
           "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
         ].join("\n"),
@@ -335,6 +354,19 @@ export class Gateway {
     if (cmd === "/reset") {
       this.history.delete(chatId);
       await this.adapter.send(chatId, "🧹 Conversa zerada — recomeçamos do zero.");
+      return;
+    }
+    if (cmd === "/status") {
+      const f = this.config.features ?? {};
+      await this.adapter.send(
+        chatId,
+        [
+          "🤖 Status do assistente",
+          `• Ferramentas: ${f.tools ? "on" : "off"} · Memória: ${f.memory ? "on" : "off"} · Navegador: ${this.config.browser ? "on" : "off"} · Cofre: ${this.config.vault ? "on" : "off"}`,
+          `• Falhas seguidas: ${this.consecutiveErrors}`,
+          `• Última falha: ${this.lastError ? clarifyError(this.lastError) : "nenhuma 👍"}`,
+        ].join("\n"),
+      );
       return;
     }
     if (cmd === "/setup") {
