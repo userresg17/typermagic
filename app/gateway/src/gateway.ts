@@ -233,6 +233,15 @@ export class Gateway {
     const vault = this.config.vault ? await this.ensureVault() : undefined;
     const ask = (kind: "clarify" | "otp", question: string): Promise<string> =>
       this.askUser(chatId, kind, question);
+    // CONTINUIDADE: diz ao agente ONDE o navegador já está, p/ ele continuar de lá em vez de
+    // recomeçar do zero a cada mensagem (senão perde o progresso da reserva/carrinho/login).
+    let prompt = msg.text;
+    if (browser) {
+      const where = await browser.url().catch(() => "");
+      if (where && !/^about:blank|^chrome:|^$/.test(where)) {
+        prompt = `(O navegador JÁ está aberto em: ${where} . Se esta tarefa continua de onde paramos, NÃO recomece do zero — dê um browser_read na página atual e continue daí.)\n\n${msg.text}`;
+      }
+    }
     // Teto de aprovações por tarefa: corta o LOOP de "confirma de novo" quando a página
     // não finaliza (anti-bot/multi-passo) e o modelo re-clica "concluir" sem parar.
     let approvals = 0;
@@ -279,7 +288,7 @@ export class Gateway {
     }, 7000);
     (hint as { unref?: () => void }).unref?.();
     try {
-      for await (const ev of engine.runTask({ prompt: msg.text, history: this.history.get(chatId) ?? [] })) {
+      for await (const ev of engine.runTask({ prompt, history: this.history.get(chatId) ?? [] })) {
         buf = this.fold(buf, ev);
       }
       this.hooks.onAudit?.({ sender, result: "ok" });
