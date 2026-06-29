@@ -218,6 +218,7 @@ export class Gateway {
     );
 
     let buf = "";
+    let errored = false;
     try {
       for await (const ev of engine.runTask({ prompt: msg.text, history: this.history.get(chatId) ?? [] })) {
         buf = this.fold(buf, ev);
@@ -225,6 +226,7 @@ export class Gateway {
       this.hooks.onAudit?.({ sender, result: "ok" });
       this.consecutiveErrors = 0; // tudo certo: zera o contador de falhas
     } catch (err) {
+      errored = true;
       const message = err instanceof Error ? err.message : String(err);
       buf += `\n${clarifyError(message)}`;
       this.lastError = message;
@@ -242,7 +244,8 @@ export class Gateway {
     }
     const reply = buf.trim() || "(sem resposta)";
     await this.adapter.send(chatId, reply);
-    this.remember(chatId, msg.text, reply);
+    // só lembra de turnos que DERAM CERTO (não polui o contexto com erro/"(sem resposta)").
+    if (!errored && buf.trim()) this.remember(chatId, msg.text, reply);
   }
 
   /** Avisa o(s) dono(s) proativamente (DM = chatId é o próprio id da allowlist). */
@@ -252,11 +255,13 @@ export class Gateway {
     }
   }
 
-  /** Guarda o turno na memória da conversa (cap nos últimos 12 itens = ~6 trocas). */
+  /** Guarda o turno na memória da conversa: trunca textos longos (não inflar o contexto)
+   *  e mantém só as últimas ~5 trocas. */
   private remember(chatId: string, user: string, assistant: string): void {
+    const trim = (s: string): string => (s.length > 1500 ? s.slice(0, 1500) + " […]" : s);
     const h = this.history.get(chatId) ?? [];
-    h.push({ role: "user", content: user }, { role: "assistant", content: assistant });
-    while (h.length > 12) h.shift();
+    h.push({ role: "user", content: trim(user) }, { role: "assistant", content: trim(assistant) });
+    while (h.length > 10) h.shift();
     this.history.set(chatId, h);
   }
 
