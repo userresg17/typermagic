@@ -52,7 +52,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   }
   console.error(
     dim(
-      `· config: features=${JSON.stringify(config.features ?? {})} grants=${config.grants ? Object.keys(config.grants).join(",") : "—"}`,
+      `· config: features=${JSON.stringify(config.features ?? {})} grants=${config.grants ? Object.keys(config.grants).join(",") : "—"} browser=${config.browser ? "on" : "off"} vault=${config.vault ? "on" : "off"}`,
     ),
   );
 
