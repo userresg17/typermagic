@@ -55,6 +55,10 @@ interface ApprovalLike {
 /** Quanto tempo esperar uma resposta do usuário antes de cancelar por segurança. */
 const ASK_TIMEOUT_MS = 5 * 60_000;
 
+/** Teto de confirmações HITL por tarefa — evita o loop de "confirma de novo" quando a
+ *  página não finaliza (anti-bot). Depois disso, para e avisa em vez de pedir mais. */
+const MAX_APPROVALS_PER_TASK = 2;
+
 /** Reconhece um "sim" (aprovação). Qualquer outra coisa = não aprovado. */
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
@@ -229,6 +233,9 @@ export class Gateway {
     const vault = this.config.vault ? await this.ensureVault() : undefined;
     const ask = (kind: "clarify" | "otp", question: string): Promise<string> =>
       this.askUser(chatId, kind, question);
+    // Teto de aprovações por tarefa: corta o LOOP de "confirma de novo" quando a página
+    // não finaliza (anti-bot/multi-passo) e o modelo re-clica "concluir" sem parar.
+    let approvals = 0;
     const engine = createEngine(
       {
         root: this.config.root,
@@ -246,7 +253,18 @@ export class Gateway {
         ask,
       },
       // HITL: toda aprovação vira uma pergunta no canal que ESPERA o seu SIM/NÃO.
-      { approve: (req) => this.approveViaChannel(chatId, req) },
+      {
+        approve: async (req) => {
+          if (++approvals > MAX_APPROVALS_PER_TASK) {
+            await this.adapter.send(
+              chatId,
+              "🛑 Pedi confirmação vezes demais nesta tarefa — a página não está finalizando (provável anti-bot/login exigido). Parei pra não te deixar num loop. Você pode concluir na janela do navegador, ou me peça pra tentar outro site/abordagem.",
+            );
+            return false;
+          }
+          return this.approveViaChannel(chatId, req);
+        },
+      },
     );
 
     let buf = "";
