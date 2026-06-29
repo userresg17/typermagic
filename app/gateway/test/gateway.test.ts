@@ -88,6 +88,35 @@ describe("PendingStore (perguntar e esperar)", () => {
   });
 });
 
+describe("Gateway comandos do cofre (/set, /vault) — valor nunca vai ao modelo", () => {
+  beforeEach(async () => {
+    process.env.TYPER_VAULT_DIR = await mkdtemp(join(tmpdir(), "typer-gw-vault-"));
+    delete process.env.TYPER_VAULT_KEY;
+  });
+
+  it("/set grava no cofre e /vault mostra redigido (cartão final-4)", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake", vault: true });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/set card_number 4111111111111234" });
+    expect(ch.lastReply()).toMatch(/guardado/i);
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/vault" });
+    expect(ch.lastReply()).toContain("•••• 1234");
+    expect(ch.lastReply()).not.toContain("4111111111111234");
+  });
+
+  it("/forget apaga o campo", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake", vault: true });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/set email a@b.com" });
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/forget email" });
+    expect(ch.lastReply()).toMatch(/apagado/i);
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/vault" });
+    expect(ch.lastReply()).not.toContain("a@b.com");
+  });
+});
+
 describe("Gateway HITL (askUser reentrante)", () => {
   it("pergunta e a PRÓXIMA mensagem do chat resolve (não trava o loop)", async () => {
     const ch = new FakeChannel();

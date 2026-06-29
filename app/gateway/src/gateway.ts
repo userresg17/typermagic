@@ -36,6 +36,34 @@ const ASK_TIMEOUT_MS = 5 * 60_000;
 /** Reconhece um "sim" (aprovação). Qualquer outra coisa = não aprovado. */
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
+/** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/help"];
+function isCommand(text: string): boolean {
+  const first = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+  return COMMANDS.includes(first);
+}
+
+/** Onboarding: campos perguntados em sequência no /setup. "pular" deixa em branco. */
+const SETUP_FIELDS: Array<{ key: string; q: string }> = [
+  { key: "name", q: "Seu nome completo?" },
+  { key: "email", q: "Seu e-mail (ex.: Gmail)?" },
+  { key: "phone", q: "Telefone (com DDD)?" },
+  { key: "cpf", q: "CPF? (ou 'pular')" },
+  { key: "address", q: "Endereço de entrega completo (rua, número, complemento, cidade, CEP)?" },
+  { key: "card_number", q: "Número do cartão — use um cartão VIRTUAL com limite baixo. (ou 'pular')" },
+  { key: "card_exp", q: "Validade do cartão (MM/AA)? (ou 'pular')" },
+  { key: "card_cvv", q: "CVV do cartão? (ou 'pular')" },
+  { key: "card_holder", q: "Nome impresso no cartão? (ou 'pular')" },
+  { key: "shirt_size", q: "Tamanho de camiseta (P/M/G/GG)? (ou 'pular')" },
+  { key: "shoe_size", q: "Número do calçado? (ou 'pular')" },
+  { key: "partner_name", q: "Nome de quem você costuma presentear (namorada/parceiro/familiar)? (ou 'pular')" },
+  { key: "partner_tastes", q: "Gostos dessa pessoa p/ presentes? (ou 'pular')" },
+];
+
+function isSkip(s: string): boolean {
+  return /^\s*(pular|skip|-)\s*$/i.test(s);
+}
+
 export class Gateway {
   private readonly rate: RateLimiter;
   private readonly surface: `gateway:${string}`;
@@ -96,7 +124,19 @@ export class Gateway {
       return;
     }
 
-    // 4. Rate-limit por remetente.
+    // 4. Comandos do gateway (/setup, /set, /vault, ...) — escrevem no cofre DIRETO,
+    //    sem passar pelo modelo (cartão/senha nunca chegam ao LLM).
+    if (isCommand(msg.text)) {
+      this.busy.add(chatId);
+      try {
+        await this.handleCommand(chatId, msg.text);
+      } finally {
+        this.busy.delete(chatId);
+      }
+      return;
+    }
+
+    // 5. Rate-limit por remetente.
     if (!this.rate.allow(sender)) {
       await this.adapter.send(chatId, "⏳ Muitas mensagens. Tente em instantes.");
       this.hooks.onAudit?.({ sender, result: "rate_limited" });
@@ -202,6 +242,94 @@ export class Gateway {
   async start(): Promise<void> {
     this.adapter.onMessage((m) => this.handle(m));
     await this.adapter.start();
+  }
+
+  /** Despacha um comando do gateway. Tudo escreve no cofre DIRETO — o modelo nunca vê. */
+  private async handleCommand(chatId: string, text: string): Promise<void> {
+    const parts = text.trim().split(/\s+/);
+    const cmd = (parts[0] ?? "").toLowerCase();
+    if (cmd === "/help") {
+      await this.adapter.send(
+        chatId,
+        [
+          "Comandos:",
+          "/setup — preenche seu perfil (nome, endereço, cartão, etc.) passo a passo",
+          "/set <campo> <valor> — grava um campo (ex.: /set email a@b.com)",
+          "/vault — mostra o que está guardado (cartão/senha mascarados)",
+          "/forget <campo> — apaga um campo",
+          "",
+          "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
+        ].join("\n"),
+      );
+      return;
+    }
+    if (cmd === "/vault") {
+      const vault = await this.ensureVault();
+      const summary = vault.summary();
+      const keys = Object.keys(summary);
+      await this.adapter.send(
+        chatId,
+        keys.length
+          ? "🔐 No cofre:\n" + keys.map((k) => `• ${k}: ${summary[k]}`).join("\n")
+          : "Cofre vazio. Use /setup p/ preencher.",
+      );
+      return;
+    }
+    if (cmd === "/set") {
+      const field = parts[1];
+      const value = parts.slice(2).join(" ").trim();
+      if (!field || !value) {
+        await this.adapter.send(chatId, "Uso: /set <campo> <valor>  (ex.: /set email a@b.com)");
+        return;
+      }
+      const vault = await this.ensureVault();
+      await vault.set(field, value);
+      await this.adapter.send(chatId, `✅ ${field} guardado.`);
+      return;
+    }
+    if (cmd === "/forget") {
+      const field = parts[1];
+      if (!field) {
+        await this.adapter.send(chatId, "Uso: /forget <campo>");
+        return;
+      }
+      const vault = await this.ensureVault();
+      await vault.delete(field);
+      await this.adapter.send(chatId, `🗑️ ${field} apagado.`);
+      return;
+    }
+    if (cmd === "/setup") {
+      await this.runSetup(chatId);
+      return;
+    }
+  }
+
+  /** Onboarding guiado: pergunta cada campo e grava no cofre (valores nunca vão ao modelo). */
+  private async runSetup(chatId: string): Promise<void> {
+    const vault = await this.ensureVault();
+    await this.adapter.send(
+      chatId,
+      "Vamos preencher seu perfil (uma vez). Responda cada pergunta; mande 'pular' p/ deixar em branco. ⚠️ Use um cartão VIRTUAL com limite baixo.",
+    );
+    for (const { key, q } of SETUP_FIELDS) {
+      let answer: string;
+      try {
+        answer = await this.askUser(chatId, "clarify", q);
+      } catch {
+        await this.adapter.send(chatId, "⌛ Setup interrompido (sem resposta). Recomece com /setup quando quiser.");
+        return;
+      }
+      if (isSkip(answer)) continue;
+      await vault.set(key, answer.trim());
+    }
+    const summary = vault.summary();
+    await this.adapter.send(
+      chatId,
+      "✅ Perfil salvo (cifrado). Resumo:\n" +
+        Object.keys(summary)
+          .map((k) => `• ${k}: ${summary[k]}`)
+          .join("\n"),
+    );
   }
 
   stop(): void {

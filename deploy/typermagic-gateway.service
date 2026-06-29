@@ -1,0 +1,41 @@
+# TYPER Magic — gateway do Telegram como serviço 24/7 (systemd USER unit).
+#
+# Instalação:
+#   1) Build:        pnpm -r build
+#   2) Token/segredos num arquivo 0600 (NÃO no repo):
+#        mkdir -p ~/.typer
+#        printf 'TYPER_TELEGRAM_TOKEN=%s\n' "<token-do-BotFather>" > ~/.typer/gateway.env
+#        chmod 600 ~/.typer/gateway.env
+#   3) Edite WorkingDirectory abaixo p/ o caminho REAL do repo nesta máquina.
+#   4) Instale e ligue:
+#        mkdir -p ~/.config/systemd/user
+#        cp deploy/typermagic-gateway.service ~/.config/systemd/user/
+#        systemctl --user daemon-reload
+#        systemctl --user enable --now typermagic-gateway
+#        loginctl enable-linger "$USER"     # mantém o serviço no ar sem sessão aberta
+#   5) Logs:  journalctl --user -u typermagic-gateway -f
+#
+# Notas de segurança:
+#   - A chave-mestra do cofre fica no keychain do SO (keytar) ou em ~/.typer/vault.key (0600).
+#   - O navegador roda HEADLESS aqui (24/7). Para o RELAY de CAPTCHA (resolver na janela),
+#     rode com headless:false em gateway.json — mas aí precisa de sessão gráfica (rode no
+#     desktop, não como serviço puro de fundo), pois o Chromium precisa de display.
+
+[Unit]
+Description=TYPER Magic — gateway Telegram (super-assistente)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# AJUSTE para o caminho real do repositório nesta máquina:
+WorkingDirectory=%h/Área de trabalho/typer-magic-public
+EnvironmentFile=%h/.typer/gateway.env
+ExecStart=/usr/bin/env node app/agent-cli/dist/main.js gateway telegram
+Restart=always
+RestartSec=5
+# encerra com calma (fecha o navegador no stop())
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
