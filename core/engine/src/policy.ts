@@ -65,6 +65,10 @@ export function evaluateExternal(opts: {
 }): PolicyDecision {
   const { effect, args, autonomous, policy, toolName } = opts;
 
+  // resumo legível que o agente anexa a uma ação (ex.: browser_submit) p/ aparecer no
+  // cartão de confirmação humana — "Voo GRU→POA, assento 14A, R$ 450, cartão •••• 1234".
+  const summary = typeof args.summary === "string" && args.summary.trim() ? args.summary.trim() : "";
+
   // preview legível + checagem de allowlist por tipo
   let preview = toolName;
   let inPolicy = true;
@@ -90,7 +94,9 @@ export function evaluateExternal(opts: {
     if (autonomous) {
       return { decision: "deny", reason: `ação irreversível (${toolName}) negada em superfície autônoma — exige selo humano` };
     }
-    return { decision: "approve", reason: `ação irreversível: ${toolName}`, preview };
+    // não-autônomo (ex.: gateway com HITL): pede confirmação. Se o agente anexou um
+    // resumo, ele vira o texto da confirmação (cartão de compra legível p/ o humano).
+    return { decision: "approve", reason: summary || `ação irreversível: ${toolName}`, preview: summary || preview };
   }
 
   // reversível fora de política: autônomo nega, interativo pede aprovação.

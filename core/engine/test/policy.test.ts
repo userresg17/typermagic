@@ -5,6 +5,7 @@ const irrevVcs = { external: true, reversible: false, kind: "vcs" } as const;
 const revVcs = { external: true, reversible: true, kind: "vcs" } as const;
 const revNet = { external: true, reversible: true, kind: "network" } as const;
 const revExec = { external: true, reversible: true, kind: "exec" } as const;
+const irrevNet = { external: true, reversible: false, kind: "network" } as const;
 
 describe("isAutonomous", () => {
   it("scheduler/gateway com never são autônomos; cli/editor e first-only não", () => {
@@ -25,6 +26,33 @@ describe("evaluateExternal", () => {
   it("irreversível + interativo → APPROVE (selo humano)", () => {
     const v = evaluateExternal({ toolName: "git_commit", effect: irrevVcs, args: {}, autonomous: false, policy: {} });
     expect(v.decision).toBe("approve");
+  });
+
+  it("browser_submit com summary → APPROVE mostrando o resumo de compra na confirmação", () => {
+    const summary = "Voo GRU→POA, assento 14A, R$ 450, cartão •••• 1234";
+    const v = evaluateExternal({
+      toolName: "browser_submit",
+      effect: irrevNet,
+      args: { selector: "#pay", summary },
+      autonomous: false,
+      policy: {},
+    });
+    expect(v.decision).toBe("approve");
+    if (v.decision === "approve") {
+      expect(v.reason).toBe(summary);
+      expect(v.preview).toBe(summary);
+    }
+  });
+
+  it("browser_submit irreversível em superfície AUTÔNOMA ainda é negado (regra dura)", () => {
+    const v = evaluateExternal({
+      toolName: "browser_submit",
+      effect: irrevNet,
+      args: { selector: "#pay", summary: "compra" },
+      autonomous: true,
+      policy: {},
+    });
+    expect(v.decision).toBe("deny");
   });
 
   it("reversível sem allowlist → ALLOW", () => {
