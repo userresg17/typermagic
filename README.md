@@ -41,6 +41,18 @@ action never runs on its own.
 > "this action is safe before I run it," and a third-party skill can exfiltrate your data
 > without you noticing. TYPER Magic closes that class of problem by construction.
 
+## ⚡ Quick start — your assistant on Telegram
+
+```bash
+git clone https://github.com/userresg17/typermagic && cd typermagic
+pnpm setup
+```
+
+**One guided command.** It builds, asks for your bot token (@BotFather), discovers your
+Telegram id, writes the config, and (on Linux) installs the 24/7 service — no flags to
+memorize. Then DM your bot and send `/setup`. It auto-uses your installed **Brave/Chrome**
+for better anti-bot. Details: [deploy guide](./deploy/README.md).
+
 ## Why it's different
 
 - **General-purpose, not code-only.** The same agent writes code, runs and supervises

@@ -43,6 +43,18 @@ irreversível nunca roda sozinha.
 > exfiltrar seu dado sem você perceber. O TYPER Magic fecha essa classe de problema por
 > construção.
 
+## ⚡ Início rápido — seu assistente no Telegram
+
+```bash
+git clone https://github.com/userresg17/typermagic && cd typermagic
+pnpm setup
+```
+
+**Um comando guiado.** Ele compila, pede o token do bot (@BotFather), descobre seu id do
+Telegram, escreve a config e (no Linux) instala o serviço 24/7 — sem decorar flag nenhuma.
+Depois é só chamar o bot e mandar `/setup`. Ele usa seu **Brave/Chrome** instalado
+automaticamente (anti-bot melhor). Detalhes: [guia de deploy](./deploy/README.md).
+
 ## Por que é diferente
 
 - **Geral, não só código.** O mesmo agente escreve código, roda e supervisiona comandos,

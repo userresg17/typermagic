@@ -7,6 +7,7 @@
 //   - user-agent realista (esconde o "HeadlessChrome").
 // Playwright é carregado em runtime (import por variável) p/ o build não exigir o pacote.
 
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { BrowserSession } from "./types.js";
@@ -20,7 +21,9 @@ export interface BrowserOptions {
   timeoutMs?: number;
   /** "chrome" usa o Google Chrome instalado (anti-bot melhor que o chromium pelado). */
   channel?: string;
-  /** conecta a um Chrome JÁ ABERTO via CDP (ex.: http://127.0.0.1:9222) → navegador REAL do usuário. */
+  /** caminho do binário do navegador (Brave/Chrome/Edge). Default: auto-detecta o instalado. */
+  executablePath?: string;
+  /** conecta a um Chrome/Brave JÁ ABERTO via CDP (ex.: http://127.0.0.1:9222) → navegador REAL. */
   cdpUrl?: string;
   /** user-agent (esconde o "HeadlessChrome"). Default: Chrome estável recente. */
   userAgent?: string;
@@ -37,6 +40,35 @@ const STEALTH_ARGS = [
 
 function defaultProfile(): string {
   return process.env.TYPER_BROWSER_PROFILE ?? join(homedir(), ".typer", "browser", "profile");
+}
+
+/** Caminhos comuns de navegadores REAIS (anti-bot melhor que o chromium pelado). Ordem
+ *  de preferência: Brave → Chrome → Edge → Chromium. Cobre Linux e macOS. */
+const REAL_BROWSERS: string[] = [
+  "/usr/bin/brave-browser",
+  "/opt/brave.com/brave/brave",
+  "/snap/bin/brave",
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/opt/google/chrome/chrome",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/usr/bin/microsoft-edge",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+];
+
+/** Acha o 1º navegador real instalado (ou o override por env). undefined → chromium do Playwright. */
+function findRealBrowser(): string | undefined {
+  const env = process.env.TYPER_BROWSER_PATH;
+  if (env && existsSync(env)) return env;
+  return REAL_BROWSERS.find((p) => {
+    try {
+      return existsSync(p);
+    } catch {
+      return false;
+    }
+  });
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -128,10 +160,13 @@ export async function openBrowser(opts: BrowserOptions = {}): Promise<BrowserSes
     return new PlaywrightSession(context, page, timeoutMs, false);
   }
 
-  // (2) Lançar perfil persistente — preferindo o Chrome instalado, sempre com stealth.
+  // (2) Lançar perfil persistente — usando o navegador REAL instalado (Brave/Chrome), sempre
+  //     com stealth. Auto-detecta se nada for passado (channel/executablePath/cdpUrl).
+  const executablePath = opts.executablePath ?? (opts.channel ? undefined : findRealBrowser());
   const context = await chromium.launchPersistentContext(opts.profileDir ?? defaultProfile(), {
     headless: opts.headless ?? true,
     ...(opts.channel ? { channel: opts.channel } : {}),
+    ...(executablePath ? { executablePath } : {}),
     args: STEALTH_ARGS,
     userAgent: opts.userAgent ?? DEFAULT_UA,
     viewport: { width: 1280, height: 900 },
