@@ -50,11 +50,32 @@ export interface MicroVm {
   restore(snapshot: string): Promise<void>;
 }
 
+/** Sessão de navegador (Playwright) injetada nas ferramentas browser_*. Persiste entre
+ *  chamadas de UMA tarefa (perfil isolado p/ cookies). Ausente → as ferramentas degradam
+ *  com erro claro (instale playwright e habilite o browser). O valor de campos sensíveis
+ *  é digitado por fill() vindo do vault — nunca passa pelo modelo. */
+export interface BrowserSession {
+  goto(url: string): Promise<void>;
+  /** texto/acessibilidade legível da página (p/ o modelo entender o conteúdo) */
+  text(): Promise<string>;
+  click(selector: string): Promise<void>;
+  fill(selector: string, value: string): Promise<void>;
+  select(selector: string, value: string): Promise<void>;
+  /** PNG em base64 (p/ o resumo do HITL / depuração) */
+  screenshot(): Promise<string>;
+  url(): Promise<string>;
+  /** clica e espera a página assentar (submit/pay — ação IRREVERSÍVEL) */
+  submit(selector: string): Promise<void>;
+  close(): Promise<void>;
+}
+
 /** Dependências opcionais p/ ferramentas que precisam de mais que o workspace.
  *  Ausentes → a ferramenta cai num default (ex.: embedder Fake) ou erro honesto. */
 export interface ToolDeps {
   embedder?: Embedder;
   microvm?: MicroVm;
+  /** navegador real (Playwright) p/ as ferramentas browser_* */
+  browser?: BrowserSession;
   /** preferir modelo/embedder local (Ollama) quando aplicável */
   local?: boolean;
   /** tem chave OpenAI? (escolha de embedder) */

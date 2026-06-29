@@ -12,6 +12,7 @@ import {
   runEditLoop,
   runToolLoop,
   reachSkillSection,
+  browserSkillSection,
   AuditTrail,
   ApprovalGate,
   type AttemptInfo,
@@ -441,10 +442,11 @@ class EngineImpl implements Engine {
     modeSystem: string,
     executor: ToolExecutor,
   ): Promise<TaskOutcome> {
-    // Injeta a doc de capacidade do reach SE as tools reach_* estão expostas (olhos na
-    // internet + metodologia de fallback). Vazio quando o reach não está disponível.
-    const skill = reachSkillSection(executor.tools());
-    const system = [modeSystem, skill, contextBlock].filter(Boolean).join("\n\n");
+    // Injeta as docs de capacidade (reach + browser) conforme as tools expostas: olhos
+    // na internet e/ou navegador real + metodologia/regras de HITL. Vazio quando ausentes.
+    const exposed = executor.tools();
+    const skills = [reachSkillSection(exposed), browserSkillSection(exposed)].filter(Boolean).join("\n\n");
+    const system = [modeSystem, skills, contextBlock].filter(Boolean).join("\n\n");
     emit({ type: "info", message: "tool-use: o agente pode chamar ferramentas MCP" });
     const result = await runToolLoop(prompt, {
       provider,

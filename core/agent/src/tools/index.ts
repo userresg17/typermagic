@@ -19,7 +19,10 @@ import { lspTools } from "./lsp.js";
 import { sandboxTools } from "./sandbox.js";
 import { webTools } from "./web.js";
 import { reachTools } from "./reach.js";
+import { browserTools } from "./browser.js";
 export { reachSkillSection } from "./reach.js";
+export { browserSkillSection, BROWSER_SKILL } from "./browser.js";
+export { openBrowser, type BrowserOptions } from "./playwright-browser.js";
 
 export * from "./types.js";
 export { DefaultToolRegistry } from "./registry.js";
@@ -27,7 +30,7 @@ export type { ToolRegistry } from "./registry.js";
 export { dispatch } from "./dispatch.js";
 export { runSubprocess, StubMicroVm } from "./executors.js";
 
-/** Todas as 55 ferramentas (core + lazy). */
+/** Todas as 63 ferramentas (core + lazy). */
 export const ALL_TOOLS: Tool[] = [
   ...fileTools,
   ...searchTools,
@@ -40,6 +43,7 @@ export const ALL_TOOLS: Tool[] = [
   ...sandboxTools,
   ...webTools,
   ...reachTools,
+  ...browserTools,
 ];
 
 /** Registry com as ferramentas registradas. */

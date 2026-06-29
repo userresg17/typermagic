@@ -46,7 +46,11 @@ export {
   ALL_TOOLS,
   nowIso,
   reachSkillSection,
+  browserSkillSection,
+  BROWSER_SKILL,
+  openBrowser,
 } from "./tools/index.js";
+export type { BrowserOptions } from "./tools/index.js";
 export type {
   Tool,
   ToolRegistry,
@@ -60,4 +64,5 @@ export type {
   Tier,
   AuditEvent,
   MicroVm,
+  BrowserSession,
 } from "./tools/index.js";

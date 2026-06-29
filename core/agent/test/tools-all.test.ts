@@ -159,19 +159,28 @@ const specs: Spec[] = [
   { name: "reach_video", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
   { name: "reach_social", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
   { name: "reach_status", args: () => ({}), expect: "ok" },
+  // browser (navegador real) — sem ctx.deps.browser, degradam com erro claro
+  { name: "browser_goto", args: () => ({ url: "https://example.com" }), expect: { err: "browser_unavailable" } },
+  { name: "browser_read", args: () => ({}), expect: { err: "browser_unavailable" } },
+  { name: "browser_click", args: () => ({ selector: "#x" }), expect: { err: "browser_unavailable" } },
+  { name: "browser_fill", args: () => ({ selector: "#x", value: "v" }), expect: { err: "browser_unavailable" } },
+  { name: "browser_select", args: () => ({ selector: "#x", value: "v" }), expect: { err: "browser_unavailable" } },
+  { name: "browser_screenshot", args: () => ({}), expect: { err: "browser_unavailable" } },
+  { name: "browser_url", args: () => ({}), expect: { err: "browser_unavailable" } },
+  { name: "browser_submit", args: () => ({ selector: "#pay" }), expect: { err: "browser_unavailable" } },
 ];
 
-describe("cobertura: todas as 55 ferramentas estão no spec", () => {
+describe("cobertura: todas as 63 ferramentas estão no spec", () => {
   it("o spec cobre exatamente as 55 do registry", () => {
     const registered = new Set(registry.all().map((t) => t.name));
     const tested = new Set(specs.map((s) => s.name));
-    expect(specs).toHaveLength(55);
-    expect(registered.size).toBe(55);
+    expect(specs).toHaveLength(63);
+    expect(registered.size).toBe(63);
     for (const n of registered) expect(tested.has(n)).toBe(true);
   });
 });
 
-describe("validação 1-a-1 das 55 ferramentas", () => {
+describe("validação 1-a-1 das 63 ferramentas", () => {
   for (const spec of specs) {
     const label =
       spec.expect === "ok" ? "→ ok" : spec.expect === "valid" ? "→ resultado válido" : `→ erro ${spec.expect.err}`;
@@ -189,6 +198,6 @@ describe("validação 1-a-1 das 55 ferramentas", () => {
         expect(r.ok).toBe(false);
         expect(r.error?.code).toBe(spec.expect.err);
       }
-    });
+    }, 20_000); // headroom: tools de rede (reach_status faz probe real dos canais)
   }
 });
