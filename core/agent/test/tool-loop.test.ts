@@ -100,6 +100,24 @@ describe("runToolLoop (5.6 execução)", () => {
     expect(res.calls).toHaveLength(3);
   });
 
+  it("modelo VAZIO sem ferramenta → recupera (NUNCA volta '(sem resposta)')", async () => {
+    // 1ª chamada (com tools) volta vazia sem tool calls; a recuperação (sem tools) volta texto.
+    const emptyThenText = {
+      id: "empty",
+      async *chat(req: { tools?: unknown[] }) {
+        if (req.tools && req.tools.length) yield { text: "", toolCalls: [] };
+        else yield { text: "Aqui está sua resposta de verdade.", toolCalls: [] };
+      },
+      async fim() {
+        return "";
+      },
+      countTokens: () => 0,
+    };
+    const res = await runToolLoop("oi", { provider: emptyThenText as never, model: "fake", executor: executor() });
+    expect(res.text).not.toBe("");
+    expect(res.text).toContain("resposta de verdade");
+  });
+
   it("prepende o histórico (memória multi-turno) nas mensagens", async () => {
     const counter = {
       id: "counter",

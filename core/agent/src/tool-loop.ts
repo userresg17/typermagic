@@ -70,7 +70,8 @@ export async function runToolLoop(
     lastText = text;
 
     if (toolCalls.length === 0) {
-      return { text, turns: turn, calls };
+      if (text.trim()) return { text, turns: turn, calls };
+      break; // modelo respondeu VAZIO sem pedir ferramenta → recupera abaixo (nunca volta vazio)
     }
 
     // a volta do assistant que pediu as ferramentas
@@ -90,9 +91,9 @@ export async function runToolLoop(
     }
   }
 
-  // Esgotou as voltas. Se a última volta foi só ferramentas (sem texto final), faz UMA
-  // chamada final SEM ferramentas — assim o usuário SEMPRE recebe um status legível, nunca
-  // uma resposta vazia ("(sem resposta)"). Tarefas longas (ex.: reservar hotel) param aqui.
+  // Recuperação: o modelo terminou SEM texto — ou respondeu vazio sem pedir ferramenta, ou
+  // esgotou as voltas numa chamada de ferramenta. Força UMA resposta final SEM ferramentas.
+  // Garante que NUNCA volta "(sem resposta)".
   if (!lastText.trim()) {
     const { text } = await collect(opts.provider, {
       messages: [
@@ -100,7 +101,7 @@ export async function runToolLoop(
         {
           role: "user",
           content:
-            "Você atingiu o limite de passos sem concluir. Em PORTUGUÊS, resuma o que já fez, o que ainda falta, e o que precisa de mim p/ continuar. NÃO chame ferramentas.",
+            "Responda AGORA ao usuário, em português, de forma útil e direta, com base em tudo acima. Se não concluiu uma tarefa, diga o que conseguiu e o que falta. NÃO chame ferramentas.",
         },
       ],
       model: opts.model,
@@ -108,7 +109,7 @@ export async function runToolLoop(
       ...(opts.system !== undefined ? { system: opts.system } : {}),
     });
     return {
-      text: text.trim() || "Atingi o limite de passos sem terminar. Me peça p/ continuar de onde parei.",
+      text: text.trim() || "Não consegui formular a resposta agora. Pode repetir ou reformular o pedido?",
       turns: maxTurns,
       calls,
     };
