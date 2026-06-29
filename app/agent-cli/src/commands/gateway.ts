@@ -13,6 +13,10 @@ interface GatewayFile {
   allow?: string[];
   rateCapacity?: number;
   rateRefillMs?: number;
+  /** recursos opt-in da Engine (ex.: { "tools": true } liga as ferramentas internas). */
+  features?: GatewayConfig["features"];
+  /** grant de capacidade por remetente (escala acima do READONLY da superfície). */
+  grants?: GatewayConfig["grants"];
 }
 
 async function loadGatewayFile(root: string): Promise<GatewayFile> {
@@ -34,10 +38,17 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
     local: flags.local,
     ...(file.rateCapacity !== undefined ? { rateCapacity: file.rateCapacity } : {}),
     ...(file.rateRefillMs !== undefined ? { rateRefillMs: file.rateRefillMs } : {}),
+    ...(file.features !== undefined ? { features: file.features } : {}),
+    ...(file.grants !== undefined ? { grants: file.grants } : {}),
   };
   if (config.allow.length === 0) {
     console.error(dim("· aviso: allowlist vazia em .typer/gateway.json — ninguém será atendido (default-deny)"));
   }
+  console.error(
+    dim(
+      `· config: features=${JSON.stringify(config.features ?? {})} grants=${config.grants ? Object.keys(config.grants).join(",") : "—"}`,
+    ),
+  );
 
   let adapter: ChannelAdapter;
   if (channel === "telegram") {
