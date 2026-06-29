@@ -10,12 +10,34 @@
 // chama handle() sem bloquear (fire-and-forget), e a pendência é casada com a próxima
 // mensagem do mesmo chat (PendingStore).
 
+import { spawnSync } from "node:child_process";
+import { rmSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createEngine, type CapabilityGrant, type EngineEvent } from "@typer/engine";
 import { openBrowser, type BrowserSession } from "@typer/agent";
 import { openVault, type Vault } from "@typer/vault";
 import { RateLimiter } from "./rate-limit.js";
 import { PendingStore, type PendingKind } from "./pending.js";
 import type { ChannelAdapter, GatewayConfig, IncomingMessage } from "./types.js";
+
+/** Mata navegadores ÓRFÃOS do bot (pelo perfil .typer — não toca no navegador real do
+ *  usuário) e remove locks obsoletos do perfil. Roda antes de abrir um navegador novo, p/
+ *  não acumular processos nem travar no SingletonLock de um Brave que morreu no SIGKILL. */
+function cleanupStaleBrowser(profileDir: string): void {
+  try {
+    spawnSync("pkill", ["-9", "-f", ".typer/browser/profile"], { stdio: "ignore" });
+  } catch {
+    /* sem pkill (não-linux): tudo bem */
+  }
+  for (const f of ["SingletonLock", "SingletonCookie", "SingletonSocket"]) {
+    try {
+      rmSync(join(profileDir, f), { force: true });
+    } catch {
+      /* ok */
+    }
+  }
+}
 
 export interface GatewayHooks {
   /** observabilidade: chamado a cada mensagem processada */
@@ -178,7 +200,17 @@ export class Gateway {
 
   /** navegador compartilhado (abre na 1ª tarefa que precisa; perfil persistente). */
   private async ensureBrowser(): Promise<BrowserSession> {
-    if (!this.browser) this.browser = await openBrowser(this.config.browser ?? {});
+    if (!this.browser) {
+      // não conectamos a um Chrome externo (cdpUrl)? então é nosso perfil → limpa órfãos/lock.
+      if (!this.config.browser?.cdpUrl) {
+        const profile =
+          this.config.browser?.profileDir ??
+          process.env.TYPER_BROWSER_PROFILE ??
+          join(homedir(), ".typer", "browser", "profile");
+        cleanupStaleBrowser(profile);
+      }
+      this.browser = await openBrowser(this.config.browser ?? {});
+    }
     return this.browser;
   }
 
@@ -219,6 +251,15 @@ export class Gateway {
 
     let buf = "";
     let errored = false;
+    let done = false;
+    // se demorar (tarefa de navegador é multi-passo), avisa que está trabalhando — assim
+    // não PARECE travado enquanto processa.
+    const hint = setTimeout(() => {
+      if (!done) {
+        void this.adapter.send(chatId, "🔎 Tô trabalhando no seu pedido — pode levar 1–2 min. Te aviso quando terminar.");
+      }
+    }, 7000);
+    (hint as { unref?: () => void }).unref?.();
     try {
       for await (const ev of engine.runTask({ prompt: msg.text, history: this.history.get(chatId) ?? [] })) {
         buf = this.fold(buf, ev);
@@ -240,6 +281,8 @@ export class Gateway {
         this.consecutiveErrors = 0; // evita spam; recomeça a contagem
       }
     } finally {
+      done = true;
+      clearTimeout(hint);
       await engine.dispose();
     }
     const reply = buf.trim() || "(sem resposta)";

@@ -119,10 +119,10 @@ class PlaywrightSession implements BrowserSession {
     return this.page.url();
   }
   async submit(selector: string): Promise<void> {
-    await Promise.all([
-      this.page.waitForLoadState("networkidle", { timeout: this.timeoutMs }).catch(() => {}),
-      this.page.click(selector, { timeout: this.timeoutMs }),
-    ]);
+    // clica e espera a página assentar — "domcontentloaded" (NÃO "networkidle", que nunca
+    // termina em sites com anúncios/polling e travava 30s toda vez).
+    await this.page.click(selector, { timeout: this.timeoutMs }).catch(() => {});
+    await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
   }
   async close(): Promise<void> {
     // se conectamos ao Chrome do usuário, NÃO fechamos o navegador dele.
