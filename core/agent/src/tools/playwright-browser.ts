@@ -148,7 +148,7 @@ async function loadChromium(): Promise<any> {
  *  senão lança o Chrome instalado (channel) ou o chromium, sempre com stealth. */
 export async function openBrowser(opts: BrowserOptions = {}): Promise<BrowserSession> {
   const chromium = await loadChromium();
-  const timeoutMs = opts.timeoutMs ?? 30_000;
+  const timeoutMs = opts.timeoutMs ?? 18_000;
 
   // (1) Conectar ao Chrome JÁ ABERTO do usuário (melhor anti-bot: navegador real da máquina).
   if (opts.cdpUrl) {
