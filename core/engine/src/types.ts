@@ -78,6 +78,9 @@ export interface EngineConfig {
   testCommand?: string | string[];
   /** teto de tentativas no loop de edição com selo; default 2 */
   attempts?: number;
+  /** teto de voltas do loop de tool-use (tarefas agênticas multi-passo: browser, compra);
+   *  default 30. Ao esgotar, força um resumo de status (nunca volta vazio). */
+  maxTurns?: number;
   /** concessão de capacidade explícita; default = defaultGrantFor(surface) */
   capabilities?: CapabilityGrant;
   /** grava a trajetória assinada da tarefa em .typer/trajectories (F5) */

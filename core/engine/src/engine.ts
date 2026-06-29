@@ -453,6 +453,7 @@ class EngineImpl implements Engine {
       model,
       system,
       executor,
+      maxTurns: this.config.maxTurns ?? 30,
       onToolCall: (call, res) => {
         emit({ type: "tool.call", name: call.name, args: call.arguments });
         emit({ type: "tool.result", name: call.name, ok: !res.startsWith("ERRO:"), preview: res.slice(0, 200) });

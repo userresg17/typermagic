@@ -99,4 +99,31 @@ describe("runToolLoop (5.6 execução)", () => {
     expect(res.turns).toBe(3);
     expect(res.calls).toHaveLength(3);
   });
+
+  it("ao esgotar as voltas sem texto final, força um resumo (NUNCA volta vazio)", async () => {
+    // pede ferramenta enquanto há tools; quando a chamada final vem SEM tools, responde texto.
+    const exhausting = {
+      id: "exhausting",
+      async *chat(req: { tools?: unknown[] }) {
+        if (req.tools && req.tools.length > 0) {
+          yield { text: "", toolCalls: [{ id: "c", name: "echo", arguments: {} }] };
+        } else {
+          yield { text: "Já reservei o quarto; falta confirmar o pagamento.", toolCalls: [] };
+        }
+      },
+      async fim() {
+        return "";
+      },
+      countTokens: () => 0,
+    };
+    const res = await runToolLoop("reserve um hotel", {
+      provider: exhausting as never,
+      model: "fake",
+      executor: executor(),
+      maxTurns: 2,
+    });
+    expect(res.turns).toBe(2);
+    expect(res.text).not.toBe(""); // o bug do "(sem resposta)" não acontece mais
+    expect(res.text).toContain("Já reservei o quarto"); // veio da chamada final sem ferramentas
+  });
 });

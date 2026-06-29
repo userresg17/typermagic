@@ -88,5 +88,29 @@ export async function runToolLoop(
     }
   }
 
+  // Esgotou as voltas. Se a última volta foi só ferramentas (sem texto final), faz UMA
+  // chamada final SEM ferramentas — assim o usuário SEMPRE recebe um status legível, nunca
+  // uma resposta vazia ("(sem resposta)"). Tarefas longas (ex.: reservar hotel) param aqui.
+  if (!lastText.trim()) {
+    const { text } = await collect(opts.provider, {
+      messages: [
+        ...messages,
+        {
+          role: "user",
+          content:
+            "Você atingiu o limite de passos sem concluir. Em PORTUGUÊS, resuma o que já fez, o que ainda falta, e o que precisa de mim p/ continuar. NÃO chame ferramentas.",
+        },
+      ],
+      model: opts.model,
+      maxTokens: 1024,
+      ...(opts.system !== undefined ? { system: opts.system } : {}),
+    });
+    return {
+      text: text.trim() || "Atingi o limite de passos sem terminar. Me peça p/ continuar de onde parei.",
+      turns: maxTurns,
+      calls,
+    };
+  }
+
   return { text: lastText, turns: maxTurns, calls };
 }
