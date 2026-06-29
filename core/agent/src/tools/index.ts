@@ -23,6 +23,7 @@ import { browserTools } from "./browser.js";
 import { assistTools } from "./assist.js";
 export { reachSkillSection } from "./reach.js";
 export { browserSkillSection, BROWSER_SKILL } from "./browser.js";
+export { memorySkillSection, MEMORY_SKILL } from "./knowledge.js";
 export { openBrowser, type BrowserOptions } from "./playwright-browser.js";
 
 export * from "./types.js";

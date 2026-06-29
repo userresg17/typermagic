@@ -48,6 +48,8 @@ export {
   reachSkillSection,
   browserSkillSection,
   BROWSER_SKILL,
+  memorySkillSection,
+  MEMORY_SKILL,
   openBrowser,
 } from "./tools/index.js";
 export type { BrowserOptions } from "./tools/index.js";

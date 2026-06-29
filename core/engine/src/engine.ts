@@ -13,6 +13,7 @@ import {
   runToolLoop,
   reachSkillSection,
   browserSkillSection,
+  memorySkillSection,
   AuditTrail,
   ApprovalGate,
   type AttemptInfo,
@@ -196,6 +197,7 @@ class EngineImpl implements Engine {
       toolExec = engineToolExecutor(
         await this.buildToolDeps({
           origin: "agent",
+          embedder,
           onPolicy: (n) =>
             emit({
               type: "policy",
@@ -447,7 +449,9 @@ class EngineImpl implements Engine {
     // Injeta as docs de capacidade (reach + browser) conforme as tools expostas: olhos
     // na internet e/ou navegador real + metodologia/regras de HITL. Vazio quando ausentes.
     const exposed = executor.tools();
-    const skills = [reachSkillSection(exposed), browserSkillSection(exposed)].filter(Boolean).join("\n\n");
+    const skills = [reachSkillSection(exposed), browserSkillSection(exposed), memorySkillSection(exposed)]
+      .filter(Boolean)
+      .join("\n\n");
     const system = [modeSystem, skills, contextBlock].filter(Boolean).join("\n\n");
     emit({ type: "info", message: "tool-use: o agente pode chamar ferramentas MCP" });
     const result = await runToolLoop(prompt, {
@@ -517,6 +521,7 @@ class EngineImpl implements Engine {
   private async buildToolDeps(opts: {
     origin: "user" | "agent";
     onPolicy?: (n: PolicyNotice) => void;
+    embedder?: Embedder | null;
   }): Promise<ToolCallDeps> {
     const grant = this.config.capabilities ?? defaultGrantFor(this.config.surface);
     const approval = this.config.approval ?? "first-only";
@@ -556,6 +561,8 @@ class EngineImpl implements Engine {
       ...(this.config.browser !== undefined ? { browser: this.config.browser } : {}),
       ...(this.config.vault !== undefined ? { vault: this.config.vault } : {}),
       ...(this.config.ask !== undefined ? { ask: this.config.ask } : {}),
+      // memória: o MESMO embedder do recall, p/ escrita (memory_write) e leitura casarem
+      ...(opts.embedder ? { embedder: opts.embedder } : {}),
     };
   }
 

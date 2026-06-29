@@ -38,6 +38,26 @@ const memoryWrite: Tool = {
   },
 };
 
+export const MEMORY_SKILL = `# memória de longo prazo — você LEMBRA do usuário
+
+Você tem memória PERSISTENTE entre conversas (memory_write / memory_recall). Use sempre:
+
+- SALVE na hora, com memory_write (semantic:true), qualquer FATO DURÁVEL que o usuário
+  revelar sobre si: time de futebol, gostos e preferências, tamanhos (roupa/calçado),
+  marcas favoritas, pessoas que ele presenteia e os gostos delas, restrições (alergia,
+  dieta, religião), datas importantes, e o que ele COMPRA com frequência. Não peça
+  permissão (não é ação irreversível) e não repita o que já está salvo.
+- USE o que você sabe: memórias relevantes chegam no contexto; se precisar de algo
+  específico, chame memory_recall antes de recomendar/comprar. Personalize como quem
+  conhece a pessoa de longa data.
+- NUNCA invente: só salve o que o usuário disse de fato. Dados sensíveis de pagamento ficam
+  no cofre (vault), não na memória.`;
+
+/** Doc da memória p/ o system prompt — SÓ quando as tools de memória estão expostas. */
+export function memorySkillSection(tools: { name: string }[]): string {
+  return tools.some((t) => t.name === "memory_write") ? MEMORY_SKILL : "";
+}
+
 const memoryRecall: Tool = {
   name: "memory_recall",
   family: "memória",
