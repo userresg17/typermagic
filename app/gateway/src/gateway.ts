@@ -1,12 +1,18 @@
 // app/gateway/gateway.ts
-// O motor do gateway. Por mensagem recebida: (1) allowlist por remetente (default-deny
-// — remetente desconhecido é recusado), (2) rate-limit por remetente, (3) roda a tarefa
-// pela Engine numa superfície gateway:<canal> CAPABILITY-SCOPED (READONLY por padrão,
-// approval "never" → o policy gate NEGA ação irreversível sozinho), e (4) transmite a
-// resposta de volta ao canal. O canal nunca herda o grant do terminal local.
+// O motor do gateway. Por mensagem recebida: (1) se há uma PERGUNTA pendente p/ aquele
+// chat (aprovação/esclarecimento/OTP), a mensagem é a RESPOSTA — resolve e sai; (2) senão,
+// allowlist por remetente (default-deny), (3) rate-limit, (4) roda a tarefa pela Engine
+// numa superfície gateway:<canal> capability-scoped, e (5) transmite a resposta.
+//
+// A diferença p/ a versão autônoma: a superfície NÃO é mais "never" — usa approval
+// "always", então ação irreversível (pagar/enviar/logar) NÃO é negada de cara: ela
+// PERGUNTA no canal (HITL) e ESPERA o seu SIM/NÃO. Pra isso o loop de polling do canal
+// chama handle() sem bloquear (fire-and-forget), e a pendência é casada com a próxima
+// mensagem do mesmo chat (PendingStore).
 
 import { createEngine, type CapabilityGrant, type EngineEvent } from "@typer/engine";
 import { RateLimiter } from "./rate-limit.js";
+import { PendingStore, type PendingKind } from "./pending.js";
 import type { ChannelAdapter, GatewayConfig, IncomingMessage } from "./types.js";
 
 export interface GatewayHooks {
@@ -14,9 +20,26 @@ export interface GatewayHooks {
   onAudit?: (e: { sender: string; result: "ok" | "denied" | "rate_limited" | "error"; detail?: string }) => void;
 }
 
+/** ApprovalRequest da Engine (forma estrutural — evita acoplar o import). */
+interface ApprovalLike {
+  action: string;
+  target: string;
+  detail?: string;
+  attempt?: number;
+}
+
+/** Quanto tempo esperar uma resposta do usuário antes de cancelar por segurança. */
+const ASK_TIMEOUT_MS = 5 * 60_000;
+
+/** Reconhece um "sim" (aprovação). Qualquer outra coisa = não aprovado. */
+const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
+
 export class Gateway {
   private readonly rate: RateLimiter;
   private readonly surface: `gateway:${string}`;
+  private readonly pending = new PendingStore();
+  /** chats com uma tarefa em andamento (evita 2 engines concorrentes no mesmo chat) */
+  private readonly busy = new Set<string>();
 
   constructor(
     private readonly adapter: ChannelAdapter,
@@ -36,20 +59,58 @@ export class Gateway {
     return this.config.grants?.[sender];
   }
 
-  /** Processa uma mensagem (allowlist → rate-limit → Engine → resposta). */
+  /** Pergunta algo ao usuário pelo canal e ESPERA a resposta (a próxima mensagem do chat).
+   *  Base de aprovação, esclarecimento e OTP. Registra a pendência ANTES de enviar (assim
+   *  não há corrida se a resposta chegar muito rápido). Timeout → rejeita (default-deny). */
+  async askUser(chatId: string, kind: PendingKind, prompt: string): Promise<string> {
+    const answer = this.pending.wait(chatId, kind, ASK_TIMEOUT_MS);
+    await this.adapter.send(chatId, prompt);
+    return answer;
+  }
+
+  /** Processa uma mensagem (resposta-pendente → allowlist → rate-limit → Engine). */
   async handle(msg: IncomingMessage): Promise<void> {
     const sender = msg.senderId;
+    const chatId = msg.chatId;
+
+    // 1. É a RESPOSTA a uma pergunta pendente? Só de um remetente autorizado.
+    //    (a pendência só existe porque a tarefa que a criou já foi autorizada.)
+    if (this.allowed(sender) && this.pending.resolve(chatId, msg.text)) return;
+
+    // 2. Allowlist (default-deny).
     if (!this.allowed(sender)) {
-      await this.adapter.send(msg.chatId, "⛔ Remetente não autorizado.");
+      await this.adapter.send(chatId, "⛔ Remetente não autorizado.");
       this.hooks.onAudit?.({ sender, result: "denied" });
       return;
     }
+
+    // 3. Já há uma tarefa em andamento neste chat (sem pergunta pendente)? Evita
+    //    dois engines concorrentes no mesmo chat.
+    if (this.busy.has(chatId)) {
+      await this.adapter.send(chatId, "⏳ Ainda estou no seu pedido anterior. Aguarde eu terminar.");
+      return;
+    }
+
+    // 4. Rate-limit por remetente.
     if (!this.rate.allow(sender)) {
-      await this.adapter.send(msg.chatId, "⏳ Muitas mensagens. Tente em instantes.");
+      await this.adapter.send(chatId, "⏳ Muitas mensagens. Tente em instantes.");
       this.hooks.onAudit?.({ sender, result: "rate_limited" });
       return;
     }
 
+    // 5. Roda a tarefa. (O loop de polling chama handle() SEM await — então enquanto esta
+    //    tarefa fica suspensa esperando uma confirmação, a próxima mensagem é roteada acima.)
+    this.busy.add(chatId);
+    try {
+      await this.runTask(msg);
+    } finally {
+      this.busy.delete(chatId);
+    }
+  }
+
+  private async runTask(msg: IncomingMessage): Promise<void> {
+    const sender = msg.senderId;
+    const chatId = msg.chatId;
     const grant = this.grantFor(sender);
     const engine = createEngine(
       {
@@ -58,11 +119,14 @@ export class Gateway {
         provider: this.config.provider ?? null,
         local: this.config.local ?? false,
         mode: "ask", // canal responde; não edita o repo
-        approval: "never", // autônomo: o policy gate nega ação irreversível sozinho
+        // INTERATIVO (não "never"): tira a superfície do modo autônomo, então o policy
+        // gate roteia ação irreversível p/ "approve" (HITL) em vez de negar de cara.
+        approval: "always",
         ...(grant ? { capabilities: grant } : {}),
         features: this.config.features ?? {},
       },
-      { approve: () => false }, // gateway nunca auto-aprova ação que pediria selo humano
+      // HITL: toda aprovação vira uma pergunta no canal que ESPERA o seu SIM/NÃO.
+      { approve: (req) => this.approveViaChannel(chatId, req) },
     );
 
     let buf = "";
@@ -77,7 +141,29 @@ export class Gateway {
     } finally {
       await engine.dispose();
     }
-    await this.adapter.send(msg.chatId, buf.trim() || "(sem resposta)");
+    await this.adapter.send(chatId, buf.trim() || "(sem resposta)");
+  }
+
+  /** Aprovação humana via canal: manda o cartão-resumo e espera SIM/NÃO. Timeout/erro
+   *  → CANCELA (default-deny). Nunca aprova sozinho. */
+  private async approveViaChannel(chatId: string, req: ApprovalLike): Promise<boolean> {
+    let answer: string;
+    try {
+      answer = await this.askUser(chatId, "approval", this.formatApproval(req));
+    } catch {
+      await this.adapter.send(chatId, "⌛ Sem confirmação a tempo — ação CANCELADA por segurança.");
+      return false;
+    }
+    const ok = AFFIRMATIVE.test(answer);
+    await this.adapter.send(chatId, ok ? "✅ Confirmado." : "🚫 Cancelado.");
+    return ok;
+  }
+
+  private formatApproval(req: ApprovalLike): string {
+    const lines = ["🔐 Confirmação necessária", `• Ação: ${req.action}`, `• Alvo: ${req.target}`];
+    if (req.detail) lines.push(`• Detalhe: ${req.detail}`);
+    lines.push("", "Responda SIM para aprovar ou NÃO para cancelar.");
+    return lines.join("\n");
   }
 
   private fold(buf: string, ev: EngineEvent): string {

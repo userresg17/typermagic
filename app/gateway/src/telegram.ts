@@ -62,7 +62,14 @@ export class TelegramChannel implements ChannelAdapter {
         this.offset = u.update_id + 1;
         const m = u.message;
         if (m?.text && m.from && m.chat) {
-          await this.cb?.({ senderId: String(m.from.id), chatId: String(m.chat.id), text: m.text });
+          // fire-and-forget: NÃO bloqueia o loop. Assim, enquanto uma tarefa fica suspensa
+          // esperando uma confirmação do usuário, a PRÓXIMA mensagem (o "SIM") é lida e
+          // roteada p/ a pendência. handle() já trata seus próprios erros.
+          void Promise.resolve(
+            this.cb?.({ senderId: String(m.from.id), chatId: String(m.chat.id), text: m.text }),
+          ).catch(() => {
+            /* evita unhandledRejection; handle() audita o erro */
+          });
         }
       }
     }
