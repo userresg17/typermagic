@@ -4,6 +4,7 @@
 // gateway:<name> sobre a Engine, capability-scoped (READONLY por padrão).
 
 import type { CapabilityGrant, EngineFeatures } from "@typer/engine";
+import type { BrowserOptions } from "@typer/agent";
 
 export interface IncomingMessage {
   /** id do remetente (allowlist/rate-limit por aqui) */
@@ -39,8 +40,9 @@ export interface GatewayConfig {
   local?: boolean;
   features?: EngineFeatures;
   /** habilita o navegador real (Playwright) compartilhado p/ as tarefas. Ausente = sem
-   *  browser. Perfil persistente (cookies); headful p/ relay humano de CAPTCHA. */
-  browser?: { headless?: boolean; profileDir?: string };
+   *  browser. Anti-bot: channel:"chrome" (Chrome instalado) ou cdpUrl (conecta ao Chrome
+   *  já aberto do usuário). headful + cdpUrl é o mais difícil de detectar. */
+  browser?: BrowserOptions;
   /** habilita o cofre cifrado (vault_fill) — abre ~/.typer/vault.enc sob demanda. */
   vault?: boolean;
 }

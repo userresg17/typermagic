@@ -68,6 +68,20 @@ function isSkip(s: string): boolean {
   return /^\s*(pular|skip|-)\s*$/i.test(s);
 }
 
+/** Traduz erro técnico do provedor numa mensagem CLARA + como resolver (req. do dono). */
+export function clarifyError(raw: string): string {
+  const s = raw.toLowerCase();
+  if (/401|403|unauthorized|invalid[_ ]?(api[_ ]?key|token)|token.*expired|expired.*token|not authenticated|reauth|re-?login/.test(s))
+    return "🔑 Sua sessão/credencial do provedor expirou. No terminal da máquina rode `typermagic login openai` (ou `anthropic`) e tente de novo.";
+  if (/429|rate[ _]?limit|too many requests|overloaded|capacity/.test(s))
+    return "⏳ Limite de uso do provedor atingido agora. Espere alguns minutos (a janela de 5h do Codex reabre sozinha) e repita o pedido.";
+  if (/quota|insufficient_quota|billing|payment required|credit|out of/.test(s))
+    return "💳 Os créditos/cota da API acabaram. Confira o plano/billing do provedor.";
+  if (/econnrefused|enotfound|fetch failed|getaddrinfo|network|timeout|etimedout|socket hang/.test(s))
+    return "🌐 Falha de rede com o provedor. Confira a internet e tente de novo.";
+  return `⚠️ Deu erro: ${raw.slice(0, 200)}`;
+}
+
 export class Gateway {
   private readonly rate: RateLimiter;
   private readonly surface: `gateway:${string}`;
@@ -208,7 +222,7 @@ export class Gateway {
       this.hooks.onAudit?.({ sender, result: "ok" });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      buf += `\n[erro: ${message}]`;
+      buf += `\n${clarifyError(message)}`;
       // SEGURANÇA: audita só a MENSAGEM do erro — nunca o buf (que pode conter conteúdo
       // de página/resposta). Nada de conteúdo do usuário vai pra log.
       this.hooks.onAudit?.({ sender, result: "error", detail: message });
@@ -253,7 +267,7 @@ export class Gateway {
   private fold(buf: string, ev: EngineEvent): string {
     if (ev.type === "token") return buf + ev.text;
     if (ev.type === "policy" && ev.decision === "deny") return buf + `\n🔒 bloqueado: ${ev.reason ?? "política"}`;
-    if (ev.type === "error") return buf + `\n[erro: ${ev.message}]`;
+    if (ev.type === "error") return buf + `\n${clarifyError(ev.message)}`;
     return buf;
   }
 

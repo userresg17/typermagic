@@ -38,6 +38,26 @@ Exemplo para um único dono, com ferramentas + navegador + cofre ligados:
 ```
 O grant dá **ler + internet**; o broker continua **negando escrever arquivo e exec arbitrário**.
 
+### Anti-bot (navegador) — quanto mais "navegador real", menos bloqueio
+Sites com anti-bot (cias aéreas/hotéis: DataDome, Akamai) detectam navegador automatizado.
+Por ordem de eficácia, configure `"browser"` no `gateway.json`:
+
+1. **Conectar ao SEU Chrome já aberto (melhor):** abra o Chrome com depuração e aponte o bot:
+   ```bash
+   google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.config/google-chrome"
+   ```
+   ```json
+   "browser": { "cdpUrl": "http://127.0.0.1:9222" }
+   ```
+   O bot dirige o **seu navegador real** (cookies/histórico/fingerprint seus) — o mais difícil de detectar.
+2. **Chrome instalado + janela visível:** `"browser": { "channel": "chrome", "headless": false }`
+   (precisa de sessão gráfica — rode no desktop, não como serviço puro de fundo).
+3. **Padrão (headless + stealth):** `"browser": { "headless": true }` — já remove a flag `webdriver`
+   e o user-agent "HeadlessChrome", mas anti-bot avançado ainda pode pegar. Use 1 ou 2 p/ esses.
+
+Quando o site bloquear mesmo assim, ele faz **relay humano**: te chama no Telegram p/ resolver
+o CAPTCHA na janela e responder "ok".
+
 ## 4. Onboarding (uma vez, pelo Telegram)
 - `/setup` — preenche perfil + pagamento passo a passo (use **cartão virtual com limite baixo**).
 - `/set <campo> <valor>` — grava um campo. `/vault` — vê o guardado (cartão mascarado). `/forget <campo>`.
