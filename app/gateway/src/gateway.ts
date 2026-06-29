@@ -38,9 +38,13 @@ const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|a
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
 const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/help"];
-function isCommand(text: string): boolean {
+/** 1º token do comando, normalizado — tira o sufixo @nomedobot que o Telegram anexa. */
+function commandOf(text: string): string {
   const first = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
-  return COMMANDS.includes(first);
+  return first.split("@")[0]!;
+}
+function isCommand(text: string): boolean {
+  return COMMANDS.includes(commandOf(text));
 }
 
 /** Onboarding: campos perguntados em sequência no /setup. "pular" deixa em branco. */
@@ -247,7 +251,7 @@ export class Gateway {
   /** Despacha um comando do gateway. Tudo escreve no cofre DIRETO — o modelo nunca vê. */
   private async handleCommand(chatId: string, text: string): Promise<void> {
     const parts = text.trim().split(/\s+/);
-    const cmd = (parts[0] ?? "").toLowerCase();
+    const cmd = commandOf(text);
     if (cmd === "/help") {
       await this.adapter.send(
         chatId,
