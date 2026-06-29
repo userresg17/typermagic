@@ -205,8 +205,11 @@ export class Gateway {
       }
       this.hooks.onAudit?.({ sender, result: "ok" });
     } catch (err) {
-      buf += `\n[erro: ${err instanceof Error ? err.message : String(err)}]`;
-      this.hooks.onAudit?.({ sender, result: "error", detail: buf });
+      const message = err instanceof Error ? err.message : String(err);
+      buf += `\n[erro: ${message}]`;
+      // SEGURANÇA: audita só a MENSAGEM do erro — nunca o buf (que pode conter conteúdo
+      // de página/resposta). Nada de conteúdo do usuário vai pra log.
+      this.hooks.onAudit?.({ sender, result: "error", detail: message });
     } finally {
       await engine.dispose();
     }
