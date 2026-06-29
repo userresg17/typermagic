@@ -72,6 +72,15 @@ describe("probeChannel (doctor)", () => {
     const ch: Channel = { name: "y", description: "", tier: "zero-config", backends: [boom, ok("b")], matches: () => false };
     expect((await probeChannel(ch, CTX)).status).toBe("ok");
   });
+  it("ignora backend best-effort (probeReliable:false) ao marcar pronto", async () => {
+    const flaky: Backend = { name: "native", available: () => true, probeReliable: false, run: async () => ({ ok: true, content: "x" }) };
+    // só o best-effort 'disponível' → NÃO conta como pronto; youtube cai no requisito yt-dlp
+    const ch1: Channel = { name: "youtube", description: "", tier: "zero-config", backends: [flaky], matches: () => false };
+    expect(await probeChannel(ch1, CTX)).toMatchObject({ status: "needs-config", message: "precisa de: yt-dlp" });
+    // um backend confiável depois dele → esse define o pronto
+    const ch2: Channel = { name: "youtube", description: "", tier: "zero-config", backends: [flaky, ok("yt-dlp")], matches: () => false };
+    expect(await probeChannel(ch2, CTX)).toMatchObject({ status: "ok", activeBackend: "yt-dlp" });
+  });
 });
 
 describe("doctor.checkAll", () => {

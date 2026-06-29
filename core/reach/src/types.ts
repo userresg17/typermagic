@@ -42,6 +42,11 @@ export interface Backend {
   name: string;
   /** disponível neste ambiente? (binário instalado, key presente, etc.). */
   available(ctx: ReachContext): boolean | Promise<boolean>;
+  /** o doctor pode confiar em `available()` como prova de prontidão? Default true.
+   *  false = backend best-effort: pode falhar em runtime apesar de "disponível", então
+   *  o doctor NÃO o conta como pronto (ex.: scrape nativo do YouTube, hoje barrado por
+   *  PoToken — serve só como 1ª tentativa barata antes do fallback de verdade). */
+  probeReliable?: boolean;
   /** executa a ação sobre o input (url/id/query). Nunca lança: devolve ReachResult. */
   run(input: string, ctx: ReachContext): Promise<ReachResult>;
 }
@@ -59,6 +64,7 @@ export interface Channel {
 
 /** Feature → chaves de config exigidas (espelha o config.py do agent-reach). */
 export const FEATURE_REQUIREMENTS: Record<string, string[]> = {
+  youtube: ["yt-dlp"], // o scrape nativo morreu (PoToken); a transcrição depende do yt-dlp
   search: ["exa_api_key"],
   github: ["github_token"], // opcional: público funciona sem
   twitter: ["twitter_cookie"],

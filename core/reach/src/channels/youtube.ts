@@ -97,6 +97,9 @@ async function fetchTranscript(id: string, ctx: ReachContext): Promise<ReachResu
 const nativeBackend: Backend = {
   name: "native",
   available: () => true,
+  // hoje o timedtext volta vazio sem PoToken; serve só como 1ª tentativa barata.
+  // O doctor não conta isso como "pronto" — quem entrega de verdade é o yt-dlp.
+  probeReliable: false,
   run: async (input, ctx) => {
     const id = parseVideoId(input);
     if (!id) return { ok: false, error: { code: "bad_url", message: "URL de YouTube inválida" } };
@@ -142,6 +145,7 @@ export const youtubeChannel: Channel = {
   name: "youtube",
   description: "Transcrição de vídeos do YouTube",
   tier: "zero-config",
-  backends: [nativeBackend, ytdlpBackend],
+  // yt-dlp primeiro (é o que funciona); nativo como último recurso barato.
+  backends: [ytdlpBackend, nativeBackend],
   matches: (input) => /(?:youtube\.com|youtu\.be)/i.test(input),
 };

@@ -40,6 +40,7 @@ export function fetchVia(channel: Channel, input: string, ctx: ReachContext): Pr
 export async function probeChannel(channel: Channel, ctx: ReachContext): Promise<ProbeStatus> {
   for (const b of channel.backends) {
     try {
+      if (b.probeReliable === false) continue; // best-effort: não prova prontidão
       if (await b.available(ctx)) {
         return { status: "ok", message: `pronto`, activeBackend: b.name };
       }
