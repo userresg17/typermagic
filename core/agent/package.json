@@ -24,6 +24,7 @@
     "@typer/retrieval": "workspace:*",
     "@typer/router": "workspace:*",
     "@typer/seal": "workspace:*",
-    "@typer/skills": "workspace:*"
+    "@typer/skills": "workspace:*",
+    "playwright": "^1.61.1"
   }
 }
