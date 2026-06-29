@@ -102,6 +102,9 @@ export interface TaskRequest {
   files?: string[];
   /** override de modo por tarefa */
   mode?: ModeName;
+  /** histórico recente da conversa (memória multi-turno) — turnos ANTERIORES, sem o atual.
+   *  Permite "quero esta opção" se referir ao que foi dito antes. */
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
 /** Desfecho de uma tarefa. Espelha os estados do selo e dos modos read-only. */

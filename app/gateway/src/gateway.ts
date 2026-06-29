@@ -37,7 +37,7 @@ const ASK_TIMEOUT_MS = 5 * 60_000;
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
-const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/help"];
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/help"];
 /** 1º token do comando, normalizado — tira o sufixo @nomedobot que o Telegram anexa. */
 function commandOf(text: string): string {
   const first = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
@@ -77,6 +77,8 @@ export class Gateway {
   /** navegador e cofre compartilhados, abertos sob demanda (lazy) */
   private browser: BrowserSession | undefined;
   private vault: Vault | undefined;
+  /** memória de conversa por chat (multi-turno): "quero esta opção" enxerga o que veio antes */
+  private readonly history = new Map<string, Array<{ role: "user" | "assistant"; content: string }>>();
 
   constructor(
     private readonly adapter: ChannelAdapter,
@@ -200,7 +202,7 @@ export class Gateway {
 
     let buf = "";
     try {
-      for await (const ev of engine.runTask({ prompt: msg.text })) {
+      for await (const ev of engine.runTask({ prompt: msg.text, history: this.history.get(chatId) ?? [] })) {
         buf = this.fold(buf, ev);
       }
       this.hooks.onAudit?.({ sender, result: "ok" });
@@ -213,7 +215,17 @@ export class Gateway {
     } finally {
       await engine.dispose();
     }
-    await this.adapter.send(chatId, buf.trim() || "(sem resposta)");
+    const reply = buf.trim() || "(sem resposta)";
+    await this.adapter.send(chatId, reply);
+    this.remember(chatId, msg.text, reply);
+  }
+
+  /** Guarda o turno na memória da conversa (cap nos últimos 12 itens = ~6 trocas). */
+  private remember(chatId: string, user: string, assistant: string): void {
+    const h = this.history.get(chatId) ?? [];
+    h.push({ role: "user", content: user }, { role: "assistant", content: assistant });
+    while (h.length > 12) h.shift();
+    this.history.set(chatId, h);
   }
 
   /** Aprovação humana via canal: manda o cartão-resumo e espera SIM/NÃO. Timeout/erro
@@ -264,6 +276,7 @@ export class Gateway {
           "/set <campo> <valor> — grava um campo (ex.: /set email a@b.com)",
           "/vault — mostra o que está guardado (cartão/senha mascarados)",
           "/forget <campo> — apaga um campo",
+          "/reset — zera a memória da conversa (recomeça do zero)",
           "",
           "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
         ].join("\n"),
@@ -303,6 +316,11 @@ export class Gateway {
       const vault = await this.ensureVault();
       await vault.delete(field);
       await this.adapter.send(chatId, `🗑️ ${field} apagado.`);
+      return;
+    }
+    if (cmd === "/reset") {
+      this.history.delete(chatId);
+      await this.adapter.send(chatId, "🧹 Conversa zerada — recomeçamos do zero.");
       return;
     }
     if (cmd === "/setup") {

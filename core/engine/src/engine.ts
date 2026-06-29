@@ -237,13 +237,13 @@ class EngineImpl implements Engine {
     let outcome: TaskOutcome;
     try {
       if (toolExec) {
-        outcome = await this.runToolUse(emit, provider, model, contextBlock, req.prompt, mode.system, toolExec);
+        outcome = await this.runToolUse(emit, provider, model, contextBlock, req.prompt, mode.system, toolExec, req.history);
       } else if (mode.allowsEdit) {
         outcome = this.config.testCommand
           ? await this.runEditLoop(emit, provider, model, root, contextBlock, req.prompt, mode.system, this.config.testCommand, attempts, approval, mem, skillStore)
           : await this.runEdit(emit, provider, model, root, contextBlock, req.prompt, mode.system, mem);
       } else {
-        outcome = await this.runChat(emit, provider, model, contextBlock, req.prompt, mode.system);
+        outcome = await this.runChat(emit, provider, model, contextBlock, req.prompt, mode.system, req.history);
       }
 
       // Handoff: no sucesso de um modo que edita, anexa a decisão e persiste.
@@ -294,10 +294,11 @@ class EngineImpl implements Engine {
     contextBlock: string,
     prompt: string,
     modeSystem: string,
+    history: TaskRequest["history"] = [],
   ): Promise<TaskOutcome> {
     const system = contextBlock ? `${modeSystem}\n\n${contextBlock}` : modeSystem;
     for await (const chunk of provider.chat({
-      messages: [{ role: "user", content: prompt }],
+      messages: [...(history ?? []), { role: "user", content: prompt }],
       model,
       system,
       cache: !!contextBlock,
@@ -441,6 +442,7 @@ class EngineImpl implements Engine {
     prompt: string,
     modeSystem: string,
     executor: ToolExecutor,
+    history: TaskRequest["history"] = [],
   ): Promise<TaskOutcome> {
     // Injeta as docs de capacidade (reach + browser) conforme as tools expostas: olhos
     // na internet e/ou navegador real + metodologia/regras de HITL. Vazio quando ausentes.
@@ -454,6 +456,7 @@ class EngineImpl implements Engine {
       system,
       executor,
       maxTurns: this.config.maxTurns ?? 30,
+      ...(history && history.length ? { history } : {}),
       onToolCall: (call, res) => {
         emit({ type: "tool.call", name: call.name, args: call.arguments });
         emit({ type: "tool.result", name: call.name, ok: !res.startsWith("ERRO:"), preview: res.slice(0, 200) });

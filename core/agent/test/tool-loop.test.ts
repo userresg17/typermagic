@@ -100,6 +100,30 @@ describe("runToolLoop (5.6 execução)", () => {
     expect(res.calls).toHaveLength(3);
   });
 
+  it("prepende o histórico (memória multi-turno) nas mensagens", async () => {
+    const counter = {
+      id: "counter",
+      async *chat(req: { messages: unknown[] }) {
+        yield { text: `msgs:${req.messages.length}`, toolCalls: [] };
+      },
+      async fim() {
+        return "";
+      },
+      countTokens: () => 0,
+    };
+    const empty: ToolExecutor = { tools: () => [], call: async () => ({ content: "" }) };
+    const res = await runToolLoop("agora", {
+      provider: counter as never,
+      model: "fake",
+      executor: empty,
+      history: [
+        { role: "user", content: "antes" },
+        { role: "assistant", content: "resposta anterior" },
+      ],
+    });
+    expect(res.text).toBe("msgs:3"); // 2 do histórico + a mensagem atual
+  });
+
   it("ao esgotar as voltas sem texto final, força um resumo (NUNCA volta vazio)", async () => {
     // pede ferramenta enquanto há tools; quando a chamada final vem SEM tools, responde texto.
     const exhausting = {

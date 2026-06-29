@@ -23,6 +23,8 @@ export interface ToolLoopOptions {
   executor: ToolExecutor;
   /** teto de voltas (evita laço infinito de tool-use). Default 6. */
   maxTurns?: number;
+  /** memória multi-turno: turnos anteriores da conversa (antes da task atual). */
+  history?: Message[];
   /** observabilidade: chamado a cada ferramenta executada */
   onToolCall?: (call: ToolCall, result: string) => void;
 }
@@ -53,7 +55,7 @@ export async function runToolLoop(
 ): Promise<ToolLoopResult> {
   const maxTurns = opts.maxTurns ?? 6;
   const tools = opts.executor.tools();
-  const messages: Message[] = [{ role: "user", content: task }];
+  const messages: Message[] = [...(opts.history ?? []), { role: "user", content: task }];
   const calls: ToolCall[] = [];
   let lastText = "";
 
