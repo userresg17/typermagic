@@ -126,11 +126,14 @@ export async function callRegistryTool(
   return dispatch(registry, name, args, ctx);
 }
 
-/** Executor das 50 ferramentas para o loop de agente, com broker + policy gate +
- *  selo aplicados em cada chamada (via callRegistryTool). Expõe o CORE por padrão. */
+/** Executor das ferramentas para o loop de agente, com broker + policy gate + selo
+ *  aplicados em cada chamada (via callRegistryTool). Expõe TODAS por padrão — incluindo
+ *  as lazy (reach/web/browser/lsp): sem a descoberta lazy implementada, expor só o core
+ *  deixava o agente cego p/ internet ("não tenho acesso a busca"). Cada tool é gateada
+ *  na chamada, então expor a lista completa é seguro. */
 export function engineToolExecutor(deps: ToolCallDeps, opts: { expose?: Tool[] } = {}): ToolExecutor {
   const registry = buildDefaultRegistry();
-  const exposed = opts.expose ?? registry.core();
+  const exposed = opts.expose ?? registry.all();
   return {
     tools: () => exposed.map(toolSpec),
     call: async (name, args) => {

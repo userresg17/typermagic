@@ -44,7 +44,7 @@ const reachReadTool: Tool = {
   permission: "network",
   exec: "subprocess",
   tier: "lazy",
-  requiresApproval: true,
+  requiresApproval: false,
   sealGated: false,
   effect: { external: true, reversible: true, kind: "network" },
   handler: async (args) => {
@@ -63,7 +63,7 @@ const reachSearchTool: Tool = {
   permission: "network",
   exec: "subprocess",
   tier: "lazy",
-  requiresApproval: true,
+  requiresApproval: false,
   sealGated: false,
   effect: { external: true, reversible: true, kind: "network" },
   handler: async (args) => {
@@ -82,7 +82,7 @@ const reachVideoTool: Tool = {
   permission: "network",
   exec: "subprocess",
   tier: "lazy",
-  requiresApproval: true,
+  requiresApproval: false,
   sealGated: false,
   effect: { external: true, reversible: true, kind: "network" },
   handler: async (args) => {
@@ -101,7 +101,7 @@ const reachSocialTool: Tool = {
   permission: "network",
   exec: "subprocess",
   tier: "lazy",
-  requiresApproval: true,
+  requiresApproval: false,
   sealGated: false,
   effect: { external: true, reversible: true, kind: "network" },
   handler: async (args) => {
