@@ -4,6 +4,22 @@ Este assistente lida com **pagamento e dados pessoais**. Esta página diz, sem r
 que fica **só na sua máquina**, o que passa por terceiros (e por quê), e o que **nunca** é
 gravado. Honestidade acima de promessa.
 
+## 0. Nós (desenvolvedores) NÃO recebemos nada — não existe servidor Typer Magic
+
+O Typer Magic é **local-first e BYOK** (você traz suas próprias chaves). **Não há backend
+nosso, telemetria ligada, analytics, nem "telefonar pra casa".**
+
+- A única classe de telemetria (`core/evals`) é **desligada por padrão**, `track()` é
+  **no-op** sem consentimento explícito, e **não tem endpoint nenhum** — o destino é um
+  *sink* que **você** injeta. Comentário no código: *"Não existe nuvem Typer"*.
+- **Todos** os destinos de rede do código são provedores/canais que **você** escolhe: seu
+  LLM (`api.openai.com`/`api.anthropic.com` com a SUA chave/login), seu bot
+  (`api.telegram.org` com o SEU token), e os sites que você manda ler (youtube, github, …).
+  **Não existe nenhum `typermagic.com`** recebendo seus dados. (Verificável: procure por
+  hosts no código — só aparecem os acima.)
+- Resultado: seus dados **nunca chegam a nós**. Quem desenvolveu o Typer Magic não tem como
+  ver, salvar ou vazar o que é seu — não há para onde isso ir do nosso lado.
+
 ## 1. O que NUNCA sai da sua máquina
 
 | Dado | Onde fica | Proteção |
