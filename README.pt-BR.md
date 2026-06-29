@@ -14,6 +14,16 @@
 
 ---
 
+> [!IMPORTANT]
+> ### 🔒 Seus dados são seus — não existe servidor nosso
+> **Local-first e BYOK: sem backend do TYPER Magic, sem telemetria, sem "telefonar pra casa".**
+> Nós (os desenvolvedores) **nunca recebemos nem guardamos o que você faz.** Cartão e senhas
+> ficam cifrados na **sua** máquina (AES-256-GCM) e são digitados direto nas páginas — nunca
+> chegam ao modelo, ao log, nem ao git. Todo destino de rede no código é um provedor ou site
+> que **você** escolheu (sua chave do LLM, seu bot do Telegram). Quer o raciocínio também
+> 100% local? Use um modelo local.
+> **→ [Modelo completo de segurança e privacidade](./SECURITY.md)**
+
 O TYPER Magic é um **agente local-first, BYOK e agnóstico de modelo** na classe do Hermes e
 do OpenClaw — um **agente geral e autônomo**, não uma ferramenta só de código. Ele opera
 sistemas e dados de verdade: escreve e entrega código, roda e supervisiona comandos, navega
