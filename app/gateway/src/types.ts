@@ -38,4 +38,9 @@ export interface GatewayConfig {
   provider?: string | null;
   local?: boolean;
   features?: EngineFeatures;
+  /** habilita o navegador real (Playwright) compartilhado p/ as tarefas. Ausente = sem
+   *  browser. Perfil persistente (cookies); headful p/ relay humano de CAPTCHA. */
+  browser?: { headless?: boolean; profileDir?: string };
+  /** habilita o cofre cifrado (vault_fill) — abre ~/.typer/vault.enc sob demanda. */
+  vault?: boolean;
 }

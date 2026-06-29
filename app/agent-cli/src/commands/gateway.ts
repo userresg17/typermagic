@@ -17,6 +17,10 @@ interface GatewayFile {
   features?: GatewayConfig["features"];
   /** grant de capacidade por remetente (escala acima do READONLY da superfície). */
   grants?: GatewayConfig["grants"];
+  /** liga o navegador real (Playwright) — ex.: { "headless": false } p/ relay de CAPTCHA. */
+  browser?: GatewayConfig["browser"];
+  /** liga o cofre cifrado (vault_fill) — abre ~/.typer/vault.enc sob demanda. */
+  vault?: GatewayConfig["vault"];
 }
 
 async function loadGatewayFile(root: string): Promise<GatewayFile> {
@@ -40,6 +44,8 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
     ...(file.rateRefillMs !== undefined ? { rateRefillMs: file.rateRefillMs } : {}),
     ...(file.features !== undefined ? { features: file.features } : {}),
     ...(file.grants !== undefined ? { grants: file.grants } : {}),
+    ...(file.browser !== undefined ? { browser: file.browser } : {}),
+    ...(file.vault !== undefined ? { vault: file.vault } : {}),
   };
   if (config.allow.length === 0) {
     console.error(dim("· aviso: allowlist vazia em .typer/gateway.json — ninguém será atendido (default-deny)"));

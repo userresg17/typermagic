@@ -13,6 +13,7 @@ import type {
   AuditEntry,
   Permission,
   ExecContext,
+  BrowserSession,
 } from "@typer/agent";
 import type { FilePlan } from "@typer/edit";
 import type { SealResult } from "@typer/seal";
@@ -83,6 +84,12 @@ export interface EngineConfig {
   record?: boolean;
   /** recursos opt-in */
   features?: EngineFeatures;
+  /** navegador real (Playwright) compartilhado p/ as tarefas (ferramentas browser_*) */
+  browser?: BrowserSession;
+  /** cofre cifrado p/ vault_fill (tipado solto — não acopla @typer/vault) */
+  vault?: { get(field: string): string | undefined; has(field: string): boolean; fields(): string[] };
+  /** pergunta algo ao usuário pelo canal e espera a resposta (esclarecimento/OTP) */
+  ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
 }
 
 export interface TaskRequest {

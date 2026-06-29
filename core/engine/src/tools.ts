@@ -51,6 +51,12 @@ export interface ToolCallDeps {
   testCommand?: string | undefined;
   /** sandbox de isolamento p/ ferramentas exec:microvm (código não confiável) */
   microvm?: MicroVm | undefined;
+  /** navegador real (Playwright) p/ as ferramentas browser_* */
+  browser?: ToolDeps["browser"];
+  /** cofre cifrado p/ vault_fill */
+  vault?: ToolDeps["vault"];
+  /** pergunta ao usuário pelo canal (ask_user: esclarecimento/OTP) */
+  ask?: ToolDeps["ask"];
 }
 
 /** Executa uma ferramenta com o broker à frente. Nunca lança: devolve ToolResult
@@ -111,6 +117,9 @@ export async function callRegistryTool(
     ...(deps.hasOpenAI !== undefined ? { hasOpenAI: deps.hasOpenAI } : {}),
     ...(deps.testCommand !== undefined ? { testCommand: deps.testCommand } : {}),
     ...(deps.microvm !== undefined ? { microvm: deps.microvm } : {}),
+    ...(deps.browser !== undefined ? { browser: deps.browser } : {}),
+    ...(deps.vault !== undefined ? { vault: deps.vault } : {}),
+    ...(deps.ask !== undefined ? { ask: deps.ask } : {}),
   };
 
   const ctx: ToolContext = {

@@ -16,6 +16,8 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@typer/engine": "workspace:*"
+    "@typer/agent": "workspace:*",
+    "@typer/engine": "workspace:*",
+    "@typer/vault": "workspace:*"
   }
 }

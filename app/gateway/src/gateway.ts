@@ -11,6 +11,8 @@
 // mensagem do mesmo chat (PendingStore).
 
 import { createEngine, type CapabilityGrant, type EngineEvent } from "@typer/engine";
+import { openBrowser, type BrowserSession } from "@typer/agent";
+import { openVault, type Vault } from "@typer/vault";
 import { RateLimiter } from "./rate-limit.js";
 import { PendingStore, type PendingKind } from "./pending.js";
 import type { ChannelAdapter, GatewayConfig, IncomingMessage } from "./types.js";
@@ -40,6 +42,9 @@ export class Gateway {
   private readonly pending = new PendingStore();
   /** chats com uma tarefa em andamento (evita 2 engines concorrentes no mesmo chat) */
   private readonly busy = new Set<string>();
+  /** navegador e cofre compartilhados, abertos sob demanda (lazy) */
+  private browser: BrowserSession | undefined;
+  private vault: Vault | undefined;
 
   constructor(
     private readonly adapter: ChannelAdapter,
@@ -108,10 +113,27 @@ export class Gateway {
     }
   }
 
+  /** navegador compartilhado (abre na 1ª tarefa que precisa; perfil persistente). */
+  private async ensureBrowser(): Promise<BrowserSession> {
+    if (!this.browser) this.browser = await openBrowser(this.config.browser ?? {});
+    return this.browser;
+  }
+
+  /** cofre compartilhado (abre sob demanda). */
+  private async ensureVault(): Promise<Vault> {
+    if (!this.vault) this.vault = await openVault();
+    return this.vault;
+  }
+
   private async runTask(msg: IncomingMessage): Promise<void> {
     const sender = msg.senderId;
     const chatId = msg.chatId;
     const grant = this.grantFor(sender);
+    // super-assistente: navegador real, cofre cifrado e o canal de perguntas (ask_user).
+    const browser = this.config.browser ? await this.ensureBrowser() : undefined;
+    const vault = this.config.vault ? await this.ensureVault() : undefined;
+    const ask = (kind: "clarify" | "otp", question: string): Promise<string> =>
+      this.askUser(chatId, kind, question);
     const engine = createEngine(
       {
         root: this.config.root,
@@ -124,6 +146,9 @@ export class Gateway {
         approval: "always",
         ...(grant ? { capabilities: grant } : {}),
         features: this.config.features ?? {},
+        ...(browser ? { browser } : {}),
+        ...(vault ? { vault } : {}),
+        ask,
       },
       // HITL: toda aprovação vira uma pergunta no canal que ESPERA o seu SIM/NÃO.
       { approve: (req) => this.approveViaChannel(chatId, req) },
@@ -181,5 +206,6 @@ export class Gateway {
 
   stop(): void {
     this.adapter.stop();
+    void this.browser?.close();
   }
 }

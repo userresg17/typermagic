@@ -548,6 +548,10 @@ class EngineImpl implements Engine {
       ...(opts.onPolicy ? { onPolicy: opts.onPolicy } : {}),
       ...(this.config.local !== undefined ? { local: this.config.local } : {}),
       ...(testCommandStr !== undefined ? { testCommand: testCommandStr } : {}),
+      // super-assistente: navegador, cofre e o canal de perguntas (browser_*/vault_*/ask_user)
+      ...(this.config.browser !== undefined ? { browser: this.config.browser } : {}),
+      ...(this.config.vault !== undefined ? { vault: this.config.vault } : {}),
+      ...(this.config.ask !== undefined ? { ask: this.config.ask } : {}),
     };
   }
 

@@ -89,9 +89,15 @@ importers:
 
   app/gateway:
     dependencies:
+      '@typer/agent':
+        specifier: workspace:*
+        version: link:../../core/agent
       '@typer/engine':
         specifier: workspace:*
         version: link:../../core/engine
+      '@typer/vault':
+        specifier: workspace:*
+        version: link:../../core/vault
 
   app/scheduler:
     dependencies:
