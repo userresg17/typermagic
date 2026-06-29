@@ -107,8 +107,8 @@ const reachSocialTool: Tool = {
   handler: async (args) => {
     const url = args.url as string;
     if (!isHttp(url)) return { ok: false, error: { code: "bad_url", message: "URL deve ser http(s)" } };
-    // reachRead roteia: quando os canais sociais existirem (twitter/reddit/linkedin),
-    // routeUrl os escolhe; até lá cai no web.
+    // reachRead roteia pelo registry: URLs de Twitter/X, Reddit e LinkedIn casam seus
+    // canais nativos (com cadeia de fallback p/ leitura web pública se faltar cookie).
     return wrap(await reachRead(url, await reachCtx()));
   },
 };
