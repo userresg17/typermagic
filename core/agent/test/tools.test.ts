@@ -38,8 +38,8 @@ function fakeCtx(over: Partial<ToolContext> & { events?: AuditEvent[] } = {}): T
 describe("registry e descoberta", () => {
   const registry = buildDefaultRegistry();
 
-  it("registra exatamente 63 ferramentas", () => {
-    expect(registry.all()).toHaveLength(63);
+  it("registra exatamente 66 ferramentas", () => {
+    expect(registry.all()).toHaveLength(66);
   });
 
   it("o core tem 19 ferramentas", () => {
@@ -48,7 +48,7 @@ describe("registry e descoberta", () => {
 
   it("nomes são únicos", () => {
     const names = new Set(registry.all().map((t) => t.name));
-    expect(names.size).toBe(63);
+    expect(names.size).toBe(66);
   });
 
   it("search acha ferramenta lazy por contexto", () => {

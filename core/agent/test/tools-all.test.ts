@@ -168,19 +168,23 @@ const specs: Spec[] = [
   { name: "browser_screenshot", args: () => ({}), expect: { err: "browser_unavailable" } },
   { name: "browser_url", args: () => ({}), expect: { err: "browser_unavailable" } },
   { name: "browser_submit", args: () => ({ selector: "#pay" }), expect: { err: "browser_unavailable" } },
+  // assist (super-assistente) — sem vault/ask/browser, degradam com erro claro
+  { name: "vault_fields", args: () => ({}), expect: { err: "vault_unavailable" } },
+  { name: "vault_fill", args: () => ({ field: "card_number", selector: "#c" }), expect: { err: "vault_unavailable" } },
+  { name: "ask_user", args: () => ({ question: "qual o tamanho?" }), expect: { err: "ask_unavailable" } },
 ];
 
-describe("cobertura: todas as 63 ferramentas estão no spec", () => {
+describe("cobertura: todas as 66 ferramentas estão no spec", () => {
   it("o spec cobre exatamente as 55 do registry", () => {
     const registered = new Set(registry.all().map((t) => t.name));
     const tested = new Set(specs.map((s) => s.name));
-    expect(specs).toHaveLength(63);
-    expect(registered.size).toBe(63);
+    expect(specs).toHaveLength(66);
+    expect(registered.size).toBe(66);
     for (const n of registered) expect(tested.has(n)).toBe(true);
   });
 });
 
-describe("validação 1-a-1 das 63 ferramentas", () => {
+describe("validação 1-a-1 das 66 ferramentas", () => {
   for (const spec of specs) {
     const label =
       spec.expect === "ok" ? "→ ok" : spec.expect === "valid" ? "→ resultado válido" : `→ erro ${spec.expect.err}`;

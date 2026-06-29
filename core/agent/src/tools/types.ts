@@ -76,6 +76,17 @@ export interface ToolDeps {
   microvm?: MicroVm;
   /** navegador real (Playwright) p/ as ferramentas browser_* */
   browser?: BrowserSession;
+  /** cofre cifrado (vault_fill): o preenchedor lê o valor SENSÍVEL e digita na página;
+   *  o valor NUNCA volta pro modelo. O modelo conhece só os NOMES dos campos (fields()).
+   *  Tipado solto p/ não acoplar @typer/vault ao @typer/agent. */
+  vault?: {
+    get(field: string): string | undefined;
+    has(field: string): boolean;
+    fields(): string[];
+  };
+  /** pergunta algo ao usuário pelo canal e espera a resposta (esclarecimento de pedido,
+   *  ou código/OTP do banco). Injetado pelo gateway (mapeia pro askUser do Telegram). */
+  ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
   /** preferir modelo/embedder local (Ollama) quando aplicável */
   local?: boolean;
   /** tem chave OpenAI? (escolha de embedder) */
