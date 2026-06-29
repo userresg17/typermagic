@@ -25,6 +25,45 @@ export function parseTimedText(xml: string): string {
     .trim();
 }
 
+/** json3 (formato default do yt-dlp/innertube) → texto corrido. */
+export function parseJson3(json: string): string {
+  try {
+    const data = JSON.parse(json) as { events?: { segs?: { utf8?: string }[] }[] };
+    return (data.events ?? [])
+      .map((e) => (e.segs ?? []).map((s) => s.utf8 ?? "").join(""))
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch {
+    return "";
+  }
+}
+
+/** WEBVTT → texto corrido (descarta cabeçalho, índices, timestamps e tags). */
+export function parseVtt(vtt: string): string {
+  return vtt
+    .split(/\r?\n/)
+    .filter(
+      (l) =>
+        l.trim() &&
+        !/^(WEBVTT|Kind:|Language:)/.test(l) &&
+        !l.includes("-->") &&
+        !/^\d+$/.test(l.trim()),
+    )
+    .map((l) => l.replace(/<[^>]+>/g, ""))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Detecta o formato da legenda (json3, vtt ou xml timedtext) e extrai o texto. */
+export function captionsToText(body: string): string {
+  const head = body.trimStart();
+  if (head.startsWith("{")) return parseJson3(body);
+  if (head.startsWith("WEBVTT")) return parseVtt(body);
+  return parseTimedText(body);
+}
+
 interface CaptionTrack {
   baseUrl?: string;
   languageCode?: string;
@@ -50,7 +89,7 @@ async function fetchTranscript(id: string, ctx: ReachContext): Promise<ReachResu
     tracks[0];
   if (!track?.baseUrl) return { ok: false, error: { code: "no_captions", message: "sem faixa de legenda" } };
   const sub = await fetchText(track.baseUrl, { timeoutMs: ctx.timeoutMs });
-  const text = parseTimedText(sub.text);
+  const text = captionsToText(sub.text);
   if (!text) return { ok: false, error: { code: "empty", message: "transcrição vazia" } };
   return { ok: true, content: text, meta: { id, lang: track.languageCode } };
 }
@@ -81,15 +120,17 @@ const ytdlpBackend: Backend = {
     if (r.code !== 0) return { ok: false, error: { code: "ytdlp_failed", message: r.stderr.slice(0, 200) } };
     try {
       const info = JSON.parse(r.stdout) as {
-        subtitles?: Record<string, { url: string }[]>;
-        automatic_captions?: Record<string, { url: string }[]>;
+        subtitles?: Record<string, { ext?: string; url: string }[]>;
+        automatic_captions?: Record<string, { ext?: string; url: string }[]>;
       };
       const langs = { ...info.automatic_captions, ...info.subtitles };
-      const pick = langs["en"] ?? langs["pt"] ?? Object.values(langs)[0];
-      const url = pick?.[0]?.url;
+      const fmts = langs["en"] ?? langs["pt"] ?? Object.values(langs)[0];
+      // prefere um formato fácil de parsear (srv1/vtt) antes do json3 (default do yt-dlp)
+      const fmt = fmts?.find((f) => f.ext === "srv1") ?? fmts?.find((f) => f.ext === "vtt") ?? fmts?.[0];
+      const url = fmt?.url;
       if (!url) return { ok: false, error: { code: "no_captions", message: "sem legendas no yt-dlp" } };
       const sub = await fetchText(url, { timeoutMs: ctx.timeoutMs });
-      const text = parseTimedText(sub.text) || sub.text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      const text = captionsToText(sub.text);
       return text ? { ok: true, content: text } : { ok: false, error: { code: "empty", message: "vazio" } };
     } catch (e) {
       return { ok: false, error: { code: "parse_failed", message: (e as Error).message } };

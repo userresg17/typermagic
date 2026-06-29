@@ -11,7 +11,7 @@ export { loadConfig, saveConfig, setCred, resolveCred } from "./store.js";
 export { checkAll, formatReport, type ChannelReport } from "./doctor.js";
 export { htmlToText, decodeEntities, fetchText } from "./http.js";
 export { parseFeed, type FeedItem } from "./channels/rss.js";
-export { parseVideoId, parseTimedText } from "./channels/youtube.js";
+export { parseVideoId, parseTimedText, parseJson3, parseVtt, captionsToText } from "./channels/youtube.js";
 export { parseRepo } from "./channels/github.js";
 export { formatReddit } from "./channels/reddit.js";
 export { parseTweetId, syndicationToken } from "./channels/twitter.js";

@@ -8,7 +8,7 @@ import { routeUrl, getChannel, CHANNELS } from "../src/registry.js";
 import { checkAll } from "../src/doctor.js";
 import { setCred, loadConfig, resolveCred } from "../src/store.js";
 import { parseFeed } from "../src/channels/rss.js";
-import { parseVideoId, parseTimedText } from "../src/channels/youtube.js";
+import { parseVideoId, parseTimedText, parseJson3, parseVtt } from "../src/channels/youtube.js";
 import { parseRepo } from "../src/channels/github.js";
 import { formatReddit } from "../src/channels/reddit.js";
 import { parseTweetId, syndicationToken } from "../src/channels/twitter.js";
@@ -132,6 +132,18 @@ describe("parsers de canal (fixtures, sem rede)", () => {
   });
   it("parseTimedText junta os <text> e decodifica", () => {
     expect(parseTimedText(`<text start="0">a&amp;b</text><text start="1">c</text>`)).toBe("a&b c");
+  });
+  it("parseJson3 (formato yt-dlp) junta os segs.utf8", () => {
+    const j = JSON.stringify({
+      events: [{ segs: [{ utf8: "olá" }, { utf8: " mundo" }] }, { segs: [{ utf8: "linha 2" }] }, { segs: [] }],
+    });
+    expect(parseJson3(j)).toBe("olá mundo linha 2");
+    expect(parseJson3("não é json")).toBe("");
+  });
+  it("parseVtt descarta cabeçalho, índices, timestamps e tags", () => {
+    const vtt =
+      "WEBVTT\nKind: captions\nLanguage: en\n\n1\n00:00:01.000 --> 00:00:03.000\nolá <c>mundo</c>\n\n2\n00:00:03.000 --> 00:00:04.000\ntchau";
+    expect(parseVtt(vtt)).toBe("olá mundo tchau");
   });
   it("parseRepo de URL e de owner/repo", () => {
     expect(parseRepo("https://github.com/openai/codex")).toMatchObject({ owner: "openai", repo: "codex", rest: [] });
