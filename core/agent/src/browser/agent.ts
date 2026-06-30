@@ -207,7 +207,7 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
       messages.push({
         role: "user",
         content:
-          "Você repetiu a mesma ação 3x sem progresso (provável anti-bot/CAPTCHA). Tente OUTRA abordagem, ou use ask_user pedindo p/ o usuário resolver na JANELA, ou done explicando.",
+          "Você repetiu a MESMA ação 3x sem mudar a página. NÃO é necessariamente CAPTCHA. Tente algo DIFERENTE: role até o elemento (scroll), clique no LINK/NOME direto do item (não no card), ou em outro elemento da lista. Só fale em CAPTCHA se vir 'não sou robô' no texto da página.",
       });
       seen.clear();
       stuck = 0;

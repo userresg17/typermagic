@@ -28,7 +28,31 @@ const EXTRACT_FN = (offset: number): unknown[] => {
     const s = g.getComputedStyle(el);
     return r.width > 1 && r.height > 1 && s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0.05;
   };
-  const els = Array.from(doc.querySelectorAll(SEL)).filter(isVis);
+  const set = new Set<any>(Array.from(doc.querySelectorAll(SEL)) as any[]);
+  // Clicáveis "custom": elementos com cursor:pointer cujo ancestral ainda não está no set.
+  // Pega CARDS de hotel/produto que são <div> com handler JS (sem href/role/onclick) — o
+  // seletor sozinho não acha, e o agente ficava sem onde clicar.
+  for (const el of Array.from(doc.querySelectorAll("div,span,li,article,section,td,th,label,img,p,h1,h2,h3")) as any[]) {
+    if (set.has(el)) continue;
+    let st: any;
+    try {
+      st = g.getComputedStyle(el);
+    } catch {
+      continue;
+    }
+    if (st.cursor !== "pointer") continue;
+    let p = el.parentElement;
+    let dup = false;
+    while (p) {
+      if (set.has(p)) {
+        dup = true;
+        break;
+      }
+      p = p.parentElement;
+    }
+    if (!dup) set.add(el);
+  }
+  const els = Array.from(set).filter(isVis).slice(0, 150); // teto p/ não estourar o contexto
   return els.map((el: any, i: number) => {
     const idx = offset + i;
     el.setAttribute("data-typer-idx", String(idx));
@@ -39,6 +63,7 @@ const EXTRACT_FN = (offset: number): unknown[] => {
         el.placeholder ||
         el.getAttribute("title") ||
         el.getAttribute("name") ||
+        el.getAttribute("alt") ||
         "",
     )
       .trim()
@@ -133,7 +158,7 @@ async function applyStealth(page: any): Promise<void> {
 class PlaywrightSession implements BrowserSession {
   constructor(
     private readonly context: any,
-    private readonly page: any,
+    private page: any, // mutável: trocamos p/ a nova aba quando um clique abre uma (sites de hotel)
     private readonly timeoutMs: number,
     /** true = nós lançamos (fechar no close); false = conectamos a um Chrome do usuário (não fechar). */
     private readonly owned: boolean,
@@ -199,10 +224,34 @@ class PlaywrightSession implements BrowserSession {
   async actByIndex(idx: number, action: "click" | "type" | "select", text?: string): Promise<void> {
     const loc = await this.locByIndex(idx);
     if (!loc) throw new Error(`elemento [${idx}] não existe mais — leia o estado de novo (a página mudou)`);
-    if (action === "type") await loc.fill(text ?? "", { timeout: this.timeoutMs });
-    else if (action === "select") await loc.selectOption(text ?? "", { timeout: this.timeoutMs });
-    else await loc.click({ timeout: this.timeoutMs });
+    if (action === "type") {
+      await loc.fill(text ?? "", { timeout: this.timeoutMs });
+      return;
+    }
+    if (action === "select") {
+      await loc.selectOption(text ?? "", { timeout: this.timeoutMs });
+      return;
+    }
+    // clique: pode abrir NOVA ABA (sites de hotel abrem o quarto numa aba nova). Detecta e troca.
+    const before = this.context.pages().length;
+    await loc.scrollIntoViewIfNeeded({ timeout: this.timeoutMs }).catch(() => {});
+    await loc.click({ timeout: this.timeoutMs });
+    await this.page.waitForTimeout(250).catch(() => {});
+    await this.switchToNewTabIfAny(before);
     await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+  }
+
+  /** Se um clique abriu uma aba nova, passa a operar nela (e fecha as antigas órfãs? não —
+   *  mantém; mas o foco vai pra mais nova, que é a página do hotel/produto). */
+  private async switchToNewTabIfAny(beforeCount: number): Promise<void> {
+    const pages = this.context.pages();
+    if (pages.length > beforeCount) {
+      const newest = pages[pages.length - 1];
+      if (newest && newest !== this.page) {
+        this.page = newest;
+        await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+      }
+    }
   }
 
   async fillByIndex(idx: number, value: string): Promise<void> {
