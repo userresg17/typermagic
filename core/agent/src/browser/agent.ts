@@ -171,6 +171,7 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
   const seen = new Set<string>();
   let stuck = 0;
   let denials = 0;
+  let holdChallenges = 0; // desafios "aperte e segure" repetidos = anti-bot detectando automação
 
   for (let step = 1; step <= maxSteps; step++) {
     let state;
@@ -216,6 +217,7 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
 
     const results: string[] = [];
     for (const a of plan.actions.slice(0, 5)) {
+      if (a.action === "press_hold") holdChallenges++;
       const r = await execAction(a, deps, state);
       results.push(`${a.action}${a.index !== undefined ? `[${a.index}]` : ""}: ${r.result}`);
       if (r.denied) denials++;
@@ -227,6 +229,12 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
     // o usuário negou a ação irreversível 2x → para (não fica re-tentando clicar em pagar).
     if (denials >= 2) {
       return "Não finalizei porque você não confirmou a ação (pagar/enviar). Deixei tudo preenchido até o passo final — é só confirmar quando quiser que eu concluo.";
+    }
+
+    // "aperte e segure" REAPARECEU várias vezes mesmo sendo resolvido = anti-bot detectando a
+    // automação (CDP). Repetir é inútil e trava por minutos. PARA e explica.
+    if (holdChallenges >= 3) {
+      return "🤖 O site entrou num LOOP de 'aperte e segure': eu resolvo e ele pede de novo, sem parar. Isso NÃO é um desafio normal — é o anti-bot do iFood detectando que é um navegador automatizado (nível CDP, que o disfarce de JS não esconde). Não dá pra passar por aqui no modo atual. Pra isso funcionar precisamos do modo SEM-CDP (mouse do sistema operacional + leitura de tela por visão).";
     }
 
     if (stuck >= 3) {
