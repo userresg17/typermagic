@@ -70,7 +70,7 @@ function parsePlan(raw: string): { thinking?: string; actions: Action[] } | null
 // num elemento assim — não só a ação "finalize" — exige confirmação humana (HITL). Senão o
 // modelo, negado no finalize, simplesmente clicaria no mesmo botão via "click" (bypass).
 const IRREVERSIBLE =
-  /(pagar|pague|pay\s*now|finaliz|finish|place\s*order|submit\s*order|confirmar\s*(pedido|compra|pagamento|order|payment)|fazer\s*pedido|comprar\s*agora|buy\s*now)/i;
+  /(pagar|pague|pay\s*now|finaliz|finish|place\s*order|submit\s*order|confirmar\s*(pedido|compra|pagamento|order|payment)|fazer\s*pedido|comprar\s*agora|buy\s*now|postar|publicar|tweetar|tweet|\bpost\b|comentar|enviar)/i;
 
 function elText(state: PageState, idx: number): string {
   return state.elements.find((e) => e.idx === idx)?.text ?? "";

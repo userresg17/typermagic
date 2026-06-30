@@ -134,6 +134,30 @@ describe("browser sub-agente (loop perceber→agir)", () => {
     expect(out).toContain("não confirmou");
   });
 
+  it("PUBLICAR em rede social exige aprovação (post é irreversível/público)", async () => {
+    const states: PageState[] = [{ url: "https://x.com", title: "", text: "", elements: [{ idx: 5, tag: "button", text: "Postar" }] }];
+    const { session, acts } = fakeSession(states);
+    const scripts = [
+      '{"actions":[{"action":"click","index":5}]}',
+      '{"actions":[{"action":"click","index":5}]}',
+      '{"actions":[{"action":"done","text":"não postei"}]}',
+    ];
+    let n = 0;
+    const approvals: string[] = [];
+    const out = await runBrowserAgent("postar no X", {
+      session,
+      llm: async () => scripts[n++] ?? '{"actions":[{"action":"done","text":"fim"}]}',
+      approve: async (r) => {
+        approvals.push(r);
+        return false;
+      },
+      maxSteps: 6,
+    });
+    expect(approvals.length).toBeGreaterThanOrEqual(1);
+    expect(acts).not.toContain("click[5]");
+    expect(out).toContain("não confirmou");
+  });
+
   it("finalize NEGADO não clica", async () => {
     const states: PageState[] = [{ url: "https://pay", title: "", text: "", elements: [{ idx: 2, tag: "button", text: "Pagar" }] }];
     const { session, acts } = fakeSession(states);

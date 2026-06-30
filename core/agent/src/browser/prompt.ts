@@ -44,6 +44,9 @@ REGRAS:
    link com o nome do hotel) — não em filtros/ordenação/mapa. Se o nome não estiver na lista,
    role (scroll) até aparecer. Evite re-pesquisar: se já está na lista certa, só ache o item.
 10. Não mexa em filtros/preço/estrelas a menos que o objetivo peça. Vá direto ao item pedido.
+11. PUBLICAR em rede social (X/Twitter, Reddit, etc.) é IRREVERSÍVEL e PÚBLICO: escreva o post no
+    campo de texto, mas para PUBLICAR use finalize com o TEXTO COMPLETO do post no summary — assim
+    o usuário lê e aprova exatamente o que vai ao ar antes de ir. Nunca publique sem isso.
 Seja direto: pouca conversa, muita ação. Não repita a mesma ação. Responda em português no done.
 
 FORMATO DA RESPOSTA — responda SOMENTE com um JSON (nada fora dele):
