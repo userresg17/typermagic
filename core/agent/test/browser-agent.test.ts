@@ -39,6 +39,9 @@ function fakeSession(states: PageState[]): { session: BrowserSession; acts: stri
     async url() {
       return "";
     },
+    async isAlive() {
+      return true;
+    },
     async submit() {},
     async close() {},
   } as unknown as BrowserSession;

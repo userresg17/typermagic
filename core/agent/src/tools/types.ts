@@ -98,6 +98,9 @@ export interface BrowserSession {
    *  a tela e os índices juntos p/ escolher por número com precisão. Chame depois de state(). */
   screenshotMarked(): Promise<string>;
   url(): Promise<string>;
+  /** o contexto/página ainda está VIVO? (exercita o contexto; pega navegador crashado/OOM/zumbi
+   *  onde url() ainda responde mas goto()/state() falham). */
+  isAlive(): Promise<boolean>;
   /** clica e espera a página assentar (submit/pay — ação IRREVERSÍVEL) */
   submit(selector: string): Promise<void>;
   close(): Promise<void>;

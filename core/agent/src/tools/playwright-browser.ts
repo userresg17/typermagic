@@ -294,6 +294,19 @@ class PlaywrightSession implements BrowserSession {
   async url(): Promise<string> {
     return this.page.url();
   }
+  async isAlive(): Promise<boolean> {
+    // page.url() é cacheado (responde até com o contexto morto). Um evaluate exercita o contexto
+    // de verdade — se a página/contexto morreu (crash/OOM/fechado), ele lança.
+    try {
+      await Promise.race([
+        this.page.evaluate(() => true),
+        new Promise((_r, rej) => setTimeout(() => rej(new Error("timeout")), 4000)),
+      ]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   async submit(selector: string): Promise<void> {
     // clica e espera a página assentar — "domcontentloaded" (NÃO "networkidle", que nunca
     // termina em sites com anúncios/polling e travava 30s toda vez).

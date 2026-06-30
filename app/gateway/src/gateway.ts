@@ -273,17 +273,27 @@ export class Gateway {
 
   /** navegador compartilhado (abre na 1ª tarefa que precisa; perfil persistente). */
   private async ensureBrowser(): Promise<BrowserSession> {
-    if (!this.browser) {
-      // não conectamos a um Chrome externo (cdpUrl)? então é nosso perfil → limpa órfãos/lock.
-      if (!this.config.browser?.cdpUrl) {
-        const profile =
-          this.config.browser?.profileDir ??
-          process.env.TYPER_BROWSER_PROFILE ??
-          join(homedir(), ".typer", "browser", "profile");
-        cleanupStaleBrowser(profile);
+    // já aberto? confirma que está VIVO (pode ter crashado/OOM/sido fechado numa tarefa pesada).
+    // Sem isso, o gateway reusa um navegador zumbi e TODA tarefa falha ("ambiente travado").
+    if (this.browser) {
+      if (await this.browser.isAlive()) return this.browser;
+      this.notifyOwner("♻️ o navegador travou — recriando (tenta de novo).");
+      try {
+        await this.browser.close();
+      } catch {
+        /* zumbi: ignora */
       }
-      this.browser = await openBrowser(this.config.browser ?? {});
+      this.browser = undefined;
     }
+    // não conectamos a um Chrome externo (cdpUrl)? então é nosso perfil → limpa órfãos/lock.
+    if (!this.config.browser?.cdpUrl) {
+      const profile =
+        this.config.browser?.profileDir ??
+        process.env.TYPER_BROWSER_PROFILE ??
+        join(homedir(), ".typer", "browser", "profile");
+      cleanupStaleBrowser(profile);
+    }
+    this.browser = await openBrowser(this.config.browser ?? {});
     return this.browser;
   }
 
