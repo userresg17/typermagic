@@ -10,6 +10,9 @@
 // (Anthropic API). Bom o bastante p/ testar o assistente no Claude reusando o login da empresa.
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { Provider, ChatRequest, Chunk, FimRequest, Message } from "./provider.js";
 
 const ENV_HIJACKERS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"];
@@ -17,7 +20,19 @@ const ENV_HIJACKERS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_B
 function cleanEnv(): NodeJS.ProcessEnv {
   const e: NodeJS.ProcessEnv = { ...process.env };
   for (const k of ENV_HIJACKERS) delete e[k];
+  // o serviço (systemd) pode ter PATH mínimo — garante ~/.local/bin (onde o Claude Code instala).
+  const home = e.HOME ?? homedir();
+  e.PATH = `${join(home, ".local", "bin")}:${e.PATH ?? "/usr/local/bin:/usr/bin:/bin"}`;
   return e;
+}
+
+/** Acha o binário `claude` (o serviço pode não ter ~/.local/bin no PATH). */
+function findClaude(): string {
+  const home = homedir();
+  for (const c of [join(home, ".local", "bin", "claude"), "/usr/local/bin/claude", "/usr/bin/claude"]) {
+    if (existsSync(c)) return c;
+  }
+  return "claude";
 }
 
 function buildPrompt(system: string | undefined, messages: Message[]): string {
@@ -36,7 +51,7 @@ function runClaude(prompt: string, timeoutMs = 180_000): Promise<string> {
     let out = "";
     let err = "";
     // -p (print/headless), texto puro, sem --model (usa o default da assinatura).
-    const child = spawn("claude", ["-p", prompt, "--output-format", "text"], { env: cleanEnv() });
+    const child = spawn(findClaude(), ["-p", prompt, "--output-format", "text"], { env: cleanEnv() });
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       reject(new Error("CLI claude estourou o tempo"));
