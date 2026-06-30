@@ -243,9 +243,10 @@ const taskTool: Tool = {
       ...(ctx.deps?.vault !== undefined ? { vault: ctx.deps.vault } : {}),
       ...(ctx.deps?.ask !== undefined ? { ask: ctx.deps.ask } : {}),
       onStep: (s) => {
-        const acts = s.actions.map((a) => `${a.action}${a.index !== undefined ? `[${a.index}]` : ""}`).join(",");
-        // trace seguro (sem segredos): vault_fill loga só o nome do campo
-        console.error(`[browser_task] passo ${s.step} @ ${s.url} (${s.nElements} elems) → ${acts}`);
+        // trace seguro (sem segredos): vault_fill loga só o nome do campo. Mostra rótulos +
+        // raciocínio curto p/ diagnosticar onde o agente patina em site real.
+        const think = s.thinking ? ` :: ${s.thinking.slice(0, 90)}` : "";
+        console.error(`[browser_task] passo ${s.step} @ ${s.url.slice(0, 70)} (${s.nElements} elems) → ${s.describe}${think}`);
       },
     });
     return { ok: true, value: { result: text } };

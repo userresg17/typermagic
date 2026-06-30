@@ -23,8 +23,15 @@ export interface BrowserAgentDeps {
   /** pergunta ao usuário (esclarecimento / OTP do banco). */
   ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
   maxSteps?: number;
-  /** observabilidade (trace perceber→agir). */
-  onStep?: (info: { step: number; url: string; nElements: number; actions: Action[]; thinking?: string }) => void;
+  /** observabilidade (trace perceber→agir). describe = ações com rótulo do alvo. */
+  onStep?: (info: {
+    step: number;
+    url: string;
+    nElements: number;
+    actions: Action[];
+    describe: string;
+    thinking?: string;
+  }) => void;
 }
 
 export interface Action {
@@ -147,7 +154,7 @@ function trim(messages: Msg[], keep = 16): void {
 
 /** Roda o sub-agente até concluir o objetivo. Devolve o texto do done. */
 export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Promise<string> {
-  const maxSteps = deps.maxSteps ?? 25;
+  const maxSteps = deps.maxSteps ?? 40;
   const messages: Msg[] = [{ role: "user", content: `OBJETIVO: ${goal}` }];
   const seen = new Set<string>();
   let stuck = 0;
@@ -176,11 +183,18 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
       messages.push({ role: "user", content: 'Resposta inválida. Responda SÓ com o JSON {"actions":[...]} usando as ferramentas.' });
       continue;
     }
+    const describe = plan.actions
+      .map((a) => {
+        const lbl = a.index !== undefined ? elText(state, a.index).slice(0, 28) : a.url || a.keys || a.field || a.question || "";
+        return `${a.action}${a.index !== undefined ? `[${a.index}]` : ""}${lbl ? `"${lbl}"` : ""}`;
+      })
+      .join(" ");
     deps.onStep?.({
       step,
       url: state.url,
       nElements: state.elements.length,
       actions: plan.actions,
+      describe,
       ...(plan.thinking !== undefined ? { thinking: plan.thinking } : {}),
     });
 
