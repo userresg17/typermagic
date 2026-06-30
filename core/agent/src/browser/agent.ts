@@ -155,7 +155,13 @@ function trim(messages: Msg[], keep = 16): void {
 /** Roda o sub-agente até concluir o objetivo. Devolve o texto do done. */
 export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Promise<string> {
   const maxSteps = deps.maxSteps ?? 40;
-  const messages: Msg[] = [{ role: "user", content: `OBJETIVO: ${goal}` }];
+  // Diz ao agente QUAIS campos existem no cofre (só os NOMES — o valor nunca aparece p/ ele),
+  // p/ ele usar vault_fill com o nome EXATO (ex.: amazon_login/amazon_password) em vez de chutar.
+  const fields = deps.vault?.fields() ?? [];
+  const vaultHint = fields.length
+    ? `\n\nCAMPOS NO COFRE (use vault_fill com o NOME EXATO; o valor é digitado direto, nunca aparece p/ você): ${fields.join(", ")}.`
+    : "";
+  const messages: Msg[] = [{ role: "user", content: `OBJETIVO: ${goal}${vaultHint}` }];
   const seen = new Set<string>();
   let stuck = 0;
   let denials = 0;
