@@ -73,22 +73,71 @@ function isCommand(text: string): boolean {
   return COMMANDS.includes(commandOf(text));
 }
 
-/** Onboarding: campos perguntados em sequência no /setup. "pular" deixa em branco. */
-const SETUP_FIELDS: Array<{ key: string; q: string }> = [
-  { key: "name", q: "Seu nome completo?" },
-  { key: "email", q: "Seu e-mail (ex.: Gmail)?" },
-  { key: "phone", q: "Telefone (com DDD)?" },
-  { key: "cpf", q: "CPF? (ou 'pular')" },
-  { key: "address", q: "Endereço de entrega completo (rua, número, complemento, cidade, CEP)?" },
-  { key: "card_number", q: "Número do cartão — use um cartão VIRTUAL com limite baixo. (ou 'pular')" },
-  { key: "card_exp", q: "Validade do cartão (MM/AA)? (ou 'pular')" },
-  { key: "card_cvv", q: "CVV do cartão? (ou 'pular')" },
-  { key: "card_holder", q: "Nome impresso no cartão? (ou 'pular')" },
-  { key: "shirt_size", q: "Tamanho de camiseta (P/M/G/GG)? (ou 'pular')" },
-  { key: "shoe_size", q: "Número do calçado? (ou 'pular')" },
-  { key: "partner_name", q: "Nome de quem você costuma presentear (namorada/parceiro/familiar)? (ou 'pular')" },
-  { key: "partner_tastes", q: "Gostos dessa pessoa p/ presentes? (ou 'pular')" },
+/** Formulário de perfil: rótulo legível ↔ campo do cofre. O /setup manda TODOS de uma vez
+ *  (a pessoa cola, preenche e devolve numa mensagem só). Ordem = ordem do template. */
+const FORM_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "name", label: "Nome completo" },
+  { key: "cpf", label: "CPF" },
+  { key: "rg", label: "RG" },
+  { key: "rg_issuer", label: "RG órgão emissor" },
+  { key: "rg_issue_date", label: "RG data de expedição" },
+  { key: "birth_date", label: "Data de nascimento" },
+  { key: "gender", label: "Gênero" },
+  { key: "email", label: "E-mail" },
+  { key: "phone", label: "Telefone" },
+  { key: "cep", label: "CEP" },
+  { key: "street", label: "Rua" },
+  { key: "address_number", label: "Número" },
+  { key: "complement", label: "Complemento" },
+  { key: "neighborhood", label: "Bairro" },
+  { key: "city", label: "Cidade" },
+  { key: "state", label: "Estado" },
+  { key: "shirt_size", label: "Tamanho de roupa" },
+  { key: "shoe_size", label: "Número do calçado" },
+  { key: "card_number", label: "Cartão número" },
+  { key: "card_exp", label: "Cartão validade" },
+  { key: "card_cvv", label: "Cartão CVV" },
+  { key: "card_holder", label: "Cartão nome impresso" },
+  { key: "amazon_login", label: "Amazon login" },
+  { key: "amazon_password", label: "Amazon senha" },
+  { key: "mercadolivre_login", label: "Mercado Livre login" },
+  { key: "mercadolivre_password", label: "Mercado Livre senha" },
+  { key: "shopee_login", label: "Shopee login" },
+  { key: "shopee_password", label: "Shopee senha" },
+  { key: "team", label: "Time do coração" },
+  { key: "pets", label: "Pets" },
+  { key: "partner_name", label: "Pessoa que você presenteia" },
+  { key: "partner_tastes", label: "Gostos dessa pessoa" },
 ];
+
+/** normaliza um rótulo p/ casar o que a pessoa devolveu (tira acento/pontuação/caixa). */
+const normLabel = (s: string): string =>
+  s
+    .toLowerCase()
+    .normalize("NFD") // decompõe acentos; o filtro [^a-z0-9 ] abaixo remove as marcas
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+const FORM_BY_LABEL = new Map(FORM_FIELDS.map((f) => [normLabel(f.label), f.key]));
+
+/** O template que a pessoa copia, preenche e devolve. */
+export function buildFormTemplate(): string {
+  return FORM_FIELDS.map((f) => `${f.label}: `).join("\n");
+}
+
+/** Parseia o formulário devolvido (linhas "Rótulo: valor"). Ignora vazios/"pular". */
+export function parseForm(text: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of text.split(/\r?\n/)) {
+    const i = line.indexOf(":");
+    if (i < 0) continue;
+    const key = FORM_BY_LABEL.get(normLabel(line.slice(0, i)));
+    if (!key) continue;
+    const val = line.slice(i + 1).trim();
+    if (val && !isSkip(val)) out[key] = val;
+  }
+  return out;
+}
 
 function isSkip(s: string): boolean {
   return /^\s*(pular|skip|-)\s*$/i.test(s);
@@ -183,6 +232,22 @@ export class Gateway {
         this.busy.delete(chatId);
       }
       return;
+    }
+
+    // 4.5. Formulário de perfil devolvido (várias linhas "Rótulo: valor")? Parseia e grava no
+    //      cofre DIRETO — os valores (cartão/senha) nunca passam pelo modelo. Reconhecido pela
+    //      forma (≥3 campos do perfil casados), então a pessoa pode colar quando quiser.
+    if (this.config.vault) {
+      const parsed = parseForm(msg.text);
+      if (Object.keys(parsed).length >= 3) {
+        this.busy.add(chatId);
+        try {
+          await this.saveForm(chatId, parsed);
+        } finally {
+          this.busy.delete(chatId);
+        }
+        return;
+      }
     }
 
     // 5. Rate-limit por remetente.
@@ -379,7 +444,7 @@ export class Gateway {
         chatId,
         [
           "Comandos:",
-          "/setup — preenche seu perfil (nome, endereço, cartão, etc.) passo a passo",
+          "/setup — manda o formulário do seu perfil; você preenche tudo e devolve (eu cifro e salvo)",
           "/set <campo> <valor> — grava um campo (ex.: /set email a@b.com)",
           "/vault — mostra o que está guardado (cartão/senha mascarados)",
           "/forget <campo> — apaga um campo",
@@ -450,28 +515,30 @@ export class Gateway {
     }
   }
 
-  /** Onboarding guiado: pergunta cada campo e grava no cofre (valores nunca vão ao modelo). */
+  /** Onboarding: manda o formulário COMPLETO de uma vez. A pessoa copia, preenche o que quiser
+   *  (deixa em branco o resto) e devolve numa mensagem só — o handle() detecta e grava. */
   private async runSetup(chatId: string): Promise<void> {
-    const vault = await this.ensureVault();
+    await this.ensureVault();
     await this.adapter.send(
       chatId,
-      "Vamos preencher seu perfil (uma vez). Responda cada pergunta; mande 'pular' p/ deixar em branco. ⚠️ Use um cartão VIRTUAL com limite baixo.",
+      [
+        "📋 *Seu perfil* — copie a lista abaixo, preencha o que quiser (deixe em branco o que não",
+        "quiser) e me mande de volta numa ÚNICA mensagem. Eu salvo tudo CIFRADO, só na sua máquina —",
+        "nada vai para servidor nenhum.",
+        "⚠️ No cartão, use um cartão VIRTUAL com limite baixo. Você pode reenviar quando quiser p/ atualizar.",
+      ].join(" "),
     );
-    for (const { key, q } of SETUP_FIELDS) {
-      let answer: string;
-      try {
-        answer = await this.askUser(chatId, "clarify", q);
-      } catch {
-        await this.adapter.send(chatId, "⌛ Setup interrompido (sem resposta). Recomece com /setup quando quiser.");
-        return;
-      }
-      if (isSkip(answer)) continue;
-      await vault.set(key, answer.trim());
-    }
+    await this.adapter.send(chatId, buildFormTemplate());
+  }
+
+  /** Grava o formulário devolvido no cofre (cifrado) e confirma com o resumo mascarado. */
+  private async saveForm(chatId: string, fields: Record<string, string>): Promise<void> {
+    const vault = await this.ensureVault();
+    await vault.setMany(fields);
     const summary = vault.summary();
     await this.adapter.send(
       chatId,
-      "✅ Perfil salvo (cifrado). Resumo:\n" +
+      `✅ Perfil salvo e cifrado (${Object.keys(fields).length} campo(s) atualizado(s)). Fica só na sua máquina.\n\n🔐 No cofre agora:\n` +
         Object.keys(summary)
           .map((k) => `• ${k}: ${summary[k]}`)
           .join("\n"),
