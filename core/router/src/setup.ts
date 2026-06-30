@@ -10,6 +10,7 @@ import { AnthropicProvider } from "./anthropic.js";
 import { OpenAIProvider } from "./openai.js";
 import { OllamaProvider } from "./ollama.js";
 import { LlamaCppProvider } from "./llamacpp.js";
+import { ClaudeCliProvider } from "./claude-cli.js";
 import { hasAuth } from "./auth.js";
 
 /** Modelo default por provider e tarefa. --model/override sobrescreve. */
@@ -37,6 +38,8 @@ export const PROVIDER_MODELS: Record<string, Record<Task, string>> = {
     chat: "local",
   },
   fake: { autocomplete: "fake", agent: "fake", chat: "fake" },
+  // CLI `claude` local (assinatura): o modelo é o default da conta; o nome é só rótulo.
+  "claude-cli": { autocomplete: "subscription", agent: "subscription", chat: "subscription" },
 };
 
 export function modelFor(
@@ -63,6 +66,8 @@ export async function buildProviders(
     fake: new FakeProvider(),
     ollama: new OllamaProvider(),
     llamacpp: new LlamaCppProvider(),
+    // CLI `claude` local: reusa a assinatura logada (sem chave). Selecione com provider "claude-cli".
+    "claude-cli": new ClaudeCliProvider(),
   };
   const hasAnthropic = await hasAuth("anthropic");
   const hasOpenAI = await hasAuth("openai");

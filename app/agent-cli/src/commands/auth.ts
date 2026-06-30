@@ -99,7 +99,7 @@ export async function loginFlow(provider: string, ask: Ask): Promise<number> {
       console.error(red("nenhum código recebido."));
       return 1;
     }
-    const tok = await exchangeCode(cfg, code, pkce.verifier);
+    const tok = await exchangeCode(cfg, code, pkce.verifier, state);
     await saveOAuth(provider, tok);
     console.error(green(`✓ login ${cfg.label} concluído — guardado em ~/.typer/auth.json (0600).`));
     return 0;
@@ -129,6 +129,60 @@ export async function setKeyFlow(provider: string, ask: Ask, keyArg?: string): P
   return ok ? 0 : 1;
 }
 
+/** Acha um executável no PATH (cross-platform: which/where). */
+function which(bin: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const finder = platform() === "win32" ? "where" : "which";
+    const child = spawn(finder, [bin]);
+    let out = "";
+    child.stdout?.on("data", (d) => (out += d.toString()));
+    child.on("error", () => resolve(null));
+    child.on("close", (code) => resolve(code === 0 && out.trim() ? out.trim().split(/\r?\n/)[0]!.trim() : null));
+  });
+}
+
+/** Login Anthropic (assinatura) PRÁTICO — embrulha o fluxo OFICIAL do Claude Code.
+ *  Roda `claude setup-token` (abre o navegador, você autoriza com sua conta Claude, ele gera
+ *  um token de longa duração), CAPTURA o token e grava no nosso auth.json. Sem colar nada na mão.
+ *  É o mesmo fluxo que o usuário já confia no Claude Code — só que integrado ao TyperMagic. */
+export async function setupTokenFlow(): Promise<number> {
+  const claudeBin = await which("claude");
+  if (!claudeBin) {
+    console.error(red("Para entrar com a assinatura Claude, é preciso ter o Claude Code instalado (comando `claude`)."));
+    console.error(dim("  → instale em https://claude.com/code   ou use uma API key:  typermagic auth set anthropic <key>"));
+    return 2;
+  }
+  console.error(bold("\nEntrar no Claude (assinatura Pro/Max) — via Claude Code"));
+  console.error(dim("Vou rodar `claude setup-token`: abre o navegador p/ você autorizar. O token fica só na sua máquina."));
+  const token = await new Promise<string>((resolve) => {
+    let out = "";
+    // stdin HERDADO (você interage/cola código se pedir); stdout+stderr CAPTURADOS e repassados
+    // pra você ver os prompts — o token pode sair em qualquer um dos dois.
+    const child = spawn(claudeBin, ["setup-token"], { stdio: ["inherit", "pipe", "pipe"] });
+    const grab = (d: Buffer, thru: NodeJS.WriteStream): void => {
+      out += d.toString();
+      thru.write(d);
+    };
+    child.stdout.on("data", (d) => grab(d, process.stdout));
+    child.stderr.on("data", (d) => grab(d, process.stderr));
+    child.on("error", () => resolve(""));
+    child.on("close", () => {
+      // eslint-disable-next-line no-control-regex -- strip de cores ANSI antes de achar o token
+      const clean = out.replace(/\[[0-9;]*m/g, "");
+      const m = clean.match(/sk-ant-[A-Za-z0-9_-]{20,}/);
+      resolve(m ? m[0] : "");
+    });
+  });
+  if (!token) {
+    console.error(red("Não consegui capturar o token do `claude setup-token`."));
+    console.error(dim("Rode `claude setup-token` à parte; se imprimir um token sk-ant-..., me avise que eu ajusto."));
+    return 1;
+  }
+  await saveOAuth("anthropic", { accessToken: token, raw: {} });
+  console.error(green("✓ Conectado ao Claude (assinatura). Token salvo em ~/.typer/auth.json (0600)."));
+  return 0;
+}
+
 /** Menu de login estilo Claude Code: chave de API ou assinatura, p/ Anthropic ou OpenAI.
  *  Reusável pela CLI (`typermagic login`) e pelo REPL (`/login`). */
 export async function loginMenu(ask: Ask): Promise<number> {
@@ -147,7 +201,7 @@ export async function loginMenu(ask: Ask): Promise<number> {
     case "1":
       return setKeyFlow("anthropic", ask);
     case "2":
-      return loginFlow("anthropic", ask);
+      return setupTokenFlow(); // assinatura Claude via fluxo oficial do Claude Code (prático)
     case "3":
       return setKeyFlow("openai", ask);
     case "4":
@@ -177,8 +231,10 @@ export async function authCmd(flags: Flags): Promise<number> {
   const { ask, close } = ownAsk();
   try {
     if (sub === "login") {
-      // sem provider → menu (chave OU assinatura); com provider → assinatura direto.
-      return provider ? await loginFlow(provider, ask) : await loginMenu(ask);
+      // sem provider → menu; com provider → assinatura direto. Anthropic usa o fluxo do Claude
+      // Code (setup-token, prático); OpenAI segue o OAuth/PKCE.
+      if (!provider) return await loginMenu(ask);
+      return provider === "anthropic" ? await setupTokenFlow() : await loginFlow(provider, ask);
     }
     if (sub === "logout") {
       if (!provider) {

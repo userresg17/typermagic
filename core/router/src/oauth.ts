@@ -55,6 +55,9 @@ export interface OAuthConfig {
   extraAuthParams?: Record<string, string>;
   /** params extra no body do /token (alguns clients exigem). */
   extraTokenParams?: Record<string, string>;
+  /** inclui o `state` no body do /token — o OAuth do Claude (Anthropic) EXIGE isso; sem ele
+   *  o endpoint responde "Invalid request format". (OpenAI/loopback não precisa.) */
+  tokenIncludesState?: boolean;
 }
 
 export function redirectUriFor(cfg: OAuthConfig): string {
@@ -157,11 +160,13 @@ async function postToken(cfg: OAuthConfig, body: Record<string, string>): Promis
   return parseTokenResponse(data);
 }
 
-/** Troca o authorization code por token (com o verifier PKCE). */
+/** Troca o authorization code por token (com o verifier PKCE). `state` é incluído no body
+ *  quando o provider exige (Anthropic) — senão o /token responde "Invalid request format". */
 export function exchangeCode(
   cfg: OAuthConfig,
   code: string,
   verifier: string,
+  state?: string,
 ): Promise<TokenResponse> {
   return postToken(cfg, {
     grant_type: "authorization_code",
@@ -169,6 +174,7 @@ export function exchangeCode(
     client_id: cfg.clientId,
     redirect_uri: redirectUriFor(cfg),
     code_verifier: verifier,
+    ...(cfg.tokenIncludesState && state ? { state } : {}),
   });
 }
 
@@ -187,14 +193,20 @@ export function refreshToken(cfg: OAuthConfig, refresh: string): Promise<TokenRe
 export const PROVIDERS: Record<string, OAuthConfig> = {
   anthropic: {
     label: "Claude (Pro/Max)",
-    authorizeUrl: "https://claude.ai/oauth/authorize",
-    tokenUrl: "https://console.anthropic.com/v1/oauth/token",
+    // A Anthropic MIGROU o OAuth de claude.ai/console.anthropic.com → platform.claude.com.
+    // Os domínios velhos respondem "Invalid request format". Valores extraídos do bundle real
+    // do Claude Code (v2.1.196): authorize/token/redirect todos em platform.claude.com.
+    authorizeUrl: "https://platform.claude.com/oauth/authorize",
+    tokenUrl: "https://platform.claude.com/v1/oauth/token",
     clientId: "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
-    // só inferência de assinatura: org:create_api_key está sendo rejeitado pelo authorize
-    // server da Anthropic hoje — fica de fora (só seria preciso p/ cunhar uma API key).
-    scope: "user:profile user:inference",
+    // mesmos 3 scopes que o Claude Code pede (com o domínio certo, org:create_api_key passa).
+    scope: "org:create_api_key user:profile user:inference",
     mode: "paste",
-    redirectUri: "https://console.anthropic.com/oauth/code/callback",
+    redirectUri: "https://platform.claude.com/oauth/code/callback",
+    // `code=true` ATIVA o fluxo manual (mostra o código na página p/ colar).
+    extraAuthParams: { code: "true" },
+    // o token endpoint exige o `state` no body.
+    tokenIncludesState: true,
   },
   openai: {
     label: "ChatGPT (Plus/Pro)",

@@ -11,6 +11,8 @@ import { dim, green, red } from "../render.js";
 
 interface GatewayFile {
   allow?: string[];
+  /** provider do modelo (ex.: "claude-cli" p/ usar o Claude Code logado, "openai", "anthropic"). */
+  provider?: string | null;
   rateCapacity?: number;
   rateRefillMs?: number;
   /** recursos opt-in da Engine (ex.: { "tools": true } liga as ferramentas internas). */
@@ -38,7 +40,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   const config: GatewayConfig = {
     root,
     allow: file.allow ?? [],
-    provider: flags.provider,
+    provider: flags.provider ?? file.provider ?? null,
     local: flags.local,
     ...(file.rateCapacity !== undefined ? { rateCapacity: file.rateCapacity } : {}),
     ...(file.rateRefillMs !== undefined ? { rateRefillMs: file.rateRefillMs } : {}),
