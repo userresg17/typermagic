@@ -28,29 +28,58 @@ const EXTRACT_FN = (offset: number): unknown[] => {
     const s = g.getComputedStyle(el);
     return r.width > 1 && r.height > 1 && s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0.05;
   };
-  const set = new Set<any>(Array.from(doc.querySelectorAll(SEL)) as any[]);
-  // Clicáveis "custom": elementos com cursor:pointer cujo ancestral ainda não está no set.
-  // Pega CARDS de hotel/produto que são <div> com handler JS (sem href/role/onclick) — o
-  // seletor sozinho não acha, e o agente ficava sem onde clicar.
-  for (const el of Array.from(doc.querySelectorAll("div,span,li,article,section,td,th,label,img,p,h1,h2,h3")) as any[]) {
-    if (set.has(el)) continue;
-    let st: any;
+  // Deep-walk: percorre o DOM DESCENDO em shadow roots. Sites modernos (Reddit, muitos web
+  // components) põem os campos de login/form dentro de Shadow DOM; sem isso os inputs "somem"
+  // (querySelectorAll não atravessa shadow). O Playwright atravessa shadow no clique, então
+  // basta acharmos e marcarmos com data-typer-idx aqui.
+  const all: any[] = [];
+  const walk = (root: any): void => {
+    let nodes: any[];
     try {
-      st = g.getComputedStyle(el);
+      nodes = Array.from(root.querySelectorAll("*")) as any[];
     } catch {
-      continue;
+      return;
     }
-    if (st.cursor !== "pointer") continue;
-    let p = el.parentElement;
-    let dup = false;
-    while (p) {
-      if (set.has(p)) {
-        dup = true;
-        break;
+    for (const el of nodes) {
+      all.push(el);
+      if (el.shadowRoot) walk(el.shadowRoot); // desce no shadow DOM aberto
+    }
+  };
+  walk(doc);
+
+  const set = new Set<any>();
+  // 1) interativos por seletor (inclui os que estão dentro de shadow roots)
+  for (const el of all) {
+    try {
+      if (el.matches && el.matches(SEL)) set.add(el);
+    } catch {
+      /* ignora */
+    }
+  }
+  // 2) clicáveis "custom" (cursor:pointer) — pega CARDS de hotel/produto que são <div> com
+  //    handler JS. Limitado a tags-container e a páginas não-gigantes (custo do getComputedStyle).
+  const CURSOR_TAGS = new Set(["DIV", "SPAN", "LI", "ARTICLE", "SECTION", "TD", "TH", "LABEL", "IMG", "P", "H1", "H2", "H3", "A"]);
+  if (all.length <= 3500) {
+    for (const el of all) {
+      if (set.has(el) || !CURSOR_TAGS.has(el.tagName)) continue;
+      let st: any;
+      try {
+        st = g.getComputedStyle(el);
+      } catch {
+        continue;
       }
-      p = p.parentElement;
+      if (st.cursor !== "pointer") continue;
+      let p = el.parentElement;
+      let dup = false;
+      while (p) {
+        if (set.has(p)) {
+          dup = true;
+          break;
+        }
+        p = p.parentElement;
+      }
+      if (!dup) set.add(el);
     }
-    if (!dup) set.add(el);
   }
   const els = Array.from(set).filter(isVis).slice(0, 150); // teto p/ não estourar o contexto
   return els.map((el: any, i: number) => {
