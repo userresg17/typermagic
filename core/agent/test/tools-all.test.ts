@@ -160,6 +160,7 @@ const specs: Spec[] = [
   { name: "reach_social", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
   { name: "reach_status", args: () => ({}), expect: "ok" },
   // browser (navegador real) — sem ctx.deps.browser, degradam com erro claro
+  { name: "browser_task", args: () => ({ goal: "abrir example.com" }), expect: { err: "browser_unavailable" } },
   { name: "browser_goto", args: () => ({ url: "https://example.com" }), expect: { err: "browser_unavailable" } },
   { name: "browser_read", args: () => ({}), expect: { err: "browser_unavailable" } },
   { name: "browser_click", args: () => ({ selector: "#x" }), expect: { err: "browser_unavailable" } },
@@ -174,17 +175,17 @@ const specs: Spec[] = [
   { name: "ask_user", args: () => ({ question: "qual o tamanho?" }), expect: { err: "ask_unavailable" } },
 ];
 
-describe("cobertura: todas as 66 ferramentas estão no spec", () => {
-  it("o spec cobre exatamente as 55 do registry", () => {
+describe("cobertura: todas as 67 ferramentas estão no spec", () => {
+  it("o spec cobre exatamente as do registry", () => {
     const registered = new Set(registry.all().map((t) => t.name));
     const tested = new Set(specs.map((s) => s.name));
-    expect(specs).toHaveLength(66);
-    expect(registered.size).toBe(66);
+    expect(specs).toHaveLength(67);
+    expect(registered.size).toBe(67);
     for (const n of registered) expect(tested.has(n)).toBe(true);
   });
 });
 
-describe("validação 1-a-1 das 66 ferramentas", () => {
+describe("validação 1-a-1 das 67 ferramentas", () => {
   for (const spec of specs) {
     const label =
       spec.expect === "ok" ? "→ ok" : spec.expect === "valid" ? "→ resultado válido" : `→ erro ${spec.expect.err}`;

@@ -193,21 +193,21 @@ class EngineImpl implements Engine {
     // ganha as 50 ferramentas p/ EXPLORAR o projeto de verdade (ler arquivos, listar, grep)
     // em vez de só responder do contexto pré-recuperado. Modos de edição (code/debug) seguem
     // no loop de edição com selo+teste. Tudo sob broker + policy gate + selo.
+    let agentToolDeps: ToolCallDeps | undefined;
     if (features.tools && !toolExec && !mode.allowsEdit) {
-      toolExec = engineToolExecutor(
-        await this.buildToolDeps({
-          origin: "agent",
-          embedder,
-          onPolicy: (n) =>
-            emit({
-              type: "policy",
-              tool: n.tool,
-              decision: n.decision,
-              ...(n.reason !== undefined ? { reason: n.reason } : {}),
-              ...(n.preview !== undefined ? { preview: n.preview } : {}),
-            }),
-        }),
-      );
+      agentToolDeps = await this.buildToolDeps({
+        origin: "agent",
+        embedder,
+        onPolicy: (n) =>
+          emit({
+            type: "policy",
+            tool: n.tool,
+            decision: n.decision,
+            ...(n.reason !== undefined ? { reason: n.reason } : {}),
+            ...(n.preview !== undefined ? { preview: n.preview } : {}),
+          }),
+      });
+      toolExec = engineToolExecutor(agentToolDeps);
       emit({ type: "info", message: "ferramentas internas habilitadas (broker + policy + selo)" });
     }
 
@@ -235,6 +235,16 @@ class EngineImpl implements Engine {
       type: "info",
       message: `provider=${provider.id} model=${online ? model : "—"} modo=${mode.name}${online ? "" : " (offline: FakeProvider)"}`,
     });
+
+    // sub-agente de navegador (browser_task): injeta o caller de LLM com o MESMO provider/model
+    // do loop (os deps foram montados ANTES do provider existir; preenchemos agora).
+    if (agentToolDeps) {
+      agentToolDeps.llm = async (system, messages) => {
+        let text = "";
+        for await (const chunk of provider.chat({ messages, model, system, maxTokens: 1024 })) text += chunk.text;
+        return text;
+      };
+    }
 
     let outcome: TaskOutcome;
     try {

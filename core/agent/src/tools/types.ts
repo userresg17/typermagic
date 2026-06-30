@@ -50,14 +50,42 @@ export interface MicroVm {
   restore(snapshot: string): Promise<void>;
 }
 
+/** Um elemento interativo da página, NUMERADO — o modelo age pelo índice, não por seletor. */
+export interface InteractiveElement {
+  idx: number;
+  tag: string; // "button" | "a" | "input" | "select" | ...
+  role?: string;
+  type?: string; // type do input
+  text: string; // rótulo legível (texto/aria-label/placeholder/name)
+  value?: string; // valor atual (inputs não-sensíveis)
+}
+
+/** "Leitura da tela": o que o agente VÊ da página p/ decidir a próxima ação. */
+export interface PageState {
+  url: string;
+  title: string;
+  text: string; // texto legível da página (contexto)
+  elements: InteractiveElement[]; // todos os clicáveis/preenchíveis, numerados
+}
+
 /** Sessão de navegador (Playwright) injetada nas ferramentas browser_*. Persiste entre
  *  chamadas de UMA tarefa (perfil isolado p/ cookies). Ausente → as ferramentas degradam
  *  com erro claro (instale playwright e habilite o browser). O valor de campos sensíveis
- *  é digitado por fill() vindo do vault — nunca passa pelo modelo. */
+ *  é digitado por fillByIndex() vindo do vault — nunca passa pelo modelo. */
 export interface BrowserSession {
   goto(url: string): Promise<void>;
   /** texto/acessibilidade legível da página (p/ o modelo entender o conteúdo) */
   text(): Promise<string>;
+  /** LÊ A TELA: elementos interativos numerados + texto + url. Base da navegação robusta. */
+  state(): Promise<PageState>;
+  /** age por ÍNDICE (do state): click | type | select. Mais robusto que seletor CSS. */
+  actByIndex(idx: number, action: "click" | "type" | "select", text?: string): Promise<void>;
+  /** digita um SEGREDO (do vault) por índice — o valor nunca passa pelo modelo. */
+  fillByIndex(idx: number, value: string): Promise<void>;
+  /** rola a página (down=true desce); pages = quantas telas. */
+  scroll(down: boolean, pages: number): Promise<void>;
+  /** envia uma tecla/combo (ex.: "Enter", "Escape", "Control+a"). */
+  sendKeys(keys: string): Promise<void>;
   click(selector: string): Promise<void>;
   fill(selector: string, value: string): Promise<void>;
   select(selector: string, value: string): Promise<void>;
@@ -87,6 +115,9 @@ export interface ToolDeps {
   /** pergunta algo ao usuário pelo canal e espera a resposta (esclarecimento de pedido,
    *  ou código/OTP do banco). Injetado pelo gateway (mapeia pro askUser do Telegram). */
   ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
+  /** chama o LLM (system + mensagens user/assistant) e devolve o texto — usado pelo
+   *  sub-agente de navegador (browser_task). Injetado pelo engine (provider+model). */
+  llm?: (system: string, messages: Array<{ role: "user" | "assistant"; content: string }>) => Promise<string>;
   /** preferir modelo/embedder local (Ollama) quando aplicável */
   local?: boolean;
   /** tem chave OpenAI? (escolha de embedder) */

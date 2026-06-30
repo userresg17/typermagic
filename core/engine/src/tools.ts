@@ -57,6 +57,8 @@ export interface ToolCallDeps {
   vault?: ToolDeps["vault"];
   /** pergunta ao usuário pelo canal (ask_user: esclarecimento/OTP) */
   ask?: ToolDeps["ask"];
+  /** caller de LLM p/ o sub-agente de navegador (browser_task) — injetado pós provider */
+  llm?: ToolDeps["llm"];
 }
 
 /** Executa uma ferramenta com o broker à frente. Nunca lança: devolve ToolResult
@@ -120,6 +122,7 @@ export async function callRegistryTool(
     ...(deps.browser !== undefined ? { browser: deps.browser } : {}),
     ...(deps.vault !== undefined ? { vault: deps.vault } : {}),
     ...(deps.ask !== undefined ? { ask: deps.ask } : {}),
+    ...(deps.llm !== undefined ? { llm: deps.llm } : {}),
   };
 
   const ctx: ToolContext = {

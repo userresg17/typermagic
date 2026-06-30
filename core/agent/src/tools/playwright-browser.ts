@@ -10,7 +10,51 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { BrowserSession } from "./types.js";
+import type { BrowserSession, InteractiveElement, PageState } from "./types.js";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** Roda DENTRO da página (cada frame): acha os elementos interativos VISÍVEIS, marca cada um
+ *  com data-typer-idx = offset+i (índice global), e devolve a lista numerada. É a "leitura da
+ *  tela" — o modelo age pelo índice, não por seletor CSS frágil. */
+const EXTRACT_FN = (offset: number): unknown[] => {
+  const g = globalThis as any;
+  const doc = g.document;
+  if (!doc) return [];
+  const SEL =
+    "a[href],button,input:not([type=hidden]),select,textarea,[role=button],[role=link],[role=textbox],[role=checkbox],[role=radio],[role=tab],[role=menuitem],[role=option],[role=switch],[onclick],summary,[contenteditable=true]";
+  const isVis = (el: any): boolean => {
+    const r = el.getBoundingClientRect();
+    const s = g.getComputedStyle(el);
+    return r.width > 1 && r.height > 1 && s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0.05;
+  };
+  const els = Array.from(doc.querySelectorAll(SEL)).filter(isVis);
+  return els.map((el: any, i: number) => {
+    const idx = offset + i;
+    el.setAttribute("data-typer-idx", String(idx));
+    const label = String(
+      el.getAttribute("aria-label") ||
+        el.innerText ||
+        el.value ||
+        el.placeholder ||
+        el.getAttribute("title") ||
+        el.getAttribute("name") ||
+        "",
+    )
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 90);
+    const isInput = el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+    return {
+      idx,
+      tag: el.tagName.toLowerCase(),
+      type: el.type || "",
+      role: el.getAttribute("role") || "",
+      text: label,
+      value: isInput ? String(el.value || "").slice(0, 40) : "",
+    };
+  });
+};
 
 export interface BrowserOptions {
   /** dir do perfil persistente (cookies). Default ~/.typer/browser/profile */
@@ -124,6 +168,60 @@ class PlaywrightSession implements BrowserSession {
     await this.page.click(selector, { timeout: this.timeoutMs }).catch(() => {});
     await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
   }
+
+  /** LÊ A TELA: percorre todos os frames, numera os elementos interativos e devolve o estado. */
+  async state(): Promise<PageState> {
+    const url = this.page.url();
+    const title = await this.page.title().catch(() => "");
+    const text = await this.text();
+    const elements: InteractiveElement[] = [];
+    for (const frame of this.page.frames()) {
+      try {
+        const part = (await frame.evaluate(EXTRACT_FN, elements.length)) as InteractiveElement[];
+        for (const e of part) elements.push(e);
+      } catch {
+        /* frame cross-origin/destruído: ignora */
+      }
+    }
+    return { url, title, text, elements };
+  }
+
+  /** Acha o locator do elemento marcado com data-typer-idx=idx (em qualquer frame). */
+  private async locByIndex(idx: number): Promise<any | null> {
+    const sel = `[data-typer-idx="${idx}"]`;
+    for (const frame of this.page.frames()) {
+      const loc = frame.locator(sel);
+      if (await loc.count().catch(() => 0)) return loc.first();
+    }
+    return null;
+  }
+
+  async actByIndex(idx: number, action: "click" | "type" | "select", text?: string): Promise<void> {
+    const loc = await this.locByIndex(idx);
+    if (!loc) throw new Error(`elemento [${idx}] não existe mais — leia o estado de novo (a página mudou)`);
+    if (action === "type") await loc.fill(text ?? "", { timeout: this.timeoutMs });
+    else if (action === "select") await loc.selectOption(text ?? "", { timeout: this.timeoutMs });
+    else await loc.click({ timeout: this.timeoutMs });
+    await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+  }
+
+  async fillByIndex(idx: number, value: string): Promise<void> {
+    const loc = await this.locByIndex(idx);
+    if (!loc) throw new Error(`campo [${idx}] não existe mais — leia o estado de novo`);
+    await loc.fill(value, { timeout: this.timeoutMs });
+  }
+
+  async scroll(down: boolean, pages: number): Promise<void> {
+    const dy = (down ? 1 : -1) * Math.max(0.2, pages) * 900;
+    await this.page.mouse.wheel(0, dy).catch(() => {});
+    await this.page.waitForTimeout(300).catch(() => {});
+  }
+
+  async sendKeys(keys: string): Promise<void> {
+    await this.page.keyboard.press(keys, { timeout: this.timeoutMs }).catch(() => {});
+    await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+  }
+
   async close(): Promise<void> {
     // se conectamos ao Chrome do usuário, NÃO fechamos o navegador dele.
     if (this.owned) await this.context.close().catch(() => {});
