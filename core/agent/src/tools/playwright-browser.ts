@@ -171,15 +171,58 @@ function findRealBrowser(): string | undefined {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Init script de stealth — esconde os sinais óbvios de automação. */
+/** Init script de stealth — esconde os sinais de automação que anti-bots (PerimeterX/HUMAN do
+ *  iFood etc.) checam: webdriver, window.chrome, permissions, WebGL vendor, hardware. */
 async function applyStealth(page: any): Promise<void> {
   await page
     .addInitScript(() => {
-      // navigator.webdriver = undefined (o tell nº1 de bot)
-      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-      // plugins/idiomas plausíveis
-      Object.defineProperty(navigator, "languages", { get: () => ["pt-BR", "pt", "en-US", "en"] });
-      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      const g = globalThis as any;
+      const nav = g.navigator;
+      const win = g.window;
+      const def = (obj: any, prop: string, val: any): void => {
+        try {
+          Object.defineProperty(obj, prop, { get: () => val, configurable: true });
+        } catch {
+          /* ignora */
+        }
+      };
+      // 1. webdriver = undefined (o tell nº1 de bot)
+      def(nav, "webdriver", undefined);
+      // 2. window.chrome + chrome.runtime (Chrome/Brave reais têm; CDP pelado às vezes não)
+      if (!win.chrome) win.chrome = {};
+      if (!win.chrome.runtime) win.chrome.runtime = {};
+      // 3. idiomas plausíveis (pt-BR)
+      def(nav, "languages", ["pt-BR", "pt", "en-US", "en"]);
+      // 4. plugins não-vazios
+      def(nav, "plugins", [1, 2, 3, 4, 5]);
+      // 5. hardware plausível (não os defaults de VM/bot)
+      def(nav, "hardwareConcurrency", 8);
+      def(nav, "deviceMemory", 8);
+      // 6. permissions.query (Notification não deve "vazar" estado de automação)
+      try {
+        const q = nav.permissions && nav.permissions.query;
+        if (q)
+          nav.permissions.query = (p: any) =>
+            p && p.name === "notifications"
+              ? Promise.resolve({ state: g.Notification ? g.Notification.permission : "denied" })
+              : q.call(nav.permissions, p);
+      } catch {
+        /* ignora */
+      }
+      // 7. WebGL vendor/renderer (esconde o tell "SwiftShader"/"Google Inc." do Chromium pelado)
+      try {
+        const proto = g.WebGLRenderingContext && g.WebGLRenderingContext.prototype;
+        if (proto) {
+          const orig = proto.getParameter;
+          proto.getParameter = function (p: number) {
+            if (p === 37445) return "Intel Inc."; // UNMASKED_VENDOR_WEBGL
+            if (p === 37446) return "Intel Iris OpenGL Engine"; // UNMASKED_RENDERER_WEBGL
+            return orig.call(this, p);
+          };
+        }
+      } catch {
+        /* ignora */
+      }
     })
     .catch(() => {});
 }
