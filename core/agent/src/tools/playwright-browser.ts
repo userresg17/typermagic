@@ -300,6 +300,37 @@ class PlaywrightSession implements BrowserSession {
     await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
   }
 
+  /** move o mouse até (tx,ty) de forma HUMANA: vários passos + leve jitter (não teleporta). */
+  private async humanMoveTo(tx: number, ty: number): Promise<void> {
+    const steps = 16 + Math.floor(Math.random() * 12);
+    // 1-2 waypoints com desvio, p/ a trajetória não ser uma reta perfeita
+    const wx = tx + (Math.random() * 80 - 40);
+    const wy = ty + (Math.random() * 60 - 30);
+    await this.page.mouse.move(wx, wy, { steps: Math.ceil(steps / 2) }).catch(() => {});
+    await this.page.mouse.move(tx, ty, { steps: Math.ceil(steps / 2) }).catch(() => {});
+  }
+
+  async pressAndHold(idx: number, ms: number): Promise<void> {
+    const loc = await this.locByIndex(idx);
+    if (!loc) throw new Error(`elemento [${idx}] não existe mais — leia o estado de novo`);
+    await loc.scrollIntoViewIfNeeded({ timeout: this.timeoutMs }).catch(() => {});
+    const box = await loc.boundingBox();
+    if (!box) throw new Error(`elemento [${idx}] sem área visível p/ pressionar`);
+    const tx = box.x + box.width / 2;
+    const ty = box.y + box.height / 2;
+    const hold = Math.min(Math.max(ms, 500), 15_000); // 0,5s–15s
+    await this.humanMoveTo(tx, ty);
+    await this.page.mouse.down();
+    // segura com micro-movimentos (humano não fica 100% imóvel) até completar o tempo
+    const until = Date.now() + hold;
+    while (Date.now() < until) {
+      await this.page.mouse.move(tx + (Math.random() * 4 - 2), ty + (Math.random() * 4 - 2), { steps: 1 }).catch(() => {});
+      await this.page.waitForTimeout(110 + Math.floor(Math.random() * 90)).catch(() => {});
+    }
+    await this.page.mouse.up();
+    await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+  }
+
   async close(): Promise<void> {
     // se conectamos ao Chrome do usuário, NÃO fechamos o navegador dele.
     if (this.owned) await this.context.close().catch(() => {});

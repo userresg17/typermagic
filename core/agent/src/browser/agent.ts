@@ -47,6 +47,7 @@ export interface Action {
   success?: boolean;
   down?: boolean;
   pages?: number;
+  seconds?: number;
 }
 
 /** Extrai o objeto JSON da resposta do modelo (tolerante a fences/prosa em volta). */
@@ -121,6 +122,11 @@ async function execAction(
       case "send_keys":
         await s.sendKeys(String(a.keys ?? ""));
         return { result: `tecla ${a.keys}`, terminal: true };
+      case "press_hold": {
+        const secs = Math.min(Math.max(Number(a.seconds ?? 4), 1), 15);
+        await s.pressAndHold(idx, Math.round(secs * 1000));
+        return { result: `pressionei e SEGUREI [${idx}] por ~${secs}s (mouse real)`, terminal: true };
+      }
       case "ask_user": {
         if (!deps.ask) return { result: "ERRO: canal de pergunta indisponível", terminal: true };
         const ans = await deps.ask(a.kind === "otp" ? "otp" : "clarify", String(a.question ?? ""));

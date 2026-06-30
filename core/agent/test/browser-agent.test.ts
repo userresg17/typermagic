@@ -21,6 +21,9 @@ function fakeSession(states: PageState[]): { session: BrowserSession; acts: stri
     },
     async scroll() {},
     async sendKeys() {},
+    async pressAndHold(idx: number, ms: number) {
+      acts.push(`hold[${idx}]:${ms}`);
+    },
     async text() {
       return "";
     },
@@ -84,6 +87,23 @@ describe("browser sub-agente (loop perceber→agir)", () => {
     expect(out).toContain("Pronto");
     expect(acts).toContain("type[0]=joao");
     expect(acts).toContain("click[1]");
+  });
+
+  it("press_hold aciona o mouse real (aperte e segure, anti-bot do iFood)", async () => {
+    const states: PageState[] = [{ url: "https://ifood", title: "", text: "", elements: [{ idx: 0, tag: "button", text: "Aperte e segure" }] }];
+    const { session, acts } = fakeSession(states);
+    const scripts = [
+      '{"actions":[{"action":"press_hold","index":0,"seconds":5}]}',
+      '{"actions":[{"action":"done","text":"passei no desafio"}]}',
+    ];
+    let n = 0;
+    const out = await runBrowserAgent("passar no aperte e segure", {
+      session,
+      llm: async () => scripts[n++] ?? '{"actions":[{"action":"done","text":"fim"}]}',
+      maxSteps: 4,
+    });
+    expect(acts).toContain("hold[0]:5000");
+    expect(out).toContain("passei");
   });
 
   it("finalize PEDE aprovação humana (HITL) e só então clica", async () => {

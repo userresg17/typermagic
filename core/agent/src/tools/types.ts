@@ -86,6 +86,9 @@ export interface BrowserSession {
   scroll(down: boolean, pages: number): Promise<void>;
   /** envia uma tecla/combo (ex.: "Enter", "Escape", "Control+a"). */
   sendKeys(keys: string): Promise<void>;
+  /** MOUSE REAL: move (humano) até o elemento, PRESSIONA e SEGURA por ms, e solta. Para
+   *  desafios "aperte e segure até a barra encher" (anti-bot do iFood etc.). */
+  pressAndHold(idx: number, ms: number): Promise<void>;
   click(selector: string): Promise<void>;
   fill(selector: string, value: string): Promise<void>;
   select(selector: string, value: string): Promise<void>;
