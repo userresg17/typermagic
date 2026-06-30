@@ -59,7 +59,15 @@ export function toResponsesInput(system: string | undefined, messages: Message[]
         });
       }
     } else {
-      input.push({ type: "message", role: m.role, content: [contentPart(m.role, m.content)] });
+      const content: unknown[] = [contentPart(m.role, m.content)];
+      // VISÃO: anexa imagens (screenshots) numa mensagem do usuário, no formato input_image.
+      if (m.role === "user" && m.images?.length) {
+        for (const img of m.images) {
+          const url = img.startsWith("data:") ? img : `data:image/png;base64,${img}`;
+          content.push({ type: "input_image", image_url: url });
+        }
+      }
+      input.push({ type: "message", role: m.role, content });
     }
   }
   return { instructions: sysParts.length ? sysParts.join("\n\n") : undefined, input };

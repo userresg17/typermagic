@@ -11,6 +11,10 @@ export interface Message {
   toolCalls?: ToolCall[];
   /** id da tool-call que este resultado responde (role "tool") */
   toolCallId?: string;
+  /** imagens (data URL `data:image/png;base64,...` ou base64 cru) anexadas a uma mensagem
+   *  do usuário — VISÃO (computer-use: screenshot da tela). O provider que suportar manda; os
+   *  que não suportam ignoram. */
+  images?: string[];
 }
 
 /** Spec de uma ferramenta exposta ao modelo (tool-use, 5.6). */
