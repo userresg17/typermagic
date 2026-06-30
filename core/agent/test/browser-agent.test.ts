@@ -20,6 +20,10 @@ function fakeSession(states: PageState[]): { session: BrowserSession; acts: stri
       acts.push(`goto ${u}`);
     },
     async scroll() {},
+    async clickXY(x: number, y: number) {
+      acts.push(`xy(${x},${y})`);
+    },
+    async dragXY() {},
     async sendKeys() {},
     async pressAndHold(idx: number, ms: number) {
       acts.push(`hold[${idx}]:${ms}`);

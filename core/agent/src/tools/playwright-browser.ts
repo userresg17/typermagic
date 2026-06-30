@@ -11,6 +11,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { BrowserSession, InteractiveElement, PageState } from "./types.js";
+import { realMouseAvailable, realClickAt, realPressHoldAt } from "./real-mouse.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -234,6 +235,8 @@ class PlaywrightSession implements BrowserSession {
     private readonly timeoutMs: number,
     /** true = nós lançamos (fechar no close); false = conectamos a um Chrome do usuário (não fechar). */
     private readonly owned: boolean,
+    /** usa o MOUSE REAL do SO (xdotool) p/ clicar/segurar — só headful + Xwayland com DISPLAY. */
+    private readonly realMouse = false,
   ) {}
 
   async goto(url: string): Promise<void> {
@@ -355,7 +358,17 @@ class PlaywrightSession implements BrowserSession {
     // clique: pode abrir NOVA ABA (sites de hotel abrem o quarto numa aba nova). Detecta e troca.
     const before = this.context.pages().length;
     await loc.scrollIntoViewIfNeeded({ timeout: this.timeoutMs }).catch(() => {});
-    await loc.click({ timeout: this.timeoutMs });
+    // MOUSE REAL do SO (xdotool) quando headful: move o cursor físico e clica de verdade —
+    // visível na tela e indistinguível de humano. Senão, clique do navegador (Playwright/CDP).
+    let clicked = false;
+    if (this.realMouse) {
+      const p = await this.elementScreenXY(loc);
+      if (p) {
+        await realClickAt(p.x, p.y);
+        clicked = true;
+      }
+    }
+    if (!clicked) await loc.click({ timeout: this.timeoutMs });
     await this.page.waitForTimeout(250).catch(() => {});
     await this.switchToNewTabIfAny(before);
     await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
@@ -380,6 +393,25 @@ class PlaywrightSession implements BrowserSession {
     await loc.fill(value, { timeout: this.timeoutMs });
   }
 
+  async clickXY(x: number, y: number): Promise<void> {
+    const before = this.context.pages().length;
+    await this.humanMoveTo(x, y);
+    await this.page.mouse.click(x, y, { delay: 40 + Math.floor(Math.random() * 60) });
+    await this.page.waitForTimeout(200).catch(() => {});
+    await this.switchToNewTabIfAny(before);
+    await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+  }
+
+  async dragXY(x1: number, y1: number, x2: number, y2: number): Promise<void> {
+    await this.humanMoveTo(x1, y1);
+    await this.page.mouse.down();
+    await this.page.waitForTimeout(60).catch(() => {});
+    await this.humanMoveTo(x2, y2); // move com o botão pressionado = arrasta
+    await this.page.waitForTimeout(80).catch(() => {});
+    await this.page.mouse.up();
+    await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+  }
+
   async scroll(down: boolean, pages: number): Promise<void> {
     const dy = (down ? 1 : -1) * Math.max(0.2, pages) * 900;
     await this.page.mouse.wheel(0, dy).catch(() => {});
@@ -401,15 +433,48 @@ class PlaywrightSession implements BrowserSession {
     await this.page.mouse.move(tx, ty, { steps: Math.ceil(steps / 2) }).catch(() => {});
   }
 
+  /** Coordenada de TELA (px do X server) do centro do elemento — p/ o mouse REAL (xdotool).
+   *  = posição da janela na tela + altura do chrome do Brave + posição do elemento no viewport. */
+  private async elementScreenXY(loc: any): Promise<{ x: number; y: number } | null> {
+    const box = await loc.boundingBox().catch(() => null);
+    if (!box) return null;
+    const w = await this.page
+      .evaluate(() => {
+        const g = globalThis as any;
+        return {
+          sx: g.window.screenX,
+          sy: g.window.screenY,
+          chromeY: g.window.outerHeight - g.window.innerHeight,
+          dpr: g.window.devicePixelRatio || 1,
+        };
+      })
+      .catch(() => null);
+    if (!w) return null;
+    return {
+      x: Math.round((w.sx + box.x + box.width / 2) * w.dpr),
+      y: Math.round((w.sy + w.chromeY + box.y + box.height / 2) * w.dpr),
+    };
+  }
+
   async pressAndHold(idx: number, ms: number): Promise<void> {
     const loc = await this.locByIndex(idx);
     if (!loc) throw new Error(`elemento [${idx}] não existe mais — leia o estado de novo`);
     await loc.scrollIntoViewIfNeeded({ timeout: this.timeoutMs }).catch(() => {});
+    const hold = Math.min(Math.max(ms, 500), 15_000); // 0,5s–15s
+    // MOUSE REAL do SO (xdotool): move o cursor físico e segura — indistinguível de humano.
+    if (this.realMouse) {
+      const p = await this.elementScreenXY(loc);
+      if (p) {
+        await realPressHoldAt(p.x, p.y, hold);
+        await this.page.waitForLoadState("domcontentloaded", { timeout: this.timeoutMs }).catch(() => {});
+        return;
+      }
+    }
+    // fallback: mouse do navegador (Playwright/CDP)
     const box = await loc.boundingBox();
     if (!box) throw new Error(`elemento [${idx}] sem área visível p/ pressionar`);
     const tx = box.x + box.width / 2;
     const ty = box.y + box.height / 2;
-    const hold = Math.min(Math.max(ms, 500), 15_000); // 0,5s–15s
     await this.humanMoveTo(tx, ty);
     await this.page.mouse.down();
     // segura com micro-movimentos (humano não fica 100% imóvel) até completar o tempo
@@ -461,6 +526,7 @@ export async function openBrowser(opts: BrowserOptions = {}): Promise<BrowserSes
   // (2) Lançar perfil persistente — usando o navegador REAL instalado (Brave/Chrome), sempre
   //     com stealth. Auto-detecta se nada for passado (channel/executablePath/cdpUrl).
   const executablePath = opts.executablePath ?? (opts.channel ? undefined : findRealBrowser());
+  const headful = !(opts.headless ?? true);
   const context = await chromium.launchPersistentContext(opts.profileDir ?? defaultProfile(), {
     headless: opts.headless ?? true,
     ...(opts.channel ? { channel: opts.channel } : {}),
@@ -472,5 +538,7 @@ export async function openBrowser(opts: BrowserOptions = {}): Promise<BrowserSes
   const page = context.pages()[0] ?? (await context.newPage());
   page.setDefaultTimeout?.(timeoutMs);
   await applyStealth(page);
-  return new PlaywrightSession(context, page, timeoutMs, true);
+  // MOUSE REAL (xdotool) só faz sentido headful + com display X (Xwayland): o cursor físico
+  // precisa de uma janela visível na tela. Headless → mouse do navegador.
+  return new PlaywrightSession(context, page, timeoutMs, true, headful && realMouseAvailable());
 }

@@ -14,6 +14,9 @@ Ferramentas (chame 1+ por passo, na ordem; após uma ação que muda a página, 
 - select(index, text)      escolhe a opção "text" no <select> [index]
 - vault_fill(index, field) digita um dado SENSÍVEL do cofre (cartão/senha/cvv) no campo [index];
                            o valor é digitado direto, NUNCA aparece pra você. Use o NOME do campo.
+- click_xy(x, y)           clica no PIXEL (x,y) que você VÊ no screenshot — p/ o que NÃO é elemento
+                           numerado: casa de xadrez, canvas, mapa, jogo. Olhe a imagem e dê a coordenada.
+- drag(x1, y1, x2, y2)     ARRASTA de (x1,y1) até (x2,y2) — mover peça de xadrez, slider, desenhar.
 - scroll(down, pages)      rola (down=true desce; pages ~1)
 - navigate(url)            vai para uma URL
 - send_keys(keys)          tecla ("Enter", "Escape", ...)
@@ -63,7 +66,7 @@ FORMATO DA RESPOSTA — responda SOMENTE com um JSON (nada fora dele):
 {"thinking":"raciocínio curto","actions":[{"action":"input","index":2,"text":"São Paulo"},{"action":"click","index":5}]}
 Cada item de "actions" tem o campo "action" + os parâmetros daquela ferramenta:
  click:{index} · input:{index,text} · select:{index,text} · vault_fill:{index,field} ·
- scroll:{down,pages} · navigate:{url} · send_keys:{keys} · press_hold:{index,seconds} ·
- ask_user:{question,kind} · finalize:{index,summary} · done:{text,success}
+ click_xy:{x,y} · drag:{x1,y1,x2,y2} · scroll:{down,pages} · navigate:{url} · send_keys:{keys} ·
+ press_hold:{index,seconds} · ask_user:{question,kind} · finalize:{index,summary} · done:{text,success}
 Até 5 actions por passo, em ordem; ações que mudam a página (click/navigate/finalize/select/send_keys)
 encerram o passo. Sempre termine a tarefa com {"action":"done","text":"...","success":true}.`;

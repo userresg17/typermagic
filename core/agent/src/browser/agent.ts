@@ -48,6 +48,12 @@ export interface Action {
   down?: boolean;
   pages?: number;
   seconds?: number;
+  x?: number;
+  y?: number;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
 }
 
 /** Extrai o objeto JSON da resposta do modelo (tolerante a fences/prosa em volta). */
@@ -113,6 +119,12 @@ async function execAction(
         await s.fillByIndex(idx, deps.vault.get(field)!);
         return { result: `preenchi [${idx}] com "${field}" do cofre (valor oculto)`, terminal: false };
       }
+      case "click_xy":
+        await s.clickXY(Number(a.x), Number(a.y));
+        return { result: `cliquei no pixel (${a.x},${a.y})`, terminal: true };
+      case "drag":
+        await s.dragXY(Number(a.x1), Number(a.y1), Number(a.x2), Number(a.y2));
+        return { result: `arrastei (${a.x1},${a.y1})→(${a.x2},${a.y2})`, terminal: true };
       case "scroll":
         await s.scroll(a.down !== false, Number(a.pages ?? 1));
         return { result: `rolei a página`, terminal: false };

@@ -82,6 +82,11 @@ export interface BrowserSession {
   actByIndex(idx: number, action: "click" | "type" | "select", text?: string): Promise<void>;
   /** digita um SEGREDO (do vault) por índice — o valor nunca passa pelo modelo. */
   fillByIndex(idx: number, value: string): Promise<void>;
+  /** clica num PIXEL (x,y do viewport) — p/ o que NÃO é elemento clicável (casa de xadrez,
+   *  canvas, mapa). O modelo escolhe a coordenada vendo o screenshot. */
+  clickXY(x: number, y: number): Promise<void>;
+  /** ARRASTA de (x1,y1) até (x2,y2) — mover peça de xadrez, slider, desenhar. */
+  dragXY(x1: number, y1: number, x2: number, y2: number): Promise<void>;
   /** rola a página (down=true desce); pages = quantas telas. */
   scroll(down: boolean, pages: number): Promise<void>;
   /** envia uma tecla/combo (ex.: "Enter", "Escape", "Control+a"). */
