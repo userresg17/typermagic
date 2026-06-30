@@ -256,6 +256,41 @@ class PlaywrightSession implements BrowserSession {
     const buf: Buffer = await this.page.screenshot({ type: "png" });
     return buf.toString("base64");
   }
+
+  /** Set-of-marks: desenha o número de cada elemento (data-typer-idx) na tela, tira o screenshot
+   *  e remove os rótulos. O modelo VÊ a página com os índices p/ escolher por número. */
+  async screenshotMarked(): Promise<string> {
+    await this.page
+      .evaluate(() => {
+        const g = globalThis as any;
+        const doc = g.document;
+        if (!doc?.body) return;
+        doc.querySelectorAll("[data-typer-idx]").forEach((el: any) => {
+          const r = el.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) return;
+          const tag = doc.createElement("div");
+          tag.className = "__typer_mark";
+          tag.textContent = el.getAttribute("data-typer-idx");
+          tag.style.cssText =
+            `position:fixed;z-index:2147483646;left:${Math.max(0, r.left)}px;top:${Math.max(0, r.top)}px;` +
+            "background:#ff0066;color:#fff;font:bold 11px monospace;padding:0 2px;border-radius:2px;" +
+            "line-height:14px;pointer-events:none;box-shadow:0 0 0 1px #fff;";
+          doc.body.appendChild(tag);
+        });
+      })
+      .catch(() => {});
+    let b64 = "";
+    try {
+      const buf: Buffer = await this.page.screenshot({ type: "png" });
+      b64 = buf.toString("base64");
+    } catch {
+      /* segue sem imagem */
+    }
+    await this.page.evaluate(() => {
+      (globalThis as any).document?.querySelectorAll(".__typer_mark").forEach((e: any) => e.remove());
+    }).catch(() => {});
+    return b64;
+  }
   async url(): Promise<string> {
     return this.page.url();
   }

@@ -7,8 +7,8 @@ import type { BrowserSession, PageState } from "../tools/types.js";
 import { serializeState } from "./dom.js";
 import { BROWSER_AGENT_PROMPT } from "./prompt.js";
 
-/** Mensagem simples do loop (sem acoplar o Message do router). */
-type Msg = { role: "user" | "assistant"; content: string };
+/** Mensagem simples do loop (sem acoplar o Message do router). images = screenshots (visão). */
+type Msg = { role: "user" | "assistant"; content: string; images?: string[] };
 
 /** Chama o LLM (system + mensagens) e devolve o texto cru (esperado: um JSON). */
 export type LlmChat = (system: string, messages: Msg[]) => Promise<string>;
@@ -180,7 +180,21 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
     } catch {
       state = { url: "", title: "", text: "", elements: [] };
     }
-    messages.push({ role: "user", content: `[Passo ${step}/${maxSteps}]\n${serializeState(state)}\n\nResponda com o JSON da(s) próxima(s) ação(ões).` });
+    // VISÃO (set-of-marks): screenshot com os números desenhados. Mantém SÓ o screenshot atual
+    // (remove os antigos das mensagens) p/ não estourar o contexto.
+    let shot = "";
+    try {
+      shot = await deps.session.screenshotMarked();
+    } catch {
+      /* sessão sem visão: segue só com texto */
+    }
+    for (const m of messages) delete m.images;
+    const stateMsg: Msg = {
+      role: "user",
+      content: `[Passo ${step}/${maxSteps}]\n${serializeState(state)}\n\nA IMAGEM é a tela atual com o NÚMERO de cada elemento desenhado em cima dele. Use a imagem p/ ver onde clicar e responda com o JSON da(s) próxima(s) ação(ões).`,
+    };
+    if (shot) stateMsg.images = [shot];
+    messages.push(stateMsg);
     trim(messages);
 
     let raw: string;

@@ -33,6 +33,9 @@ function fakeSession(states: PageState[]): { session: BrowserSession; acts: stri
     async screenshot() {
       return "";
     },
+    async screenshotMarked() {
+      return "";
+    },
     async url() {
       return "";
     },

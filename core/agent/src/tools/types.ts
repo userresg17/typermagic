@@ -94,6 +94,9 @@ export interface BrowserSession {
   select(selector: string, value: string): Promise<void>;
   /** PNG em base64 (p/ o resumo do HITL / depuração) */
   screenshot(): Promise<string>;
+  /** PNG base64 com os NÚMEROS dos elementos desenhados em cima (set-of-marks) — o modelo VÊ
+   *  a tela e os índices juntos p/ escolher por número com precisão. Chame depois de state(). */
+  screenshotMarked(): Promise<string>;
   url(): Promise<string>;
   /** clica e espera a página assentar (submit/pay — ação IRREVERSÍVEL) */
   submit(selector: string): Promise<void>;
@@ -120,7 +123,10 @@ export interface ToolDeps {
   ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
   /** chama o LLM (system + mensagens user/assistant) e devolve o texto — usado pelo
    *  sub-agente de navegador (browser_task). Injetado pelo engine (provider+model). */
-  llm?: (system: string, messages: Array<{ role: "user" | "assistant"; content: string }>) => Promise<string>;
+  llm?: (
+    system: string,
+    messages: Array<{ role: "user" | "assistant"; content: string; images?: string[] }>,
+  ) => Promise<string>;
   /** preferir modelo/embedder local (Ollama) quando aplicável */
   local?: boolean;
   /** tem chave OpenAI? (escolha de embedder) */
