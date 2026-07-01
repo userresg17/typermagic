@@ -23,8 +23,8 @@ export interface ChannelAdapter {
   onMessage(cb: (m: IncomingMessage) => void | Promise<void>): void;
   /** envia uma resposta ao chat */
   send(chatId: string, text: string): Promise<void>;
-  /** envia uma resposta em ÁUDIO (voz-OUT). Opcional — canais sem voz não implementam. */
-  sendVoice?(chatId: string, audioPath: string): Promise<void>;
+  /** envia uma resposta em ÁUDIO (voz-OUT), com o texto JUNTO como legenda. Opcional. */
+  sendVoice?(chatId: string, audioPath: string, caption?: string): Promise<void>;
   /** começa a escutar (bloqueante p/ canais reais; no-op no Fake) */
   start(): Promise<void>;
   /** para de escutar */

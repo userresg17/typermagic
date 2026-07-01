@@ -59,12 +59,13 @@ export class TelegramChannel implements ChannelAdapter {
     });
   }
 
-  /** VOZ-OUT: envia um OGG/Opus como mensagem de voz nativa (sendVoice, multipart). */
-  async sendVoice(chatId: string, audioPath: string): Promise<void> {
+  /** VOZ-OUT: envia um OGG/Opus como voz nativa, com o texto JUNTO na legenda (caption ≤ 1024). */
+  async sendVoice(chatId: string, audioPath: string, caption?: string): Promise<void> {
     const buf = await readFile(audioPath);
     const form = new FormData();
     form.append("chat_id", chatId);
     form.append("voice", new Blob([buf], { type: "audio/ogg" }), "voice.ogg");
+    if (caption) form.append("caption", caption.slice(0, 1024));
     await fetch(this.api("sendVoice"), { method: "POST", body: form });
   }
 

@@ -59,6 +59,12 @@ describe("voice — speechify (limpa o texto p/ fala)", () => {
     expect(speechify("veja https://www.mercadolivre.com.br/p/MLB123 hoje")).toBe("veja mercadolivre hoje");
   });
 
+  it("não lê pontuação em voz alta (: / * _ () etc.), vira pausa/espaço", () => {
+    expect(speechify("Resultado: achei 3 opções")).toBe("Resultado, achei 3 opções");
+    expect(speechify("preto/branco e (novo)")).toBe("preto branco e novo");
+    expect(speechify("item _um_ e *dois*")).toBe("item um e dois");
+  });
+
   it("remove emoji, URL e vira link em rótulo", () => {
     const out = speechify("🎙️ veja [o repo](https://github.com/x/y) agora");
     expect(out).toBe("veja o repo agora");
@@ -88,7 +94,7 @@ describe("voice — speechify (limpa o texto p/ fala)", () => {
 
   it("unidades técnicas por extenso após número", () => {
     expect(speechify("256 GB e 8 MP")).toBe("256 gigabytes e 8 megapixels");
-    expect(speechify("bateria 5000mAh")).toBe("bateria 5000 miliampères-hora");
+    expect(speechify("bateria 5000mAh")).toBe("bateria 5000 miliampères hora");
   });
 
   it("com respellEnglish=false (Kokoro), mantém o inglês original mas ainda limpa markdown/moeda", () => {

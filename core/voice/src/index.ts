@@ -148,8 +148,17 @@ export function speechify(text: string, respellEnglish = true): string {
   s = s.replace(/%/g, " por cento").replace(/&/g, " e "); // símbolos comuns em palavras
   s = s.replace(/\u{FE0F}/gu, ""); // seletor de variação (acompanha emoji): fora primeiro
   s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2600}-\u{27BF}]/gu, " "); // emoji/setas/dingbats
+  // pontuação que o TTS LERIA em voz alta ("dois pontos", "barra", "asterisco"…): suaviza/remove.
+  // Mantém . , ? ! (prosódia/pausas de respiração).
+  s = s.replace(/\s*[:;]\s*/g, ", "); // : ; -> pausa curta
+  s = s.replace(/\s[-–—]+\s/g, ", "); // travessão entre espaços -> pausa
+  s = s.replace(/(\p{L})[-–—]+(\p{L})/gu, "$1 $2"); // hífen entre letras ("bem-vindo" -> "bem vindo")
+  s = s.replace(/["'“”‘’()[\]{}<>*_~^\\/|+=@#$]/g, " "); // aspas, barras, parênteses, *, _, $, etc.
+  s = s.replace(/[-–—]/g, " "); // traços restantes -> espaço
   s = s.replace(/\s*\n+\s*/g, ". "); // quebras de linha viram pausa (melhora a prosódia)
-  s = s.replace(/\s{2,}/g, " ").replace(/(?:\.\s*){2,}/g, ". ").trim(); // colapsa espaço/pontuação repetida
+  s = s.replace(/\s+([,.!?])/g, "$1"); // sem espaço antes de pontuação
+  s = s.replace(/([,.!?])(?:\s*[,.!?])+/g, "$1"); // pontuação repetida -> uma
+  s = s.replace(/\s{2,}/g, " ").trim(); // colapsa espaços
   return s;
 }
 

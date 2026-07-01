@@ -43,10 +43,8 @@ export interface GatewayHooks {
   /** observabilidade: chamado a cada mensagem processada */
   onAudit?: (e: { sender: string; result: "ok" | "denied" | "rate_limited" | "error"; detail?: string }) => void;
   /** voz-OUT (opt-in): sintetiza a resposta em um OGG e devolve o caminho (temp). O gateway
-   *  envia por sendVoice e apaga o arquivo. Ausente = responde só em texto. */
+   *  envia por sendVoice (com o texto na legenda) e apaga o arquivo. Ausente = só texto. */
   synthesizeVoice?: (text: string) => Promise<string>;
-  /** voz-OUT lenta (ex.: XTTS na CPU): avisa "gerando áudio" antes, p/ o usuário esperar. */
-  voiceSlow?: boolean;
 }
 
 /** ApprovalRequest da Engine (forma estrutural — evita acoplar o import). */
@@ -397,26 +395,25 @@ export class Gateway {
       await engine.dispose();
     }
     const reply = buf.trim() || "(sem resposta)";
-    await this.adapter.send(chatId, reply);
-    // VOZ-OUT: se a mensagem VEIO por voz e o TTS está ligado, responde TAMBÉM em áudio
-    // (o texto acima fica como fallback/registro). Best-effort: falha de voz não quebra a tarefa.
-    // Passa a resposta INTEIRA — o synthesize() limpa markdown/moeda e limita o tamanho falado.
-    if (msg.viaVoice && this.hooks.synthesizeVoice && this.adapter.sendVoice && buf.trim()) {
+    // VOZ-OUT: SÓ responde por áudio quando o pedido VEIO por áudio (msg.viaVoice). Nesse caso o
+    // texto vai JUNTO como legenda do áudio (uma mensagem só) — sem mensagem intermediária. Se a
+    // síntese falhar, cai pro texto puro. Pedido por TEXTO → responde só texto (nunca áudio).
+    const wantsVoice = Boolean(msg.viaVoice && this.hooks.synthesizeVoice && this.adapter.sendVoice && buf.trim());
+    let voiced = false;
+    if (wantsVoice) {
       try {
-        if (this.hooks.voiceSlow) {
-          await this.adapter.send(chatId, "🔊 gerando o áudio da resposta… (voz natural é lenta, ~1 min)");
-        }
-        const ogg = await this.hooks.synthesizeVoice(reply);
+        const ogg = await this.hooks.synthesizeVoice!(reply);
         try {
-          await this.adapter.sendVoice(chatId, ogg);
+          await this.adapter.sendVoice!(chatId, ogg, reply); // áudio + texto (legenda) JUNTOS
+          voiced = true;
         } finally {
           rmSync(ogg, { force: true });
         }
       } catch (e) {
-        // best-effort (o texto já foi), mas LOGA a causa p/ diagnóstico.
         console.error(`· [voz-OUT] falhou: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
+    if (!voiced) await this.adapter.send(chatId, reply); // texto puro (pedido por texto, ou voz falhou)
     // só lembra de turnos que DERAM CERTO (não polui o contexto com erro/"(sem resposta)").
     if (!errored && buf.trim()) this.remember(chatId, msg.text, reply);
   }
