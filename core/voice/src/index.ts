@@ -84,8 +84,10 @@ const UNITS: Record<string, string> = {
 };
 
 /** Prepara o texto p/ FALA humana: tira markdown/emoji/URL e converte moeda, parcelas e
- *  símbolos em palavras (pt-BR). Sem isso, o TTS lê "asterisco", "U S cifrão", "12 xis" etc. */
-export function speechify(text: string): string {
+ *  símbolos em palavras (pt-BR). Sem isso, o TTS lê "asterisco", "U S cifrão", "12 xis" etc.
+ *  `respellEnglish` (default true) reescreve termos em inglês na fonética pt — LIGADO no Piper
+ *  (só pt), DESLIGADO no Kokoro (que já pronuncia inglês nativo; respell atrapalharia). */
+export function speechify(text: string, respellEnglish = true): string {
   let s = text;
   s = s.replace(/```[\s\S]*?```/g, " "); // blocos de código cercados: fora (ninguém ouve código)
   s = s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1"); // [rótulo](url) / ![alt](url) -> rótulo/alt
@@ -113,7 +115,7 @@ export function speechify(text: string): string {
     /(\d+)\s*(GB|TB|MB|KB|GHz|MHz|MP|mAh|kWh|km|kg|cm|mm|ml)\b/gi,
     (_m, num: string, u: string) => `${num} ${UNITS[u.toLowerCase()]}`,
   );
-  for (const [re, sub] of EN_RESPELL) s = s.replace(re, sub); // inglês -> grafia fonética pt-BR
+  if (respellEnglish) for (const [re, sub] of EN_RESPELL) s = s.replace(re, sub); // inglês -> fonética pt
   s = s.replace(/%/g, " por cento").replace(/&/g, " e "); // símbolos comuns em palavras
   s = s.replace(/\u{FE0F}/gu, ""); // seletor de variação (acompanha emoji): fora primeiro
   s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2600}-\u{27BF}]/gu, " "); // emoji/setas/dingbats
@@ -125,7 +127,8 @@ export function speechify(text: string): string {
 /** Sintetiza `text` e grava um OGG/Opus em `outOggPath` — pronto pro Telegram `sendVoice`.
  *  Limpa o texto p/ fala (speechify), gera um WAV temporário e converte p/ OGG. */
 export async function synthesize(text: string, outOggPath: string, model: TtsModel): Promise<void> {
-  const spoken = speechify(text).slice(0, SPOKEN_MAX).trim();
+  // Kokoro pronuncia inglês nativo → NÃO respella; Piper (só pt) → respella.
+  const spoken = speechify(text, model.engine !== "kokoro").slice(0, SPOKEN_MAX).trim();
   if (!spoken) throw new Error("TTS: nada a falar depois de limpar o texto");
   const wav = join(tmpdir(), `typer-tts-${process.pid}-${seq++}.wav`);
   await synthesizeWav(spoken, wav, model);

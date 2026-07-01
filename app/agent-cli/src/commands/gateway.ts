@@ -16,8 +16,9 @@ interface GatewayFile {
   /** provider do modelo (ex.: "claude-cli" p/ usar o Claude Code logado, "openai", "anthropic"). */
   provider?: string | null;
   /** voz (v2): { in:true } aceita áudio (transcreve local), { out:true } responde por voz.
-   *  speed<1 fala mais devagar (default 0.9); >1 mais rápido. */
-  voice?: { in?: boolean; out?: boolean; speed?: number };
+   *  speed<1 fala mais devagar (default 0.9). engine: "piper" (default, RÁPIDO) ou "kokoro"
+   *  (multilíngue, pronuncia inglês nativo, mas ~12x mais lento na CPU — resposta demora ~25s). */
+  voice?: { in?: boolean; out?: boolean; speed?: number; engine?: "piper" | "kokoro"; sid?: number };
   rateCapacity?: number;
   rateRefillMs?: number;
   /** recursos opt-in da Engine (ex.: { "tools": true } liga as ferramentas internas). */
@@ -89,16 +90,36 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
         console.error(yellow("· voz-IN pedida, mas o modelo ASR não está em ~/.typer/voice — rode o setup de voz"));
       }
     }
-    // VOZ-OUT (opt-in): monta a síntese LOCAL (@typer/voice, VITS/Piper pt_BR) se o modelo TTS existir.
+    // VOZ-OUT (opt-in): monta a síntese LOCAL (@typer/voice). Engine "piper" (default, rápido) ou
+    // "kokoro" (multilíngue, inglês nativo, porém ~12x mais lento na CPU).
     if (file.voice?.out) {
-      const tdir = join(homedir(), ".typer", "voice", "vits-piper-pt_BR-faber-medium");
-      const tts: TtsModel = {
-        model: join(tdir, "pt_BR-faber-medium.onnx"),
-        tokens: join(tdir, "tokens.txt"),
-        dataDir: join(tdir, "espeak-ng-data"),
-        // fala 10% mais devagar por padrão (speed<1 = mais lento); tunável no gateway.json.
-        speed: file.voice?.speed ?? 0.9,
-      };
+      const vdir = join(homedir(), ".typer", "voice");
+      const engine = file.voice?.engine ?? "piper";
+      let tts: TtsModel;
+      if (engine === "kokoro") {
+        const k = join(vdir, "kokoro-int8-multi-lang-v1_0");
+        tts = {
+          engine: "kokoro",
+          model: join(k, "model.int8.onnx"),
+          tokens: join(k, "tokens.txt"),
+          voices: join(k, "voices.bin"),
+          dataDir: join(k, "espeak-ng-data"),
+          dictDir: join(k, "dict"),
+          lexicon: `${join(k, "lexicon-us-en.txt")},${join(k, "lexicon-zh.txt")}`,
+          sid: file.voice?.sid ?? 44, // pt-BR (pm_alex)
+          speed: file.voice?.speed ?? 1.0,
+          numThreads: 4,
+        };
+      } else {
+        const p = join(vdir, "vits-piper-pt_BR-faber-medium");
+        tts = {
+          engine: "piper",
+          model: join(p, "pt_BR-faber-medium.onnx"),
+          tokens: join(p, "tokens.txt"),
+          dataDir: join(p, "espeak-ng-data"),
+          speed: file.voice?.speed ?? 0.9, // fala 10% mais devagar por padrão
+        };
+      }
       if (ttsReady(tts)) {
         let n = 0;
         synthesizeVoice = async (text) => {
@@ -106,9 +127,9 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
           await synthesize(text, out, tts);
           return out;
         };
-        console.error(dim("· voz-OUT ligada (TTS local: piper pt_BR)"));
+        console.error(dim(`· voz-OUT ligada (TTS local: ${engine === "kokoro" ? "kokoro multilíngue" : "piper pt_BR"})`));
       } else {
-        console.error(yellow("· voz-OUT pedida, mas o modelo TTS não está em ~/.typer/voice — rode o setup de voz"));
+        console.error(yellow(`· voz-OUT pedida (${engine}), mas o modelo não está em ~/.typer/voice — rode o setup de voz`));
       }
     }
     adapter = new TelegramChannel(token, voiceHook);

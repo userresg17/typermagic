@@ -80,6 +80,10 @@ describe("voice — speechify (limpa o texto p/ fala)", () => {
     expect(speechify("256 GB e 8 MP")).toBe("256 gigabytes e 8 megapixels");
     expect(speechify("bateria 5000mAh")).toBe("bateria 5000 miliampères-hora");
   });
+
+  it("com respellEnglish=false (Kokoro), mantém o inglês original mas ainda limpa markdown/moeda", () => {
+    expect(speechify("**Apple Prime** por US$ 49,99", false)).toBe("Apple Prime por 49 dólares e 99 centavos");
+  });
 });
 
 describe("voice — prontidão do ASR/TTS", () => {

@@ -1,24 +1,32 @@
 // core/voice/tts.ts
-// TTS LOCAL (voz-OUT) via sherpa-onnx OfflineTts — modelo VITS/Piper PT rodando em CPU, offline.
-// Escolha de engenharia: NÃO usamos o OmniVoice (PyTorch, prefere GPU, subprocess Python pesado)
-// pro serviço 24/7 — o VITS/Piper do próprio sherpa-onnx é leve, mesmo addon nativo que o ASR já
-// usa, e mantém tudo 100% local. Mesma interface `synthesize()`; dá pra trocar por OmniVoice depois.
+// TTS LOCAL (voz-OUT) via sherpa-onnx OfflineTts — CPU, offline. Dois engines:
+//  - "piper"  (VITS pt_BR): RÁPIDO (~0.4x tempo real), leve; inglês fica torto (só pt) → dicionário.
+//  - "kokoro" (multilíngue): fala inglês NATIVO e soa mais natural, mas é ~5x tempo real na CPU
+//    (12x mais lento que o Piper) — resposta de voz demora ~25s. Opt-in p/ quem prefere qualidade.
+// Escolha de engenharia: NÃO usamos OmniVoice (PyTorch/GPU, subprocess Python) — ambos rodam no
+// mesmo addon nativo do ASR, 100% local. Mesma interface `synthesize()`.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface TtsModel {
-  /** .onnx do VITS/Piper */
+  /** engine: "piper" (default, rápido) ou "kokoro" (multilíngue, lento na CPU). */
+  engine?: "piper" | "kokoro";
+  /** .onnx do modelo (VITS/Piper ou Kokoro) */
   model: string;
   /** tokens.txt do modelo */
   tokens: string;
-  /** dir de dados fonéticos (espeak-ng-data) — exigido pelos modelos Piper */
+  /** dir de dados fonéticos (espeak-ng-data) */
   dataDir?: string;
-  /** lexicon.txt (modelos com léxico próprio) */
+  /** lexicon(s) — Piper: um arquivo; Kokoro: lista separada por vírgula (en,zh) */
   lexicon?: string;
+  /** Kokoro: voices.bin (embeddings dos locutores) */
+  voices?: string;
+  /** Kokoro: dir dict/ (regras de zh/números) */
+  dictDir?: string;
   numThreads?: number;
-  /** speaker id (modelos multi-locutor); default 0 */
+  /** speaker id (multi-locutor). Piper pt: 0. Kokoro pt-BR: 44 (pm_alex). */
   sid?: number;
-  /** velocidade da fala; default 1.0 */
+  /** velocidade da fala; default 1.0 (Piper usa <1 p/ desacelerar) */
   speed?: number;
 }
 
@@ -33,19 +41,33 @@ async function loadSherpa(): Promise<any> {
 }
 
 async function getTts(model: TtsModel): Promise<any> {
-  const key = `${model.model}|${model.tokens}|${model.dataDir ?? ""}`;
+  const key = `${model.engine ?? "piper"}|${model.model}|${model.tokens}|${model.dataDir ?? ""}`;
   if (!ttsP || ttsKey !== key) {
     ttsKey = key;
     const S = await loadSherpa();
+    // Kokoro e VITS têm chaves de config diferentes no OfflineTts.
+    const modelConfig =
+      model.engine === "kokoro"
+        ? {
+            kokoro: {
+              model: model.model,
+              tokens: model.tokens,
+              ...(model.voices ? { voices: model.voices } : {}),
+              ...(model.dataDir ? { dataDir: model.dataDir } : {}),
+              ...(model.dictDir ? { dictDir: model.dictDir } : {}),
+              ...(model.lexicon ? { lexicon: model.lexicon } : {}),
+            },
+          }
+        : {
+            vits: {
+              model: model.model,
+              tokens: model.tokens,
+              ...(model.dataDir ? { dataDir: model.dataDir } : {}),
+              ...(model.lexicon ? { lexicon: model.lexicon } : {}),
+            },
+          };
     ttsP = S.OfflineTts.createAsync({
-      model: {
-        vits: {
-          model: model.model,
-          tokens: model.tokens,
-          ...(model.dataDir ? { dataDir: model.dataDir } : {}),
-          ...(model.lexicon ? { lexicon: model.lexicon } : {}),
-        },
-      },
+      model: modelConfig,
       numThreads: model.numThreads ?? 2,
       provider: "cpu",
       debug: 0,
