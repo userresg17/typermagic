@@ -15,8 +15,9 @@ interface GatewayFile {
   allow?: string[];
   /** provider do modelo (ex.: "claude-cli" p/ usar o Claude Code logado, "openai", "anthropic"). */
   provider?: string | null;
-  /** voz (v2): { in:true } aceita áudio (transcreve local), { out:true } responde por voz. */
-  voice?: { in?: boolean; out?: boolean };
+  /** voz (v2): { in:true } aceita áudio (transcreve local), { out:true } responde por voz.
+   *  speed<1 fala mais devagar (default 0.9); >1 mais rápido. */
+  voice?: { in?: boolean; out?: boolean; speed?: number };
   rateCapacity?: number;
   rateRefillMs?: number;
   /** recursos opt-in da Engine (ex.: { "tools": true } liga as ferramentas internas). */
@@ -95,6 +96,8 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
         model: join(tdir, "pt_BR-faber-medium.onnx"),
         tokens: join(tdir, "tokens.txt"),
         dataDir: join(tdir, "espeak-ng-data"),
+        // fala 10% mais devagar por padrão (speed<1 = mais lento); tunável no gateway.json.
+        speed: file.voice?.speed ?? 0.9,
       };
       if (ttsReady(tts)) {
         let n = 0;

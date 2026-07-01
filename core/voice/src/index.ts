@@ -38,8 +38,24 @@ export function asrReady(model: AsrModel): boolean {
 /** limite de caracteres FALADOS — resposta longa vira áudio arrastado; o texto tem tudo. */
 const SPOKEN_MAX = 700;
 
-/** Prepara o texto p/ FALA humana: tira markdown/emoji/URL e converte moeda e símbolos em
- *  palavras (pt-BR). Sem isso, o TTS lê "asterisco", "U S cifrão", "hashtag" etc. */
+/** Termos em inglês comuns em compras/tech → grafia fonética pt-BR (o espeak com voz pt lê
+ *  melhor assim). Best-effort e EXTENSÍVEL — pronúncia perfeita de inglês só com modelo
+ *  multilíngue. Aplicado como palavra inteira, sem caixa. */
+const EN_RESPELL: Array<[RegExp, string]> = [
+  [/\bprime\b/gi, "praime"],
+  [/\bpremium\b/gi, "prêmium"],
+  [/\bfree\b/gi, "fri"],
+  [/\bblack friday\b/gi, "bléque fráidei"],
+  [/\bcashback\b/gi, "quéshibéque"],
+  [/\bdelivery\b/gi, "delíveri"],
+  [/\bwireless\b/gi, "uáiarlés"],
+  [/\bgamer\b/gi, "guêimer"],
+  [/\bstreaming\b/gi, "istríming"],
+  [/\bsmart\b/gi, "ismárt"],
+];
+
+/** Prepara o texto p/ FALA humana: tira markdown/emoji/URL e converte moeda, parcelas e
+ *  símbolos em palavras (pt-BR). Sem isso, o TTS lê "asterisco", "U S cifrão", "12 xis" etc. */
 export function speechify(text: string): string {
   let s = text;
   s = s.replace(/```[\s\S]*?```/g, " "); // blocos de código cercados: fora (ninguém ouve código)
@@ -56,6 +72,14 @@ export function speechify(text: string): string {
     const n = int.replace(/\./g, ""); // tira separador de milhar (o espeak lê os dígitos)
     return dec ? `${n} ${unit} e ${dec} centavos` : `${n} ${unit}`;
   });
+  // parcelamento: "12x" / "12 x" -> "12 vezes" (SÓ com dígito antes; "celular X" continua "X")
+  s = s.replace(/(\d+)\s*x\b/gi, "$1 vezes");
+  // valor da parcela sem símbolo: "12 vezes de 99,99" -> "... 99 reais e 99 centavos"
+  s = s.replace(
+    /(vezes(?: de)?\s+)([\d.]+),(\d{2})\b/gi,
+    (_m, pre: string, int: string, dec: string) => `${pre}${int.replace(/\./g, "")} reais e ${dec} centavos`,
+  );
+  for (const [re, sub] of EN_RESPELL) s = s.replace(re, sub); // inglês -> grafia fonética pt-BR
   s = s.replace(/%/g, " por cento").replace(/&/g, " e "); // símbolos comuns em palavras
   s = s.replace(/\u{FE0F}/gu, ""); // seletor de variação (acompanha emoji): fora primeiro
   s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2600}-\u{27BF}]/gu, " "); // emoji/setas/dingbats

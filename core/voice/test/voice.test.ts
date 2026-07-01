@@ -61,6 +61,19 @@ describe("voice — speechify (limpa o texto p/ fala)", () => {
   it("% e & viram palavras", () => {
     expect(speechify("subiu 10% e caiu")).toBe("subiu 10 por cento e caiu");
   });
+
+  it('parcela "12x de 99,99" vira "12 vezes de 99 reais e 99 centavos"', () => {
+    expect(speechify("em 12x de 99,99")).toBe("em 12 vezes de 99 reais e 99 centavos");
+    expect(speechify("em 10x sem juros")).toBe("em 10 vezes sem juros");
+  });
+
+  it('não mexe no "X" de nome (sem dígito antes)', () => {
+    expect(speechify("o celular X é bom")).toBe("o celular X é bom");
+  });
+
+  it("termos em inglês viram grafia fonética pt-BR", () => {
+    expect(speechify("Amazon Prime é free")).toBe("Amazon praime é fri");
+  });
 });
 
 describe("voice — prontidão do ASR/TTS", () => {
