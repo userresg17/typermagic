@@ -55,6 +55,8 @@ def main():
                 "language": req.get("language", "pt"),
                 "file_path": req["out"],
             }
+            if req.get("speed"):
+                kwargs["speed"] = float(req["speed"])  # 1.1 = 10% mais rápido
             if req.get("speaker_wav"):
                 kwargs["speaker_wav"] = req["speaker_wav"]
             elif req.get("speaker") or default_speaker:

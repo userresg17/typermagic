@@ -22,6 +22,8 @@ export interface XttsConfig {
   speakerWav?: string;
   /** nome/model override do XTTS (default xtts_v2) */
   model?: string;
+  /** velocidade da fala (1.0 = normal; 1.1 = 10% mais rápido) */
+  speed?: number;
 }
 
 let proc: ChildProcess | null = null;
@@ -99,6 +101,7 @@ export async function synthesizeXttsWav(text: string, outWav: string, cfg: XttsC
       language: cfg.language ?? "pt",
       ...(cfg.speaker ? { speaker: cfg.speaker } : {}),
       ...(cfg.speakerWav ? { speaker_wav: cfg.speakerWav } : {}),
+      ...(cfg.speed ? { speed: cfg.speed } : {}),
     }) + "\n";
   const done = new Promise<void>((resolve, reject) => pending.set(id, { resolve, reject }));
   p.stdin.write(req);

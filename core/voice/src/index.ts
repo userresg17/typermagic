@@ -101,32 +101,43 @@ const UNITS: Record<string, string> = {
   ml: "mililitros",
 };
 
-/** Prepara o texto p/ FALA humana: tira markdown/emoji/URL e converte moeda, parcelas e
- *  símbolos em palavras (pt-BR). Sem isso, o TTS lê "asterisco", "U S cifrão", "12 xis" etc.
+/** " e NN centavos" — mas VAZIO quando os centavos são 00/0 (o usuário quer só "99 reais"). */
+function centavos(dec?: string): string {
+  return dec && !/^0+$/.test(dec) ? ` e ${dec} centavos` : "";
+}
+
+/** Prepara o texto p/ FALA humana: tira markdown/emoji, reduz URLs a nome, converte moeda,
+ *  parcelas e símbolos em palavras (pt-BR). Sem isso, o TTS lê "asterisco", "dáblio dáblio dáblio
+ *  ponto amazon ponto com ponto b r", "12 xis" etc.
  *  `respellEnglish` (default true) reescreve termos em inglês na fonética pt — LIGADO no Piper
- *  (só pt), DESLIGADO no Kokoro (que já pronuncia inglês nativo; respell atrapalharia). */
+ *  (só pt), DESLIGADO no Kokoro/XTTS (que já pronunciam inglês nativo). */
 export function speechify(text: string, respellEnglish = true): string {
   let s = text;
   s = s.replace(/```[\s\S]*?```/g, " "); // blocos de código cercados: fora (ninguém ouve código)
   s = s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1"); // [rótulo](url) / ![alt](url) -> rótulo/alt
-  s = s.replace(/https?:\/\/\S+/g, " "); // URLs cruas: fora
+  // URL/domínio -> só o nome principal: "https://www.amazon.com.br/dp/x" ou "www.amazon.com.br"
+  // viram "amazon" (sem ler ponto/traço/caminho).
+  s = s.replace(
+    /\b(?:https?:\/\/)?(?:www\.)?([a-z0-9-]{2,})\.(?:com|net|org|io|dev|app|gov|edu|co|me|br|shop|store|inc)(?:\.[a-z]{2})?\b(?:\/[^\s]*)?/gi,
+    "$1",
+  );
   s = s.replace(/`([^`]*)`/g, "$1"); // código inline `x` -> x
   s = s.replace(/(\*\*|\*|__|_)(.*?)\1/g, "$2"); // ênfase **x** *x* __x__ _x_ -> x
   s = s.replace(/^[ \t]*([#>]+|[-*+•]|\d+\.)[ \t]+/gm, ""); // marcador/cabeçalho/citação no início
   s = s.replace(/^[ \t]*\|?[ \t]*:?-{2,}.*$/gm, " "); // linha separadora de tabela ---|--- : fora
   s = s.replace(/\|/g, ", "); // células de tabela viram pausa
-  // moeda pt-BR: "US$ 49,99" -> "49 dólares e 99 centavos" (a unidade vem DEPOIS na fala)
+  // moeda pt-BR: "US$ 49,99" -> "49 dólares e 99 centavos"; "R$ 99,00" -> "99 reais" (sem centavos)
   s = s.replace(/(R\$|US\$|\$|€)\s*([\d.]+)(?:,(\d{1,2}))?/g, (_m, sym: string, int: string, dec?: string) => {
     const unit = sym === "R$" ? "reais" : sym === "€" ? "euros" : "dólares";
     const n = int.replace(/\./g, ""); // tira separador de milhar (o espeak lê os dígitos)
-    return dec ? `${n} ${unit} e ${dec} centavos` : `${n} ${unit}`;
+    return `${n} ${unit}${centavos(dec)}`;
   });
   // parcelamento: "12x" / "12 x" -> "12 vezes" (SÓ com dígito antes; "celular X" continua "X")
   s = s.replace(/(\d+)\s*x\b/gi, "$1 vezes");
-  // valor da parcela sem símbolo: "12 vezes de 99,99" -> "... 99 reais e 99 centavos"
+  // valor da parcela sem símbolo: "12 vezes de 99,99" -> "... 99 reais e 99 centavos"; ",00" some
   s = s.replace(
     /(vezes(?: de)?\s+)([\d.]+),(\d{2})\b/gi,
-    (_m, pre: string, int: string, dec: string) => `${pre}${int.replace(/\./g, "")} reais e ${dec} centavos`,
+    (_m, pre: string, int: string, dec: string) => `${pre}${int.replace(/\./g, "")} reais${centavos(dec)}`,
   );
   // unidades técnicas: "256 GB" -> "256 gigabytes", "8 MP" -> "8 megapixels" (só após número)
   s = s.replace(
@@ -151,6 +162,7 @@ function xttsConfigOf(model: TtsModel): XttsConfig {
     ...(model.speaker ? { speaker: model.speaker } : {}),
     ...(model.speakerWav ? { speakerWav: model.speakerWav } : {}),
     ...(model.model ? { model: model.model } : {}),
+    ...(model.speed ? { speed: model.speed } : {}),
   };
 }
 

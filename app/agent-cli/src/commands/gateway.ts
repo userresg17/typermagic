@@ -112,6 +112,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
           python: join(vdir, "xtts-venv", "bin", "python"),
           worker: xttsWorkerPath,
           language: "pt",
+          speed: file.voice?.speed ?? 1.1, // 10% mais rápido por padrão
           ...(file.voice?.speaker ? { speaker: file.voice.speaker } : {}),
         };
       } else if (engine === "kokoro") {

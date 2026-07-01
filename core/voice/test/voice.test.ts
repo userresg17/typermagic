@@ -49,6 +49,16 @@ describe("voice — speechify (limpa o texto p/ fala)", () => {
     expect(speechify("total R$ 20")).toBe("total 20 reais");
   });
 
+  it('centavos "00" somem (99,00 -> "99 reais")', () => {
+    expect(speechify("custa R$ 99,00")).toBe("custa 99 reais");
+    expect(speechify("em 10x de 50,00")).toBe("em 10 vezes de 50 reais");
+  });
+
+  it("URL/domínio vira só o nome (sem ler ponto/traço/caminho)", () => {
+    expect(speechify("compre em www.amazon.com.br agora")).toBe("compre em amazon agora");
+    expect(speechify("veja https://www.mercadolivre.com.br/p/MLB123 hoje")).toBe("veja mercadolivre hoje");
+  });
+
   it("remove emoji, URL e vira link em rótulo", () => {
     const out = speechify("🎙️ veja [o repo](https://github.com/x/y) agora");
     expect(out).toBe("veja o repo agora");
