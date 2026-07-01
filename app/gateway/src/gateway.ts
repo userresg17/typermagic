@@ -47,9 +47,6 @@ export interface GatewayHooks {
   synthesizeVoice?: (text: string) => Promise<string>;
 }
 
-/** teto de caracteres lidos em voz — resposta longa vira áudio longo/chato; o texto tem tudo. */
-const VOICE_OUT_MAX_CHARS = 600;
-
 /** ApprovalRequest da Engine (forma estrutural — evita acoplar o import). */
 interface ApprovalLike {
   action: string;
@@ -401,16 +398,18 @@ export class Gateway {
     await this.adapter.send(chatId, reply);
     // VOZ-OUT: se a mensagem VEIO por voz e o TTS está ligado, responde TAMBÉM em áudio
     // (o texto acima fica como fallback/registro). Best-effort: falha de voz não quebra a tarefa.
+    // Passa a resposta INTEIRA — o synthesize() limpa markdown/moeda e limita o tamanho falado.
     if (msg.viaVoice && this.hooks.synthesizeVoice && this.adapter.sendVoice && buf.trim()) {
       try {
-        const ogg = await this.hooks.synthesizeVoice(reply.slice(0, VOICE_OUT_MAX_CHARS));
+        const ogg = await this.hooks.synthesizeVoice(reply);
         try {
           await this.adapter.sendVoice(chatId, ogg);
         } finally {
           rmSync(ogg, { force: true });
         }
-      } catch {
-        /* voz é best-effort — o texto já foi enviado */
+      } catch (e) {
+        // best-effort (o texto já foi), mas LOGA a causa p/ diagnóstico.
+        console.error(`· [voz-OUT] falhou: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
     // só lembra de turnos que DERAM CERTO (não polui o contexto com erro/"(sem resposta)").
