@@ -1,0 +1,21 @@
+{
+  "name": "@typer/voice",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Voz LOCAL (v2): ASR (voz→texto) via sherpa-onnx rodando Whisper, e TTS (texto→voz) via OmniVoice/sherpa-onnx. Áudio nunca sai da máquina. Engines atrás de transcribe()/synthesize(); opt-in (modelos baixados à parte).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "sherpa-onnx-node": "^1.13.3"
+  }
+}

@@ -4,6 +4,7 @@
     { "path": "./core/router" },
     { "path": "./core/crypto" },
     { "path": "./core/vault" },
+    { "path": "./core/voice" },
     { "path": "./core/sandbox" },
     { "path": "./core/cost" },
     { "path": "./core/index" },
