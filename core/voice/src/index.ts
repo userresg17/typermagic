@@ -44,9 +44,9 @@ export function asrReady(model: AsrModel): boolean {
 
 /** limite de caracteres FALADOS — resposta longa vira áudio arrastado; o texto tem tudo. */
 const SPOKEN_MAX = 700;
-/** XTTS é ~6x mais lento que tempo real na CPU — encurta MUITO a fala (resumo ~40s); o texto
- *  completo o usuário lê na hora. */
-const XTTS_SPOKEN_MAX = 240;
+/** XTTS é ~6x mais lento que tempo real na CPU (pior sob contenção de RAM) — encurta MUITO a fala
+ *  (uma frase curta); o texto completo o usuário lê na hora. */
+const XTTS_SPOKEN_MAX = 160;
 
 /** corta o texto no limite `cap`, preferindo terminar numa frase (evita cortar no meio). */
 function capSpoken(s: string, cap: number): string {

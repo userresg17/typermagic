@@ -163,6 +163,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   const hooks: GatewayHooks = {
     onAudit: (e) => console.error(dim(`· [${e.sender}] ${e.result}${e.detail ? ` — ${e.detail}` : ""}`)),
     ...(synthesizeVoice ? { synthesizeVoice } : {}),
+    ...(file.voice?.engine === "xtts" ? { voiceSlow: true } : {}),
   };
   const gw = new Gateway(adapter, config, hooks);
   console.error(

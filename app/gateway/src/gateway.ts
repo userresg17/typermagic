@@ -45,6 +45,8 @@ export interface GatewayHooks {
   /** voz-OUT (opt-in): sintetiza a resposta em um OGG e devolve o caminho (temp). O gateway
    *  envia por sendVoice e apaga o arquivo. Ausente = responde só em texto. */
   synthesizeVoice?: (text: string) => Promise<string>;
+  /** voz-OUT lenta (ex.: XTTS na CPU): avisa "gerando áudio" antes, p/ o usuário esperar. */
+  voiceSlow?: boolean;
 }
 
 /** ApprovalRequest da Engine (forma estrutural — evita acoplar o import). */
@@ -401,6 +403,9 @@ export class Gateway {
     // Passa a resposta INTEIRA — o synthesize() limpa markdown/moeda e limita o tamanho falado.
     if (msg.viaVoice && this.hooks.synthesizeVoice && this.adapter.sendVoice && buf.trim()) {
       try {
+        if (this.hooks.voiceSlow) {
+          await this.adapter.send(chatId, "🔊 gerando o áudio da resposta… (voz natural é lenta, ~1 min)");
+        }
         const ogg = await this.hooks.synthesizeVoice(reply);
         try {
           await this.adapter.sendVoice(chatId, ogg);
