@@ -9,12 +9,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface TtsModel {
-  /** engine: "piper" (default, rápido) ou "kokoro" (multilíngue, lento na CPU). */
-  engine?: "piper" | "kokoro";
-  /** .onnx do modelo (VITS/Piper ou Kokoro) */
+  /** engine: "piper" (rápido, sherpa), "kokoro" (multilíngue sherpa, sem pt) ou
+   *  "xtts" (Coqui/PyTorch: pt-BR natural + inglês nativo, lento na CPU). */
+  engine?: "piper" | "kokoro" | "xtts";
+  /** sherpa: .onnx do modelo. xtts: nome do modelo HF (ou "" — baixa sozinho). */
   model: string;
-  /** tokens.txt do modelo */
+  /** tokens.txt do modelo (sherpa). Vazio p/ xtts. */
   tokens: string;
+  /** xtts: python do venv */
+  python?: string;
+  /** xtts: caminho do xtts_worker.py */
+  worker?: string;
+  /** xtts: locutor embutido (default = 1º do modelo) */
+  speaker?: string;
+  /** xtts: wav de referência p/ clonar a voz */
+  speakerWav?: string;
+  /** xtts: idioma alvo (default "pt") */
+  language?: string;
   /** dir de dados fonéticos (espeak-ng-data) */
   dataDir?: string;
   /** lexicon(s) — Piper: um arquivo; Kokoro: lista separada por vírgula (en,zh) */

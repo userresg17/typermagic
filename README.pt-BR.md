@@ -73,6 +73,15 @@ tivesse digitado, e **responde por voz** (texto→fala, pt-BR). Round-trip compl
 - **Confirma o que ouviu.** Antes de agir, devolve um `🎙️ ouvi: "..."` pra você corrigir se o
   áudio saiu ruído.
 
+**Voz de resposta — dois motores** (`voice.engine` no `gateway.json`):
+
+- **`piper`** (padrão): VITS pt-BR, **rápido** (~2s) e leve. Só fala português — termos em inglês
+  passam por um dicionário de pronúncia. Bom pra respostas instantâneas.
+- **`xtts`** (opt-in, `pnpm xtts:setup`): [XTTS-v2](https://github.com/idiap/coqui-ai-TTS) (Coqui),
+  voz **natural** com inglês **nativo** (iPhone, Apple, Nu Pay saem certos). Roda em CPU, então é
+  **lento** (~40s por resposta; o texto chega na hora, o áudio vem depois). 100% local; o modelo
+  (~2GB) baixa no 1º uso. Licença do modelo: CPML (não-comercial). Sem GPU NVIDIA, não acelera.
+
 ## Por que é diferente
 
 - **Geral, não só código.** O mesmo agente escreve código, roda e supervisiona comandos,

@@ -12,6 +12,7 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "voice:setup": "node scripts/voice-setup.mjs",
+    "xtts:setup": "node scripts/xtts-setup.mjs",
     "agent": "pnpm --filter @typer/agent-cli dev",
     "build": "pnpm -r build",
     "typecheck": "tsc -b",

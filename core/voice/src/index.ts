@@ -3,14 +3,21 @@
 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { existsSync, unlinkSync } from "node:fs";
 import { toWav16k, toOggOpus } from "./audio.js";
 import { transcribeWav, type AsrModel } from "./asr.js";
 import { synthesizeWav, type TtsModel } from "./tts.js";
+import { synthesizeXttsWav, xttsReady, type XttsConfig } from "./xtts.js";
 
 export { toWav16k, toOggOpus } from "./audio.js";
 export { transcribeWav, type AsrModel } from "./asr.js";
 export { synthesizeWav, type TtsModel } from "./tts.js";
+export { xttsReady, type XttsConfig } from "./xtts.js";
+
+/** caminho do worker Python do XTTS (resolvido a partir do pacote, não do cwd). dist/index.js
+ *  → ../py/xtts_worker.py = core/voice/py/xtts_worker.py. */
+export const xttsWorkerPath: string = fileURLToPath(new URL("../py/xtts_worker.py", import.meta.url));
 
 let seq = 0;
 
@@ -37,6 +44,17 @@ export function asrReady(model: AsrModel): boolean {
 
 /** limite de caracteres FALADOS — resposta longa vira áudio arrastado; o texto tem tudo. */
 const SPOKEN_MAX = 700;
+/** XTTS é ~6x mais lento que tempo real na CPU — encurta MUITO a fala (resumo ~40s); o texto
+ *  completo o usuário lê na hora. */
+const XTTS_SPOKEN_MAX = 240;
+
+/** corta o texto no limite `cap`, preferindo terminar numa frase (evita cortar no meio). */
+function capSpoken(s: string, cap: number): string {
+  if (s.length <= cap) return s;
+  const head = s.slice(0, cap);
+  const cut = head.lastIndexOf(". ");
+  return (cut > cap * 0.5 ? head.slice(0, cut + 1) : head).trim();
+}
 
 /** Termos em inglês comuns em compras/tech → grafia fonética pt-BR (o espeak com voz pt lê
  *  melhor assim). Best-effort e EXTENSÍVEL — pronúncia perfeita de inglês só com modelo
@@ -124,14 +142,29 @@ export function speechify(text: string, respellEnglish = true): string {
   return s;
 }
 
+/** monta a config do worker XTTS a partir do TtsModel. */
+function xttsConfigOf(model: TtsModel): XttsConfig {
+  return {
+    python: model.python ?? "",
+    worker: model.worker ?? "",
+    language: model.language ?? "pt",
+    ...(model.speaker ? { speaker: model.speaker } : {}),
+    ...(model.speakerWav ? { speakerWav: model.speakerWav } : {}),
+    ...(model.model ? { model: model.model } : {}),
+  };
+}
+
 /** Sintetiza `text` e grava um OGG/Opus em `outOggPath` — pronto pro Telegram `sendVoice`.
  *  Limpa o texto p/ fala (speechify), gera um WAV temporário e converte p/ OGG. */
 export async function synthesize(text: string, outOggPath: string, model: TtsModel): Promise<void> {
-  // Kokoro pronuncia inglês nativo → NÃO respella; Piper (só pt) → respella.
-  const spoken = speechify(text, model.engine !== "kokoro").slice(0, SPOKEN_MAX).trim();
+  // Kokoro/XTTS pronunciam inglês nativo → NÃO respella; Piper (só pt) → respella.
+  const respell = model.engine !== "kokoro" && model.engine !== "xtts";
+  const cap = model.engine === "xtts" ? XTTS_SPOKEN_MAX : SPOKEN_MAX;
+  const spoken = capSpoken(speechify(text, respell).trim(), cap);
   if (!spoken) throw new Error("TTS: nada a falar depois de limpar o texto");
   const wav = join(tmpdir(), `typer-tts-${process.pid}-${seq++}.wav`);
-  await synthesizeWav(spoken, wav, model);
+  if (model.engine === "xtts") await synthesizeXttsWav(spoken, wav, xttsConfigOf(model));
+  else await synthesizeWav(spoken, wav, model);
   try {
     await toOggOpus(wav, outOggPath);
   } finally {
@@ -143,7 +176,8 @@ export async function synthesize(text: string, outOggPath: string, model: TtsMod
   }
 }
 
-/** TTS pronto? (o .onnx e os tokens do modelo de voz existem). */
+/** TTS pronto? sherpa: os arquivos do modelo existem. xtts: o python do venv + o worker existem. */
 export function ttsReady(model: TtsModel): boolean {
+  if (model.engine === "xtts") return xttsReady(xttsConfigOf(model));
   return existsSync(model.model) && existsSync(model.tokens);
 }

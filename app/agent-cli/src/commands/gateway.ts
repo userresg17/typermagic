@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { Gateway, TelegramChannel, FakeChannel, type GatewayConfig, type ChannelAdapter, type GatewayHooks } from "@typer/gateway";
-import { transcribe, asrReady, synthesize, ttsReady, type AsrModel, type TtsModel } from "@typer/voice";
+import { transcribe, asrReady, synthesize, ttsReady, xttsWorkerPath, type AsrModel, type TtsModel } from "@typer/voice";
 import { rootOf, type Flags } from "../config.js";
 import { dim, green, red, yellow } from "../render.js";
 
@@ -16,9 +16,17 @@ interface GatewayFile {
   /** provider do modelo (ex.: "claude-cli" p/ usar o Claude Code logado, "openai", "anthropic"). */
   provider?: string | null;
   /** voz (v2): { in:true } aceita áudio (transcreve local), { out:true } responde por voz.
-   *  speed<1 fala mais devagar (default 0.9). engine: "piper" (default, RÁPIDO) ou "kokoro"
-   *  (multilíngue, pronuncia inglês nativo, mas ~12x mais lento na CPU — resposta demora ~25s). */
-  voice?: { in?: boolean; out?: boolean; speed?: number; engine?: "piper" | "kokoro"; sid?: number };
+   *  speed<1 fala mais devagar (default 0.9). engine: "piper" (rápido, sherpa), "kokoro"
+   *  (sem pt — evitar) ou "xtts" (Coqui: pt-BR natural + inglês nativo, lento na CPU).
+   *  sid: voz do Kokoro; speaker: locutor do XTTS. */
+  voice?: {
+    in?: boolean;
+    out?: boolean;
+    speed?: number;
+    engine?: "piper" | "kokoro" | "xtts";
+    sid?: number;
+    speaker?: string;
+  };
   rateCapacity?: number;
   rateRefillMs?: number;
   /** recursos opt-in da Engine (ex.: { "tools": true } liga as ferramentas internas). */
@@ -96,7 +104,17 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
       const vdir = join(homedir(), ".typer", "voice");
       const engine = file.voice?.engine ?? "piper";
       let tts: TtsModel;
-      if (engine === "kokoro") {
+      if (engine === "xtts") {
+        tts = {
+          engine: "xtts",
+          model: "", // baixa o xtts_v2 sozinho no 1º uso
+          tokens: "",
+          python: join(vdir, "xtts-venv", "bin", "python"),
+          worker: xttsWorkerPath,
+          language: "pt",
+          ...(file.voice?.speaker ? { speaker: file.voice.speaker } : {}),
+        };
+      } else if (engine === "kokoro") {
         const k = join(vdir, "kokoro-int8-multi-lang-v1_0");
         tts = {
           engine: "kokoro",
@@ -127,7 +145,8 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
           await synthesize(text, out, tts);
           return out;
         };
-        console.error(dim(`· voz-OUT ligada (TTS local: ${engine === "kokoro" ? "kokoro multilíngue" : "piper pt_BR"})`));
+        const label = engine === "xtts" ? "xtts pt-BR (natural, lento)" : engine === "kokoro" ? "kokoro multilíngue" : "piper pt_BR";
+        console.error(dim(`· voz-OUT ligada (TTS local: ${label})`));
       } else {
         console.error(yellow(`· voz-OUT pedida (${engine}), mas o modelo não está em ~/.typer/voice — rode o setup de voz`));
       }

@@ -71,6 +71,15 @@ had typed it, and **replies with voice** (text→speech, pt-BR). Full round-trip
 - **Confirms what it heard.** Before acting it echoes `🎙️ ouvi: "..."` so you can correct a
   noisy transcription.
 
+**Reply voice — two engines** (`voice.engine` in `gateway.json`):
+
+- **`piper`** (default): VITS pt-BR, **fast** (~2s) and light. Portuguese only — English terms go
+  through a pronunciation dictionary. Best for instant replies.
+- **`xtts`** (opt-in, `pnpm xtts:setup`): [XTTS-v2](https://github.com/idiap/coqui-ai-TTS) (Coqui),
+  **natural** voice with **native English** (iPhone, Apple, Nu Pay come out right). Runs on CPU, so
+  it's **slow** (~40s per reply; text arrives instantly, audio follows). 100% local; the ~2GB model
+  downloads on first use. Model license: CPML (non-commercial). No NVIDIA GPU, no acceleration.
+
 ## Why it's different
 
 - **General-purpose, not code-only.** The same agent writes code, runs and supervises
