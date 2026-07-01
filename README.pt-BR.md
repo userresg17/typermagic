@@ -55,6 +55,24 @@ Telegram, escreve a config e (no Linux) instala o serviço 24/7 — sem decorar 
 Depois é só chamar o bot e mandar `/setup`. Ele usa seu **Brave/Chrome** instalado
 automaticamente (anti-bot melhor). Detalhes: [guia de deploy](./deploy/README.md).
 
+## 🎙️ Voz (v2) — comande e ouça, tudo local
+
+```bash
+pnpm voice:setup
+```
+
+Manda um **áudio** no Telegram: ele **transcreve** (voz→texto), executa a tarefa como se você
+tivesse digitado, e **responde por voz** (texto→fala, pt-BR). Round-trip completo.
+
+- **100% local, offline.** ASR ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) + Whisper)
+  e TTS (VITS/Piper pt-BR) rodam em **CPU na sua máquina** — nenhum áudio ou transcrição sai
+  daqui. Sem API de voz, sem nuvem.
+- **Opt-in.** Só liga se você rodar o setup (baixa os modelos) e marcar
+  `"voice": { "in": true, "out": true }` no `.typer/gateway.json`. Quem não usa não paga o peso.
+- **Precisa do `ffmpeg`** (o setup confere e te diz como instalar) — Linux, Windows e macOS.
+- **Confirma o que ouviu.** Antes de agir, devolve um `🎙️ ouvi: "..."` pra você corrigir se o
+  áudio saiu ruído.
+
 ## Por que é diferente
 
 - **Geral, não só código.** O mesmo agente escreve código, roda e supervisiona comandos,

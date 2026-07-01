@@ -53,6 +53,24 @@ Telegram id, writes the config, and (on Linux) installs the 24/7 service — no 
 memorize. Then DM your bot and send `/setup`. It auto-uses your installed **Brave/Chrome**
 for better anti-bot. Details: [deploy guide](./deploy/README.md).
 
+## 🎙️ Voice (v2) — talk to it, hear it back, fully local
+
+```bash
+pnpm voice:setup
+```
+
+Send a **voice note** on Telegram: it **transcribes** (speech→text), runs the task as if you
+had typed it, and **replies with voice** (text→speech, pt-BR). Full round-trip.
+
+- **100% local, offline.** ASR ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) + Whisper)
+  and TTS (VITS/Piper) run **on CPU on your machine** — no audio or transcript ever leaves it.
+  No voice API, no cloud.
+- **Opt-in.** Only turns on if you run the setup (downloads the models) and set
+  `"voice": { "in": true, "out": true }` in `.typer/gateway.json`. Non-users pay no weight.
+- **Needs `ffmpeg`** (the setup checks and tells you how to install) — Linux, Windows and macOS.
+- **Confirms what it heard.** Before acting it echoes `🎙️ ouvi: "..."` so you can correct a
+  noisy transcription.
+
 ## Why it's different
 
 - **General-purpose, not code-only.** The same agent writes code, runs and supervises
