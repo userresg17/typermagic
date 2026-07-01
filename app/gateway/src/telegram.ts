@@ -4,15 +4,24 @@
 // BYOK). O token nunca vai ao repo. Cada mensagem vira IncomingMessage com o id do
 // remetente (allowlist/rate-limit do gateway operam por aqui).
 
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { writeFile, unlink } from "node:fs/promises";
 import type { ChannelAdapter, IncomingMessage } from "./types.js";
 
 interface TgUpdate {
   update_id: number;
   message?: {
     text?: string;
+    voice?: { file_id: string; duration?: number };
     from?: { id: number };
     chat?: { id: number };
   };
+}
+
+/** transcrição de áudio (voz-IN) injetada pelo comando gateway (usa @typer/voice, tudo local). */
+export interface VoiceHook {
+  transcribe: (audioPath: string) => Promise<string>;
 }
 
 export class TelegramChannel implements ChannelAdapter {
@@ -21,7 +30,10 @@ export class TelegramChannel implements ChannelAdapter {
   private running = false;
   private cb: ((m: IncomingMessage) => void | Promise<void>) | undefined;
 
-  constructor(private readonly token: string) {
+  constructor(
+    private readonly token: string,
+    private readonly voice?: VoiceHook,
+  ) {
     if (!token) throw new Error("TelegramChannel requer um token (TYPER_TELEGRAM_TOKEN)");
   }
 
@@ -47,6 +59,41 @@ export class TelegramChannel implements ChannelAdapter {
     });
   }
 
+  /** VOZ-IN: baixa o áudio, transcreve LOCAL, confirma o que ouviu e roteia como texto. */
+  private async handleVoice(fileId: string, senderId: string, chatId: string): Promise<void> {
+    let path = "";
+    try {
+      path = await this.downloadTgFile(fileId);
+      const text = (await this.voice!.transcribe(path)).trim();
+      if (!text) {
+        await this.send(chatId, "🎙️ não entendi o áudio, pode repetir?");
+        return;
+      }
+      await this.send(chatId, `🎙️ ouvi: "${text.slice(0, 300)}"`);
+      await Promise.resolve(this.cb?.({ senderId, chatId, text, viaVoice: true })).catch(() => {});
+    } catch {
+      await this.send(chatId, "🎙️ não consegui processar o áudio.").catch(() => {});
+    } finally {
+      if (path) await unlink(path).catch(() => {});
+    }
+  }
+
+  /** baixa um arquivo do Telegram (getFile → download binário) p/ um caminho temporário. */
+  private async downloadTgFile(fileId: string): Promise<string> {
+    const meta = (await (await fetch(`${this.api("getFile")}?file_id=${fileId}`)).json()) as {
+      ok: boolean;
+      result?: { file_path?: string };
+    };
+    const fp = meta.result?.file_path;
+    if (!fp) throw new Error("getFile não retornou file_path");
+    const res = await fetch(`https://api.telegram.org/file/bot${this.token}/${fp}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const ext = fp.includes(".") ? fp.slice(fp.lastIndexOf(".")) : ".oga";
+    const out = join(tmpdir(), `tg-voice-${Date.now()}-${this.offset}${ext}`);
+    await writeFile(out, buf);
+    return out;
+  }
+
   async start(): Promise<void> {
     this.running = true;
     while (this.running) {
@@ -61,15 +108,16 @@ export class TelegramChannel implements ChannelAdapter {
       for (const u of updates) {
         this.offset = u.update_id + 1;
         const m = u.message;
-        if (m?.text && m.from && m.chat) {
-          // fire-and-forget: NÃO bloqueia o loop. Assim, enquanto uma tarefa fica suspensa
-          // esperando uma confirmação do usuário, a PRÓXIMA mensagem (o "SIM") é lida e
-          // roteada p/ a pendência. handle() já trata seus próprios erros.
-          void Promise.resolve(
-            this.cb?.({ senderId: String(m.from.id), chatId: String(m.chat.id), text: m.text }),
-          ).catch(() => {
-            /* evita unhandledRejection; handle() audita o erro */
-          });
+        if (!m?.from || !m.chat) continue;
+        const senderId = String(m.from.id);
+        const chatId = String(m.chat.id);
+        // fire-and-forget: NÃO bloqueia o loop. Assim, enquanto uma tarefa fica suspensa
+        // esperando uma confirmação, a PRÓXIMA mensagem (o "SIM") é lida. handle() audita erros.
+        if (m.voice && this.voice) {
+          // VOZ: baixa o áudio, transcreve LOCAL e roteia como texto.
+          void this.handleVoice(m.voice.file_id, senderId, chatId).catch(() => {});
+        } else if (m.text) {
+          void Promise.resolve(this.cb?.({ senderId, chatId, text: m.text })).catch(() => {});
         }
       }
     }

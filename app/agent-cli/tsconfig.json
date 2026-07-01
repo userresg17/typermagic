@@ -17,7 +17,8 @@
     { "path": "../../core/memory" },
     { "path": "../../core/reach" },
     { "path": "../../core/router" },
-    { "path": "../../core/skills" }
+    { "path": "../../core/skills" },
+    { "path": "../../core/voice" }
   ],
   "include": ["src/**/*.ts"]
 }

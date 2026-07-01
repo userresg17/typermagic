@@ -5,14 +5,18 @@
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { Gateway, TelegramChannel, FakeChannel, type GatewayConfig, type ChannelAdapter } from "@typer/gateway";
+import { transcribe, asrReady, type AsrModel } from "@typer/voice";
 import { rootOf, type Flags } from "../config.js";
-import { dim, green, red } from "../render.js";
+import { dim, green, red, yellow } from "../render.js";
 
 interface GatewayFile {
   allow?: string[];
   /** provider do modelo (ex.: "claude-cli" p/ usar o Claude Code logado, "openai", "anthropic"). */
   provider?: string | null;
+  /** voz (v2): { in:true } aceita áudio (transcreve local), { out:true } responde por voz. */
+  voice?: { in?: boolean; out?: boolean };
   rateCapacity?: number;
   rateRefillMs?: number;
   /** recursos opt-in da Engine (ex.: { "tools": true } liga as ferramentas internas). */
@@ -65,7 +69,24 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
       console.error(red("Defina TYPER_TELEGRAM_TOKEN (token do @BotFather) para subir o canal Telegram."));
       return 2;
     }
-    adapter = new TelegramChannel(token);
+    // VOZ-IN (opt-in): monta a transcrição LOCAL (@typer/voice) se o modelo Whisper estiver baixado.
+    let voiceHook: { transcribe: (p: string) => Promise<string> } | undefined;
+    if (file.voice?.in) {
+      const dir = join(homedir(), ".typer", "voice", "sherpa-onnx-whisper-base");
+      const model: AsrModel = {
+        encoder: join(dir, "base-encoder.onnx"),
+        decoder: join(dir, "base-decoder.onnx"),
+        tokens: join(dir, "base-tokens.txt"),
+        language: "pt",
+      };
+      if (asrReady(model)) {
+        voiceHook = { transcribe: (p) => transcribe(p, model) };
+        console.error(dim("· voz-IN ligada (ASR local: whisper-base, pt)"));
+      } else {
+        console.error(yellow("· voz-IN pedida, mas o modelo ASR não está em ~/.typer/voice — rode o setup de voz"));
+      }
+    }
+    adapter = new TelegramChannel(token, voiceHook);
   } else if (channel === "fake") {
     adapter = new FakeChannel();
     console.error(dim("· canal fake não escuta nada (uso em teste)"));

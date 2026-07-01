@@ -12,6 +12,8 @@ export interface IncomingMessage {
   /** id do chat p/ responder */
   chatId: string;
   text: string;
+  /** a mensagem veio como ÁUDIO (foi transcrita) — p/ responder por voz na Fase 4. */
+  viaVoice?: boolean;
 }
 
 export interface ChannelAdapter {
