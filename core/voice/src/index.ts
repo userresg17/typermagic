@@ -42,6 +42,17 @@ const SPOKEN_MAX = 700;
  *  melhor assim). Best-effort e EXTENSÍVEL — pronúncia perfeita de inglês só com modelo
  *  multilíngue. Aplicado como palavra inteira, sem caixa. */
 const EN_RESPELL: Array<[RegExp, string]> = [
+  [/\bapple\b/gi, "épou"],
+  [/\biphone\b/gi, "aifone"],
+  [/\bipad\b/gi, "aipéde"],
+  [/\bairpods\b/gi, "érpódis"],
+  [/\bmacbook\b/gi, "méquibuque"],
+  [/\bnotebook\b/gi, "nôutibuque"],
+  [/\bkindle\b/gi, "quíndou"],
+  [/\bbluetooth\b/gi, "blutúfi"],
+  [/\bwi-?fi\b/gi, "uaifái"],
+  [/\bheadset\b/gi, "rédiset"],
+  [/\bpay\b/gi, "pei"],
   [/\bprime\b/gi, "praime"],
   [/\bpremium\b/gi, "prêmium"],
   [/\bfree\b/gi, "fri"],
@@ -53,6 +64,24 @@ const EN_RESPELL: Array<[RegExp, string]> = [
   [/\bstreaming\b/gi, "istríming"],
   [/\bsmart\b/gi, "ismárt"],
 ];
+
+/** Unidades técnicas → por extenso (o TTS lê "256 g b" senão). Só expande após um número. */
+const UNITS: Record<string, string> = {
+  gb: "gigabytes",
+  tb: "terabytes",
+  mb: "megabytes",
+  kb: "kilobytes",
+  ghz: "gigahertz",
+  mhz: "megahertz",
+  mp: "megapixels",
+  mah: "miliampères-hora",
+  kwh: "quilowatts-hora",
+  km: "quilômetros",
+  kg: "quilos",
+  cm: "centímetros",
+  mm: "milímetros",
+  ml: "mililitros",
+};
 
 /** Prepara o texto p/ FALA humana: tira markdown/emoji/URL e converte moeda, parcelas e
  *  símbolos em palavras (pt-BR). Sem isso, o TTS lê "asterisco", "U S cifrão", "12 xis" etc. */
@@ -78,6 +107,11 @@ export function speechify(text: string): string {
   s = s.replace(
     /(vezes(?: de)?\s+)([\d.]+),(\d{2})\b/gi,
     (_m, pre: string, int: string, dec: string) => `${pre}${int.replace(/\./g, "")} reais e ${dec} centavos`,
+  );
+  // unidades técnicas: "256 GB" -> "256 gigabytes", "8 MP" -> "8 megapixels" (só após número)
+  s = s.replace(
+    /(\d+)\s*(GB|TB|MB|KB|GHz|MHz|MP|mAh|kWh|km|kg|cm|mm|ml)\b/gi,
+    (_m, num: string, u: string) => `${num} ${UNITS[u.toLowerCase()]}`,
   );
   for (const [re, sub] of EN_RESPELL) s = s.replace(re, sub); // inglês -> grafia fonética pt-BR
   s = s.replace(/%/g, " por cento").replace(/&/g, " e "); // símbolos comuns em palavras

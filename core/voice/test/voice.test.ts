@@ -73,6 +73,12 @@ describe("voice — speechify (limpa o texto p/ fala)", () => {
 
   it("termos em inglês viram grafia fonética pt-BR", () => {
     expect(speechify("Amazon Prime é free")).toBe("Amazon praime é fri");
+    expect(speechify("iPhone da Apple no Nu Pay")).toBe("aifone da épou no Nu pei");
+  });
+
+  it("unidades técnicas por extenso após número", () => {
+    expect(speechify("256 GB e 8 MP")).toBe("256 gigabytes e 8 megapixels");
+    expect(speechify("bateria 5000mAh")).toBe("bateria 5000 miliampères-hora");
   });
 });
 
