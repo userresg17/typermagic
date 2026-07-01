@@ -6,7 +6,7 @@
 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeFile, unlink } from "node:fs/promises";
+import { writeFile, unlink, readFile } from "node:fs/promises";
 import type { ChannelAdapter, IncomingMessage } from "./types.js";
 
 interface TgUpdate {
@@ -57,6 +57,15 @@ export class TelegramChannel implements ChannelAdapter {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 4000) }),
     });
+  }
+
+  /** VOZ-OUT: envia um OGG/Opus como mensagem de voz nativa (sendVoice, multipart). */
+  async sendVoice(chatId: string, audioPath: string): Promise<void> {
+    const buf = await readFile(audioPath);
+    const form = new FormData();
+    form.append("chat_id", chatId);
+    form.append("voice", new Blob([buf], { type: "audio/ogg" }), "voice.ogg");
+    await fetch(this.api("sendVoice"), { method: "POST", body: form });
   }
 
   /** VOZ-IN: baixa o áudio, transcreve LOCAL, confirma o que ouviu e roteia como texto. */

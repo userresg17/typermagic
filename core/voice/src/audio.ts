@@ -20,3 +20,12 @@ export async function toWav16k(inPath: string, outPath: string, run: FfmpegRunne
   const { code, err } = await run(["-y", "-i", inPath, "-ar", "16000", "-ac", "1", "-f", "wav", outPath]);
   if (code !== 0) throw new Error(`ffmpeg falhou (${code}) ao converter áudio: ${err.slice(-200)}`);
 }
+
+/** Converte um WAV (saída do TTS) p/ OGG/Opus — o formato que o Telegram `sendVoice` exige
+ *  (voz nativa, com waveform). 48kHz/voip é o que o app espera. Lança em erro. */
+export async function toOggOpus(inPath: string, outOgg: string, run: FfmpegRunner = realRunner): Promise<void> {
+  const { code, err } = await run(
+    ["-y", "-i", inPath, "-c:a", "libopus", "-b:a", "32k", "-ar", "48000", "-ac", "1", "-application", "voip", "-f", "ogg", outOgg],
+  );
+  if (code !== 0) throw new Error(`ffmpeg falhou (${code}) ao gerar OGG/Opus: ${err.slice(-200)}`);
+}

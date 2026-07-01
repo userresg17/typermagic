@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { toWav16k } from "../src/audio.js";
-import { asrReady } from "../src/index.js";
+import { toWav16k, toOggOpus } from "../src/audio.js";
+import { asrReady, ttsReady } from "../src/index.js";
 
 describe("voice — conversão de áudio (ffmpeg)", () => {
   it("monta o comando ffmpeg certo (WAV 16kHz mono) e resolve no sucesso", async () => {
@@ -19,8 +19,32 @@ describe("voice — conversão de áudio (ffmpeg)", () => {
   });
 });
 
-describe("voice — prontidão do ASR", () => {
+describe("voice — conversão p/ voz do Telegram (OGG/Opus)", () => {
+  it("monta o comando ffmpeg certo (libopus, 48kHz mono, voip) e resolve no sucesso", async () => {
+    let got: string[] = [];
+    await toOggOpus("in.wav", "out.ogg", async (args) => {
+      got = args;
+      return { code: 0, err: "" };
+    });
+    expect(got).toEqual([
+      "-y", "-i", "in.wav", "-c:a", "libopus", "-b:a", "32k",
+      "-ar", "48000", "-ac", "1", "-application", "voip", "-f", "ogg", "out.ogg",
+    ]);
+  });
+
+  it("lança erro claro quando o ffmpeg falha ao gerar OGG", async () => {
+    await expect(toOggOpus("in.wav", "out.ogg", async () => ({ code: 1, err: "boom" }))).rejects.toThrow(
+      /OGG\/Opus falhou|ffmpeg falhou/,
+    );
+  });
+});
+
+describe("voice — prontidão do ASR/TTS", () => {
   it("asrReady=false quando faltam os arquivos do modelo", () => {
     expect(asrReady({ encoder: "/nao/existe", decoder: "/nao/existe", tokens: "/nao/existe" })).toBe(false);
+  });
+
+  it("ttsReady=false quando faltam os arquivos do modelo de voz", () => {
+    expect(ttsReady({ model: "/nao/existe", tokens: "/nao/existe" })).toBe(false);
   });
 });

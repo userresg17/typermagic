@@ -42,7 +42,13 @@ function cleanupStaleBrowser(profileDir: string): void {
 export interface GatewayHooks {
   /** observabilidade: chamado a cada mensagem processada */
   onAudit?: (e: { sender: string; result: "ok" | "denied" | "rate_limited" | "error"; detail?: string }) => void;
+  /** voz-OUT (opt-in): sintetiza a resposta em um OGG e devolve o caminho (temp). O gateway
+   *  envia por sendVoice e apaga o arquivo. Ausente = responde só em texto. */
+  synthesizeVoice?: (text: string) => Promise<string>;
 }
+
+/** teto de caracteres lidos em voz — resposta longa vira áudio longo/chato; o texto tem tudo. */
+const VOICE_OUT_MAX_CHARS = 600;
 
 /** ApprovalRequest da Engine (forma estrutural — evita acoplar o import). */
 interface ApprovalLike {
@@ -393,6 +399,20 @@ export class Gateway {
     }
     const reply = buf.trim() || "(sem resposta)";
     await this.adapter.send(chatId, reply);
+    // VOZ-OUT: se a mensagem VEIO por voz e o TTS está ligado, responde TAMBÉM em áudio
+    // (o texto acima fica como fallback/registro). Best-effort: falha de voz não quebra a tarefa.
+    if (msg.viaVoice && this.hooks.synthesizeVoice && this.adapter.sendVoice && buf.trim()) {
+      try {
+        const ogg = await this.hooks.synthesizeVoice(reply.slice(0, VOICE_OUT_MAX_CHARS));
+        try {
+          await this.adapter.sendVoice(chatId, ogg);
+        } finally {
+          rmSync(ogg, { force: true });
+        }
+      } catch {
+        /* voz é best-effort — o texto já foi enviado */
+      }
+    }
     // só lembra de turnos que DERAM CERTO (não polui o contexto com erro/"(sem resposta)").
     if (!errored && buf.trim()) this.remember(chatId, msg.text, reply);
   }

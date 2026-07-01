@@ -5,9 +5,9 @@
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { homedir } from "node:os";
-import { Gateway, TelegramChannel, FakeChannel, type GatewayConfig, type ChannelAdapter } from "@typer/gateway";
-import { transcribe, asrReady, type AsrModel } from "@typer/voice";
+import { homedir, tmpdir } from "node:os";
+import { Gateway, TelegramChannel, FakeChannel, type GatewayConfig, type ChannelAdapter, type GatewayHooks } from "@typer/gateway";
+import { transcribe, asrReady, synthesize, ttsReady, type AsrModel, type TtsModel } from "@typer/voice";
 import { rootOf, type Flags } from "../config.js";
 import { dim, green, red, yellow } from "../render.js";
 
@@ -63,6 +63,8 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   );
 
   let adapter: ChannelAdapter;
+  // voz-OUT (opt-in): sintetiza a resposta em áudio. Construída no branch do Telegram.
+  let synthesizeVoice: ((text: string) => Promise<string>) | undefined;
   if (channel === "telegram") {
     const token = process.env.TYPER_TELEGRAM_TOKEN;
     if (!token) {
@@ -86,6 +88,26 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
         console.error(yellow("· voz-IN pedida, mas o modelo ASR não está em ~/.typer/voice — rode o setup de voz"));
       }
     }
+    // VOZ-OUT (opt-in): monta a síntese LOCAL (@typer/voice, VITS/Piper pt_BR) se o modelo TTS existir.
+    if (file.voice?.out) {
+      const tdir = join(homedir(), ".typer", "voice", "vits-piper-pt_BR-faber-medium");
+      const tts: TtsModel = {
+        model: join(tdir, "pt_BR-faber-medium.onnx"),
+        tokens: join(tdir, "tokens.txt"),
+        dataDir: join(tdir, "espeak-ng-data"),
+      };
+      if (ttsReady(tts)) {
+        let n = 0;
+        synthesizeVoice = async (text) => {
+          const out = join(tmpdir(), `typer-voiceout-${process.pid}-${n++}.ogg`);
+          await synthesize(text, out, tts);
+          return out;
+        };
+        console.error(dim("· voz-OUT ligada (TTS local: piper pt_BR)"));
+      } else {
+        console.error(yellow("· voz-OUT pedida, mas o modelo TTS não está em ~/.typer/voice — rode o setup de voz"));
+      }
+    }
     adapter = new TelegramChannel(token, voiceHook);
   } else if (channel === "fake") {
     adapter = new FakeChannel();
@@ -95,9 +117,11 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
     return 2;
   }
 
-  const gw = new Gateway(adapter, config, {
+  const hooks: GatewayHooks = {
     onAudit: (e) => console.error(dim(`· [${e.sender}] ${e.result}${e.detail ? ` — ${e.detail}` : ""}`)),
-  });
+    ...(synthesizeVoice ? { synthesizeVoice } : {}),
+  };
+  const gw = new Gateway(adapter, config, hooks);
   console.error(
     green(`✓ gateway ${channel} no ar`) +
       dim(` — superfície gateway:${adapter.name}, ${config.allow.length} remetente(s) na allowlist`),
