@@ -19,3 +19,6 @@ dist/
 .DS_Store
 *.log
 coverage/
+
+# Claude Code (config local da maquina)
+.claude/

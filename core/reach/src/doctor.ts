@@ -14,17 +14,20 @@ export interface ChannelReport extends ProbeStatus {
 }
 
 export async function checkAll(ctx: ReachContext): Promise<ChannelReport[]> {
-  const out: ChannelReport[] = [];
-  for (const c of CHANNELS) {
-    let s: ProbeStatus;
-    try {
-      s = await probeChannel(c, ctx);
-    } catch (e) {
-      s = { status: "unavailable", message: `erro de checagem: ${(e as Error).message}` };
-    }
-    out.push({ name: c.name, description: c.description, tier: c.tier, backends: c.backends.map((b) => b.name), ...s });
-  }
-  return out;
+  // Probes em paralelo: canais são independentes (domínios distintos) e a soma
+  // sequencial passava de 40s; em paralelo o doctor custa ~o probe mais lento.
+  // A ordem do relatório continua a de CHANNELS (map preserva o índice).
+  return Promise.all(
+    CHANNELS.map(async (c) => {
+      let s: ProbeStatus;
+      try {
+        s = await probeChannel(c, ctx);
+      } catch (e) {
+        s = { status: "unavailable", message: `erro de checagem: ${(e as Error).message}` };
+      }
+      return { name: c.name, description: c.description, tier: c.tier, backends: c.backends.map((b) => b.name), ...s };
+    }),
+  );
 }
 
 export function formatReport(reports: ChannelReport[]): string {

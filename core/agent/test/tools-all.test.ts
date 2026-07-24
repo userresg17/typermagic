@@ -66,6 +66,8 @@ interface Spec {
   name: string;
   args: () => Promise<Record<string, unknown>> | Record<string, unknown>;
   expect: Expect;
+  /** Folga maior que os 20s padrão — só p/ tools que fazem rede real (reach_status). */
+  timeoutMs?: number;
 }
 
 const EDIT_PATCH =
@@ -158,7 +160,8 @@ const specs: Spec[] = [
   { name: "reach_search", args: () => ({ query: "" }), expect: { err: "bad_query" } },
   { name: "reach_video", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
   { name: "reach_social", args: () => ({ url: "naoeurl" }), expect: { err: "bad_url" } },
-  { name: "reach_status", args: () => ({}), expect: "ok" },
+  // probe real dos 13 canais em paralelo; numa rede lenta o mais lento manda — 60s de folga
+  { name: "reach_status", args: () => ({}), expect: "ok", timeoutMs: 60_000 },
   // browser (navegador real) — sem ctx.deps.browser, degradam com erro claro
   { name: "browser_task", args: () => ({ goal: "abrir example.com" }), expect: { err: "browser_unavailable" } },
   { name: "browser_goto", args: () => ({ url: "https://example.com" }), expect: { err: "browser_unavailable" } },
@@ -203,6 +206,6 @@ describe("validação 1-a-1 das 67 ferramentas", () => {
         expect(r.ok).toBe(false);
         expect(r.error?.code).toBe(spec.expect.err);
       }
-    }, 20_000); // headroom: tools de rede (reach_status faz probe real dos canais)
+    }, spec.timeoutMs ?? 20_000); // headroom padrão; tools de rede real pedem mais via spec
   }
 });
