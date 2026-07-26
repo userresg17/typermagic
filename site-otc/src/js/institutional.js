@@ -16,41 +16,54 @@ const MONTHS = {
   en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 };
 
-const W = 800;
-const H = 300;
-const M = { l: 46, r: 70, t: 16, b: 30 };
-const MAX = 210; // teto da escala (grade em 0/70/140/210)
+// O gráfico é COMPOSTO por dispositivo, não encolhido:
+// mobile tem viewBox, densidade de labels e grade próprios.
+const isMobileChart = () => window.matchMedia('(max-width: 720px)').matches;
 
-const px = (i) => M.l + (i * (W - M.l - M.r)) / (DATA.length - 1);
-const py = (v) => H - M.b - ((v / MAX) * (H - M.t - M.b));
+let D = null; // dimensões ativas
+
+function computeDims() {
+  const mob = isMobileChart();
+  D = mob
+    ? { W: 360, H: 250, M: { l: 34, r: 14, t: 26, b: 26 }, grid: [0, 105, 210], labelStep: 2, font: 11 }
+    : { W: 800, H: 300, M: { l: 46, r: 20, t: 30, b: 30 }, grid: [0, 70, 140, 210], labelStep: 1, font: 10 };
+  return mob;
+}
+
+const MAX = 210; // teto da escala
+
+const px = (i) => D.M.l + (i * (D.W - D.M.l - D.M.r)) / (DATA.length - 1);
+const py = (v) => D.H - D.M.b - ((v / MAX) * (D.H - D.M.t - D.M.b));
 
 function buildChart() {
   const box = document.getElementById('chartBox');
   if (!box) return;
+  computeDims();
   const months = MONTHS[getLang()] ?? MONTHS.pt;
 
   const linePts = DATA.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
-  const areaPts = `${M.l},${py(0)} ${linePts} ${px(DATA.length - 1).toFixed(1)},${py(0)}`;
+  const areaPts = `${D.M.l},${py(0)} ${linePts} ${px(DATA.length - 1).toFixed(1)},${py(0)}`;
 
-  const gridRows = [0, 70, 140, 210]
+  const gridRows = D.grid
     .map(
       (v) => `
-      <line class="grid-line" x1="${M.l}" x2="${W - M.r}" y1="${py(v)}" y2="${py(v)}"></line>
-      <text class="axis-label" x="${M.l - 8}" y="${py(v) + 3}" text-anchor="end">${v}</text>`
+      <line class="grid-line" x1="${D.M.l}" x2="${D.W - D.M.r}" y1="${py(v)}" y2="${py(v)}"></line>
+      <text class="axis-label" x="${D.M.l - 7}" y="${py(v) + 3}" text-anchor="end" font-size="${D.font}">${v}</text>`
     )
     .join('');
 
   const monthLabels = months
-    .map(
-      (m, i) => `
-      <text class="axis-label${i % 2 ? ' axis-alt' : ''}" x="${px(i)}" y="${H - 8}" text-anchor="middle">${m}</text>`
+    .map((m, i) =>
+      i % D.labelStep
+        ? ''
+        : `<text class="axis-label" x="${px(i)}" y="${D.H - 6}" text-anchor="middle" font-size="${D.font}">${m}</text>`
     )
     .join('');
 
   const last = DATA.length - 1;
 
   box.innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('num.chart.title')} — ${t('num.chart.unit')}">
+    <svg viewBox="0 0 ${D.W} ${D.H}" role="img" aria-label="${t('num.chart.title')} — ${t('num.chart.unit')}">
       <defs>
         <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#9678f2" stop-opacity="0.22"></stop>
@@ -61,10 +74,10 @@ function buildChart() {
       ${monthLabels}
       <polygon class="vol-area" points="${areaPts}"></polygon>
       <polyline class="vol-line" points="${linePts}"></polyline>
-      <line class="vol-cross" id="volCross" y1="${M.t}" y2="${H - M.b}" x1="0" x2="0" opacity="0"></line>
+      <line class="vol-cross" id="volCross" y1="${D.M.t}" y2="${D.H - D.M.b}" x1="0" x2="0" opacity="0"></line>
       <circle class="vol-dot" id="volDot" r="4" opacity="0"></circle>
       <circle class="vol-dot" cx="${px(last)}" cy="${py(DATA[last])}" r="4"></circle>
-      <text class="direct-label" x="${px(last) + 10}" y="${py(DATA[last]) + 4}">R$ ${DATA[last]} mi</text>
+      <text class="direct-label" x="${px(last)}" y="${py(DATA[last]) - 12}" text-anchor="end" font-size="${D.font + 1}">R$ ${DATA[last]} mi</text>
     </svg>
     <table class="sr-only">
       <caption>${t('num.chart.title')} (${t('num.chart.unit')})</caption>
@@ -110,8 +123,8 @@ function initChartHover() {
 
   svgEl.addEventListener('pointermove', (e) => {
     const r = svgEl.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width) * W;
-    const i = Math.max(0, Math.min(DATA.length - 1, Math.round(((x - M.l) / (W - M.l - M.r)) * (DATA.length - 1))));
+    const x = ((e.clientX - r.left) / r.width) * D.W;
+    const i = Math.max(0, Math.min(DATA.length - 1, Math.round(((x - D.M.l) / (D.W - D.M.l - D.M.r)) * (DATA.length - 1))));
     const months = MONTHS[getLang()] ?? MONTHS.pt;
     cross.setAttribute('x1', px(i));
     cross.setAttribute('x2', px(i));
@@ -121,8 +134,8 @@ function initChartHover() {
     dot.setAttribute('opacity', '1');
     tip.hidden = false;
     tip.textContent = `${months[i]} · R$ ${DATA[i]} mi`;
-    tip.style.left = `${(px(i) / W) * r.width}px`;
-    tip.style.top = `${(py(DATA[i]) / H) * r.height}px`;
+    tip.style.left = `${(px(i) / D.W) * r.width}px`;
+    tip.style.top = `${(py(DATA[i]) / D.H) * r.height}px`;
   });
   svgEl.addEventListener('pointerleave', () => {
     cross.setAttribute('opacity', '0');
@@ -189,6 +202,13 @@ export function initInstitutional({ reduced }) {
   initDemoForm();
 
   document.addEventListener('langchange', () => {
+    buildChart();
+    document.getElementById('chartBox')?.classList.add('is-drawn');
+    initChartHover();
+  });
+
+  // cruzou o breakpoint (girou o celular, redimensionou) → recompõe o gráfico
+  window.matchMedia('(max-width: 720px)').addEventListener('change', () => {
     buildChart();
     document.getElementById('chartBox')?.classList.add('is-drawn');
     initChartHover();

@@ -833,7 +833,7 @@
 
 .chart-box .axis-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  /* font-size vem do atributo do SVG (o mobile usa corpo maior) */
   fill: var(--fg-faint);
   letter-spacing: 0.06em;
 }
@@ -870,7 +870,7 @@
 
 .chart-box .direct-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  /* font-size vem do atributo do SVG */
   fill: var(--fg);
   letter-spacing: 0.04em;
 }
@@ -940,14 +940,19 @@
 .f-field input,
 .f-field select {
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 16px; /* nunca menos: evita o zoom automático do iOS no focus */
   color: var(--fg);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.7rem 0.85rem;
+  min-height: 46px; /* alvo de toque confortável */
   outline: none;
   transition: border-color 0.3s, background 0.3s;
+}
+
+.f-submit {
+  min-height: 48px;
 }
 
 .f-field input:focus,
