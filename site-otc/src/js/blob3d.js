@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { getWarp } from './interact.js';
 
 // ============================================================
 // O PERSONAGEM — blob de vidro iridescente que atravessa o site.
@@ -203,11 +204,13 @@ export function initBlob3D({ reduced }) {
     let frame = 0;
     let slowFrames = 0;
     let lastT = 0;
+    let wt = 0; // relógio "warpado": o mouse acelera/reverte o tempo do blob
 
     renderer.setAnimationLoop(() => {
       const t = clock.getElapsedTime();
       const dt = t - lastT;
       lastT = t;
+      wt += dt * (1 + getWarp() * 0.9);
 
       frame++;
       if (frame > 10 && frame <= 110 && dt > 1 / 24) {
@@ -219,7 +222,7 @@ export function initBlob3D({ reduced }) {
 
       applyJourney(journey);
 
-      if (frame % 2 === 0) morph(t * 0.55, state.amp);
+      if (frame % 2 === 0) morph(wt * 0.55, state.amp);
 
       mouse.x += (mouse.tx - mouse.x) * 0.04;
       mouse.y += (mouse.ty - mouse.y) * 0.04;
@@ -235,8 +238,8 @@ export function initBlob3D({ reduced }) {
       violet.intensity = lerp(violet.intensity, 30 * state.others, 0.06);
       sky.intensity = lerp(sky.intensity, 24 * state.others, 0.06);
 
-      blob.rotation.y = t * 0.12 + mouse.x * 0.3;
-      blob.rotation.x = Math.sin(t * 0.08) * 0.15 + mouse.y * 0.22;
+      blob.rotation.y = wt * 0.12 + mouse.x * 0.3;
+      blob.rotation.x = Math.sin(wt * 0.08) * 0.15 + mouse.y * 0.22;
 
       renderer.render(scene, camera);
     });

@@ -23,6 +23,7 @@ import { initCursor } from './cursor.js';
 import { initMagnetic } from './magnetic.js';
 import { initPreloader } from './preloader.js';
 import { initBlob3D } from './blob3d.js';
+import { initInteract } from './interact.js';
 
 const html = document.documentElement;
 html.classList.add('js');
@@ -39,6 +40,7 @@ function boot() {
   initIcons({ reduced });
   initCursor({ reduced });
   initMagnetic({ reduced });
+  initInteract({ reduced }); // o mouse vira o tempo dos vídeos (scrub invisível)
 
   const blob = initBlob3D({ reduced });
   initScenes({ reduced, blob });

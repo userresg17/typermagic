@@ -4,9 +4,8 @@ import en from '../i18n/en.json';
 const dict = { pt, en };
 const STORAGE_KEY = 'otc-lang';
 
-let current =
-  localStorage.getItem(STORAGE_KEY) ||
-  (navigator.language && navigator.language.toLowerCase().startsWith('en') ? 'en' : 'pt');
+// PT-BR é a língua principal do site; EN só quando o visitante escolhe no toggle
+let current = localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'pt';
 
 export function t(key) {
   return dict[current][key] ?? key;
