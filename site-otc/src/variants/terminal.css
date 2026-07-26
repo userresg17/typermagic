@@ -1,0 +1,917 @@
+/* ============================================================
+   VARIANTE B — "O TERMINAL"
+   A mesa como interface: Bloomberg redesenhado pela Apple.
+   Tudo aqui é hairline 1px, mono, dado vivo e preto sólido.
+   ============================================================ */
+
+/* ---------- Fundo: preto sólido + grid de pontos sutil ---------- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(242, 242, 240, 0.9) 1px, transparent 1.4px);
+  background-size: 28px 28px;
+  opacity: 0.05;
+}
+
+/* ---------- HUD: cluster de telemetria (demo) ---------- */
+.tm-hud-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  color: var(--fg-dim);
+  padding-right: 1.2rem;
+  border-right: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.tm-hud-lat {
+  color: var(--fg-faint);
+}
+
+.tm-hud-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--up);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
+  animation: tm-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes tm-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(74, 222, 128, 0.8); }
+  50% { opacity: 0.45; box-shadow: 0 0 2px rgba(74, 222, 128, 0.3); }
+}
+
+@media (max-width: 960px) {
+  .tm-hud-status { display: none; }
+}
+
+/* ---------- Cursor: coordenadas mono ao lado do ponteiro ---------- */
+.tm-coords {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9994;
+  display: none;
+  flex-direction: column;
+  gap: 0.1rem;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+  will-change: transform;
+  transform: translate3d(-200px, -200px, 0); /* fora da tela até o 1º pointermove */
+}
+
+html.has-custom-cursor .tm-coords {
+  display: flex;
+}
+
+/* ---------- Base de cena ---------- */
+.tm-scene {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-inline: clamp(1.25rem, 6vw, 7rem);
+  overflow: clip;
+  z-index: 2;
+}
+
+/* ---------- Painel-terminal genérico ---------- */
+.tm-panel {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(8, 8, 10, 0.72);
+}
+
+.tm-mon-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tm-mon-title {
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.tm-mon-title::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--grad-irid);
+  background-size: 300% 300%;
+  animation: irid-shift 6s ease-in-out infinite;
+}
+
+.tm-mon-sub {
+  color: var(--fg-faint);
+  letter-spacing: 0.14em;
+}
+
+/* ============================================================
+   TELA 1 — abertura + card de cotação
+   ============================================================ */
+.tm-s1 {
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  align-items: center;
+  gap: clamp(2.5rem, 5vw, 5.5rem);
+}
+
+.tm-hero-copy .giant {
+  font-size: clamp(2.4rem, 5.8vw, 5.8rem);
+}
+
+.tm-pre {
+  margin-bottom: 2rem;
+  opacity: 0;
+}
+
+.tm-sub {
+  margin-top: 1.7rem;
+  max-width: 44ch;
+  color: var(--fg-dim);
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  opacity: 0;
+}
+
+.tm-hero-cta {
+  margin-top: 2.4rem;
+  opacity: 0;
+}
+
+.tm-card-persp {
+  perspective: 1100px;
+  justify-self: end;
+  width: min(400px, 34vw);
+}
+
+.tm-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 8, 10, 0.78);
+  padding: 1.4rem 1.5rem 1.2rem;
+  transform-style: preserve-3d;
+  will-change: transform;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.tm-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tm-card-pair {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.tm-card-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: var(--fg-faint);
+}
+
+.tm-card-live i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--up);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+  animation: tm-pulse 2.2s ease-in-out infinite;
+}
+
+.tm-card-body {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding-block: 1.3rem 1rem;
+}
+
+/* selo do ativo: o blob emoldurado em quadrado arredondado hairline */
+.tm-card-seal {
+  flex-shrink: 0;
+  width: 74px;
+  aspect-ratio: 1;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.tm-card-seal video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tm-card-seal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 18px rgba(5, 5, 5, 0.55);
+  pointer-events: none;
+}
+
+.tm-card-quote {
+  min-width: 0;
+}
+
+.tm-card-price {
+  font-family: var(--font-mono);
+  font-size: clamp(1.7rem, 2.2vw, 2.15rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.tm-card-meta {
+  margin-top: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+/* janela de validade: barra regressiva em loop */
+.tm-card-window {
+  height: 2px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tm-card-window b {
+  display: block;
+  height: 100%;
+  background: var(--grad-irid);
+  transform-origin: left;
+  transform: scaleX(1);
+}
+
+.tm-card .mock-note {
+  margin-top: 1.1rem;
+}
+
+/* ============================================================
+   TELA 2 — dois monitores: livro público × mesa
+   ============================================================ */
+.tm-monitors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.4rem, 2.4vw, 2.4rem);
+  width: min(1080px, 88vw);
+}
+
+.tm-mon {
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-book {
+  padding: 1.1rem 1.2rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tm-book-row {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.42rem;
+  color: var(--fg-dim);
+  transition: color 0.35s;
+}
+
+.tm-book-row + .tm-book-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tm-book-row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  top: 50%;
+  height: 1px;
+  background: var(--down);
+  opacity: 0.75;
+  transition: right 0.35s var(--ease-out);
+}
+
+.tm-book-row.is-eaten {
+  color: var(--fg-faint);
+}
+
+.tm-book-row.is-eaten::after {
+  right: 0;
+}
+
+.tm-mkt-avg {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: auto;
+  padding: 0.9rem 1.2rem;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.tm-mkt-avg b {
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+
+.tm-mkt-avg b.is-hot {
+  color: var(--down);
+}
+
+.tm-mkt-slip {
+  padding: 0 1.2rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--down);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.45s, transform 0.45s var(--ease-out);
+}
+
+.tm-mkt-slip.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+/* monitor da mesa: UMA linha, acende quando o público termina */
+.tm-desk-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.4rem 1.2rem;
+}
+
+.tm-desk-line {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  opacity: 0.18;
+  filter: grayscale(1);
+  transition: opacity 0.7s ease, filter 0.7s ease;
+}
+
+.tm-mon--desk.is-on .tm-desk-line {
+  opacity: 1;
+  filter: none;
+}
+
+.tm-desk-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--up);
+}
+
+.tm-mon--desk.is-on .tm-desk-dot {
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.9);
+  animation: tm-pulse 2.2s ease-in-out infinite;
+}
+
+.tm-desk-price {
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+  font-weight: 500;
+  color: var(--up);
+  font-variant-numeric: tabular-nums;
+}
+
+.tm-desk-tag {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--up);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+}
+
+.tm-s2-verdict {
+  margin-top: clamp(2rem, 5vh, 3.4rem);
+  font-size: clamp(1.6rem, 3.4vw, 3rem);
+  text-align: center;
+  opacity: 0;
+}
+
+.tm-s2 .mock-note {
+  margin-top: 1.2rem;
+  width: min(1080px, 88vw); /* alinha com a borda esquerda dos monitores */
+}
+
+/* ============================================================
+   TELA 3 — log de sistema
+   ============================================================ */
+.tm-logpanel {
+  position: relative;
+  width: min(920px, 82vw);
+  overflow: hidden;
+}
+
+/* caustics como brilho DENTRO do painel — mascarado, nunca dominando */
+.tm-log-glow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.18;
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(120% 110% at 50% 110%, #000 25%, transparent 72%);
+  mask-image: radial-gradient(120% 110% at 50% 110%, #000 25%, transparent 72%);
+  pointer-events: none;
+}
+
+.tm-logpanel .tm-mon-head,
+.tm-log-lines {
+  position: relative;
+}
+
+.tm-log-lines {
+  padding: 2rem 1.6rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.tm-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: clamp(0.85rem, 1.15vw, 1rem);
+  color: var(--fg);
+  min-height: 1.6em;
+}
+
+.tm-log-text {
+  white-space: pre;
+}
+
+.tm-log-line.is-typing .tm-log-text::after {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  background: var(--fg);
+  animation: tm-caret 0.9s steps(2) infinite;
+}
+
+@keyframes tm-caret {
+  50% { opacity: 0; }
+}
+
+.tm-log-leader {
+  flex: 1;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.14);
+  transform: translateY(-0.3em);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.tm-log-line.is-done .tm-log-leader {
+  opacity: 1;
+}
+
+.tm-log-ok {
+  font-size: 0.78em;
+  letter-spacing: 0.18em;
+  color: transparent;
+  transition: color 0.35s, text-shadow 0.35s;
+}
+
+.tm-log-ok.is-on {
+  color: var(--up);
+  text-shadow: 0 0 14px rgba(74, 222, 128, 0.45);
+}
+
+.tm-s3-t {
+  margin-top: clamp(2rem, 5vh, 3.2rem);
+  max-width: 44ch;
+  text-align: center;
+  color: var(--fg-dim);
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  opacity: 0;
+}
+
+/* ============================================================
+   TELAS 4 + 5 — ticket de execução + carimbo
+   ============================================================ */
+.tm-ticket-wrap {
+  position: relative;
+  width: min(700px, 64vw);
+}
+
+.tm-sweep {
+  position: absolute;
+  left: -45%;
+  top: -25%;
+  width: 32%;
+  height: 150%;
+  background: var(--grad-irid);
+  filter: blur(70px);
+  transform: skewX(-14deg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tm-ticket {
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 8, 10, 0.82);
+  padding: 0 1.8rem 1.5rem;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.55);
+}
+
+.tm-ticket-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-inline: -1.8rem;
+  padding: 1rem 1.8rem;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.tm-ticket-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.1rem 2rem;
+  padding-block: 1.5rem 1.6rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tm-ticket-fields > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tm-ticket-fields dt {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.tm-ticket-fields dd {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+}
+
+.tm-val-bar {
+  display: inline-block;
+  width: 72px;
+  height: 3px;
+  margin-left: 0.65rem;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.tm-val-bar i {
+  display: block;
+  height: 100%;
+  background: var(--grad-irid);
+  transform-origin: left;
+}
+
+.tm-ticket-plabel {
+  margin-top: 1.5rem;
+}
+
+.tm-ticket .price {
+  margin-top: 0.7rem;
+  font-size: clamp(2.2rem, 5.4vw, 4.6rem);
+}
+
+/* carimbo EXECUTADO: borda dupla, rotacionado, esmagado pelo GSAP */
+.tm-stamp {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  z-index: 3;
+  padding: 0.9rem 2.2rem 0.85rem;
+  border: 2px solid var(--up);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: clamp(1.3rem, 2.6vw, 2.2rem);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--up);
+  background: rgba(5, 5, 5, 0.55);
+  text-shadow: 0 0 22px rgba(74, 222, 128, 0.5);
+  box-shadow: 0 0 40px rgba(74, 222, 128, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tm-stamp::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(74, 222, 128, 0.55);
+  border-radius: 3px;
+}
+
+.tm-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.tm-s4-t {
+  margin-top: clamp(1.8rem, 4vh, 2.8rem);
+  opacity: 0;
+}
+
+.tm-s5-sub {
+  margin-top: 1.1rem;
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 6 — pipeline T+0
+   ============================================================ */
+.tm-pipe-copy {
+  text-align: center;
+}
+
+.tm-pipe-t {
+  opacity: 0;
+}
+
+.tm-pipe-sub {
+  margin-top: 1rem;
+  color: var(--fg-dim);
+  opacity: 0;
+}
+
+.tm-pipe {
+  position: relative;
+  width: min(1000px, 84vw);
+  margin-top: clamp(3rem, 8vh, 5.5rem);
+  padding-block: 1rem 0.5rem;
+}
+
+.tm-pipe-glow {
+  position: absolute;
+  right: -7%;
+  top: 50%;
+  width: min(400px, 38%);
+  aspect-ratio: 16 / 9;
+  transform: translateY(-58%);
+  object-fit: cover;
+  opacity: 0;
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(55% 55% at 50% 50%, #000 25%, transparent 70%);
+  mask-image: radial-gradient(55% 55% at 50% 50%, #000 25%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+.tm-pipe.is-lit .tm-pipe-glow {
+  opacity: 0.35;
+}
+
+.tm-pipe-svg {
+  position: absolute;
+  left: 0;
+  top: 21px;
+  width: 100%;
+  height: 2px;
+  overflow: visible;
+  z-index: 0;
+}
+
+.tm-pipe-base {
+  stroke: var(--line);
+  stroke-width: 1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.tm-pipe-path {
+  stroke: url(#tmPipeGrad);
+  stroke-width: 2;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.tm-pipe-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+}
+
+.tm-node {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.tm-node-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  color: transparent;
+  transition: border-color 0.4s, color 0.4s, box-shadow 0.4s;
+}
+
+.tm-node-mark svg {
+  width: 11px;
+  height: 11px;
+}
+
+.tm-node span {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  transition: color 0.4s;
+}
+
+.tm-node.is-on .tm-node-mark {
+  border-color: var(--up);
+  color: var(--up);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.35);
+}
+
+.tm-node.is-on span {
+  color: var(--fg);
+}
+
+/* ============================================================
+   TELA 7 — quem opera assim
+   ============================================================ */
+.tm-s7 {
+  min-height: 72svh;
+  text-align: center;
+}
+
+.tm-s7-t {
+  max-width: 24ch;
+}
+
+.tm-s7-tags {
+  margin-top: 2.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+.tm-s7-tags span {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+}
+
+/* ============================================================
+   NÚMEROS — cards de métrica de terminal
+   ============================================================ */
+.nums .num {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.4rem 1.4rem 1.2rem;
+}
+
+.nums .num::before {
+  content: '';
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--up);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+  animation: tm-pulse 2.6s ease-in-out infinite;
+}
+
+.tm-spark {
+  width: 100%;
+  height: 26px;
+  margin-top: 1rem;
+}
+
+.tm-spark polyline {
+  fill: none;
+  stroke: #9678f2;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.tm-spark circle {
+  fill: #9678f2;
+}
+
+/* ============================================================
+   TELA 8 — contato (novo pedido de cotação)
+   ============================================================ */
+.tm-form-kicker {
+  justify-content: center;
+  margin-bottom: 1.8rem;
+  opacity: 0;
+}
+
+/* ---------- Movimento reduzido: nada pisca, tudo legível ---------- */
+html.reduced-motion .tm-hud-dot,
+html.reduced-motion .tm-card-live i,
+html.reduced-motion .tm-desk-dot,
+html.reduced-motion .nums .num::before {
+  animation: none;
+}

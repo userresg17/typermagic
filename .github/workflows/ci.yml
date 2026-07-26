@@ -38,6 +38,7 @@ jobs:
       - name: gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # exigido p/ escanear PRs
           GITLEAKS_CONFIG: .gitleaks.toml
 
   # Guard: impede religar o privado por engano (server/editor/CLI antiga) — o público

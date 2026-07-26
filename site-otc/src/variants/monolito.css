@@ -1,0 +1,792 @@
+/* ============================================================
+   VARIANTE C — "O MONÓLITO" (cinema de luxo)
+   Composições monumentais centradas · chiaroscuro · serif
+   protagonista · toda mídia emerge da escuridão via feather.
+   ============================================================ */
+
+/* A régua lateral padrão sai de cena nesta variante */
+.journey {
+  display: none !important;
+}
+
+/* ---------- Contador mínimo no rodapé central ---------- */
+.mo-progress {
+  position: fixed;
+  left: 50%;
+  bottom: 1.35rem;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.34em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  opacity: 0; /* nasce no intro */
+  pointer-events: none;
+}
+
+.mo-progress i {
+  display: block;
+  width: 34px;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+/* ---------- Base das cenas ---------- */
+.mo-scene {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding-inline: clamp(1.5rem, 6vw, 7rem);
+  background: var(--bg);
+  overflow: clip;
+}
+
+.mo-kicker {
+  justify-content: center;
+  opacity: 0;
+}
+
+/* legenda mono minúscula de canto (micro-detalhe) */
+.mo-cap {
+  position: absolute;
+  right: clamp(1.4rem, 3vw, 2.6rem);
+  bottom: 1.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 1 — o eclipse
+   ============================================================ */
+.mo-eclipse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: min(70vh, 58vw);
+  aspect-ratio: 1;
+  z-index: 1;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.mo-eclipse-glow {
+  position: absolute;
+  inset: -24%;
+  background: radial-gradient(
+    circle at center,
+    rgba(167, 139, 250, 0.2),
+    rgba(125, 211, 252, 0.06) 46%,
+    transparent 70%
+  );
+}
+
+.mo-eclipse-media {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 78%);
+  mask-image: radial-gradient(ellipse at center, black 55%, transparent 78%);
+}
+
+.mo-eclipse-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+.mo-s1-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mo-s1-pre {
+  margin-bottom: clamp(1.8rem, 4vh, 3rem);
+  color: rgba(242, 242, 240, 0.72);
+}
+
+.mo-s1-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(4rem, 10.5vw, 11.5rem);
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+  text-shadow: 0 2px 34px rgba(0, 0, 0, 0.65);
+}
+
+.mo-s1-title .line {
+  text-align: center;
+}
+
+.mo-s1-sub {
+  margin-top: clamp(1.6rem, 3.4vh, 2.6rem);
+  max-width: 52ch;
+  color: rgba(242, 242, 240, 0.8);
+  font-size: clamp(0.95rem, 1.15vw, 1.1rem);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+}
+
+.mo-s1-cta {
+  margin-top: clamp(1.8rem, 4vh, 3rem);
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 2 — drama tipográfico em três atos
+   ============================================================ */
+.mo-s2-k {
+  position: absolute;
+  top: clamp(5rem, 13vh, 8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.mo-acts {
+  position: absolute;
+  inset: 0;
+}
+
+.mo-act {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(3rem, 7.4vw, 8rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.mo-fig {
+  display: block;
+  white-space: nowrap;
+}
+
+.mo-fchar {
+  display: inline-block;
+  white-space: pre;
+  will-change: transform, opacity;
+}
+
+.mo-act-rest {
+  display: block;
+  font-size: 0.42em;
+  color: var(--fg-dim);
+  letter-spacing: 0;
+}
+
+.mo-act3 {
+  font-size: clamp(3.4rem, 8.4vw, 9rem);
+  padding-bottom: 0.1em; /* itálico não corta */
+}
+
+.mo-note {
+  position: absolute;
+  right: clamp(1.4rem, 3vw, 2.6rem);
+  bottom: 1.8rem;
+  margin: 0;
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 3 — o horizonte de luz
+   ============================================================ */
+.mo-s3-k {
+  position: absolute;
+  top: clamp(5rem, 13vh, 8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.mo-band {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: min(94vw, 1500px);
+  height: 40vh;
+  opacity: 0;
+  transform: scaleY(0.01);
+  will-change: transform, opacity;
+  -webkit-mask-image: radial-gradient(ellipse 62% 52% at center, black 40%, transparent 76%);
+  mask-image: radial-gradient(ellipse 62% 52% at center, black 40%, transparent 76%);
+}
+
+.mo-band-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+.mo-words {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mo-word {
+  grid-area: 1 / 1;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(3.2rem, 7.2vw, 8rem);
+  letter-spacing: -0.015em;
+  color: var(--fg);
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.75);
+  white-space: nowrap;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.mo-s3-t {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(4rem, 12vh, 7.5rem);
+  transform: translateX(-50%);
+  max-width: 52ch;
+  text-align: center;
+  color: var(--fg-dim);
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 4 — o preço trava sobre o shard
+   ============================================================ */
+.mo-shard-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 0;
+  /* parallax de mouse ±10px via springs (CSS vars) */
+  transform: translate3d(var(--px, 0px), var(--py, 0px), 0);
+  pointer-events: none;
+}
+
+.mo-shard {
+  width: min(60vh, 46vw);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.mo-shard img {
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  transition: opacity 1s ease;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 52%, transparent 82%);
+  mask-image: radial-gradient(ellipse at center, black 52%, transparent 82%);
+  will-change: transform;
+}
+
+.mo-shard img.is-loaded {
+  opacity: 0.85;
+}
+
+.mo-s4-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.2rem, 2.6vh, 2rem);
+  text-align: center;
+}
+
+.mo-s4-copy::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.mo-s4-label {
+  opacity: 0;
+}
+
+.mo-price {
+  font-size: clamp(2.6rem, 6.6vw, 6.6rem);
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+}
+
+.mo-s4-t {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.4vw, 4.4rem);
+  letter-spacing: -0.015em;
+  line-height: 1.02;
+  opacity: 0;
+}
+
+.mo-s4-sub {
+  text-transform: none;
+  letter-spacing: 0.12em;
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 5 — o blackout (único momento violento)
+   ============================================================ */
+.mo-s5 {
+  background: #000;
+}
+
+.mo-blackout {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.mo-cut {
+  position: absolute;
+  left: 6vw;
+  right: 6vw;
+  top: 50%;
+  height: 1px;
+  background: var(--grad-irid);
+  box-shadow: 0 0 34px rgba(167, 139, 250, 0.85);
+  transform: scaleX(0);
+  transform-origin: left;
+  z-index: 5;
+}
+
+.mo-exec {
+  position: relative;
+  z-index: 6;
+  font-size: clamp(5.5rem, 15.5vw, 14rem);
+  line-height: 1;
+  opacity: 0;
+}
+
+.mo-exec-sub {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(4.5rem, 13vh, 8rem);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 6;
+  opacity: 0;
+}
+
+/* ============================================================
+   TELA 6 — o sol da liquidação
+   ============================================================ */
+.mo-s6 {
+  place-items: start center;
+  padding-top: clamp(5.5rem, 14vh, 9rem);
+}
+
+.mo-sun {
+  position: absolute;
+  left: 50%;
+  bottom: -14vh;
+  translate: -50%;
+  width: min(120vh, 92vw);
+  aspect-ratio: 16 / 9;
+  z-index: 0;
+  opacity: 0;
+  will-change: transform, opacity;
+  -webkit-mask-image: radial-gradient(ellipse 58% 62% at 50% 92%, black 38%, transparent 72%);
+  mask-image: radial-gradient(ellipse 58% 62% at 50% 92%, black 38%, transparent 72%);
+}
+
+.mo-sun-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mo-arc {
+  position: absolute;
+  left: 50%;
+  bottom: 16vh;
+  translate: -50%;
+  width: min(76vw, 1240px);
+  height: auto;
+  z-index: 1;
+  color: rgba(242, 242, 240, 0.22);
+  pointer-events: none;
+}
+
+.mo-s6-t {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(4.5rem, 10.5vw, 10rem);
+  line-height: 1;
+  opacity: 0;
+}
+
+.mo-s6-sub {
+  position: relative;
+  z-index: 2;
+  margin-top: 0.8rem;
+  justify-self: center;
+  color: var(--fg-dim);
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  opacity: 0;
+}
+
+.mo-orbit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mo-receipt {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.mo-receipt i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--irid-4);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+}
+
+/* arco de posições sobre o sol */
+.mo-r1 { left: 11%; top: 58%; }
+.mo-r2 { left: 27%; top: 40%; }
+.mo-r3 { right: 27%; top: 40%; }
+.mo-r4 { right: 11%; top: 58%; }
+
+/* ============================================================
+   TELA 7 — quebra de ritmo editorial
+   ============================================================ */
+.mo-s7 {
+  min-height: 86svh;
+  place-content: center;
+  place-items: center;
+  text-align: center;
+  gap: clamp(1.6rem, 3.4vh, 2.6rem);
+}
+
+.mo-s7-k {
+  opacity: 1; /* revelado por [data-reveal] */
+}
+
+.mo-s7-t {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2.8rem, 6vw, 5.8rem);
+  letter-spacing: -0.015em;
+  line-height: 1.04;
+  max-width: 22ch;
+}
+
+.mo-s7-g {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.mo-s7-g i {
+  font-style: normal;
+  color: var(--fg-faint);
+}
+
+/* ============================================================
+   CAMADA INSTITUCIONAL — override editorial do Monólito
+   ============================================================ */
+.inst,
+.nums {
+  padding-block: clamp(7rem, 16vh, 12rem);
+}
+
+.inst-inner {
+  max-width: 1160px;
+}
+
+.inst-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2.8rem, 5.6vw, 5.2rem);
+  letter-spacing: -0.015em;
+  margin-top: 2rem;
+}
+
+.inst-text {
+  margin-top: 2.2rem;
+}
+
+.inst-pillars {
+  gap: 3.2rem;
+  margin-top: clamp(3.5rem, 8vh, 6rem);
+}
+
+.pillar {
+  padding-top: 1.8rem;
+}
+
+.pillar h3 {
+  margin-top: 1.1rem;
+}
+
+.nums-grid {
+  gap: 2.6rem;
+  margin-top: clamp(3.5rem, 8vh, 6rem);
+}
+
+.num {
+  padding-top: 1.7rem;
+}
+
+.num-v {
+  font-weight: 400;
+}
+
+/* ---------- Interlúdio: a esfera entre a mesa e os números ---------- */
+.mo-interlude {
+  position: relative;
+  z-index: 3;
+  background: var(--bg);
+  min-height: 72vh;
+  display: grid;
+  place-items: center;
+  overflow: clip;
+}
+
+.mo-sphere {
+  height: 40vh;
+  width: auto;
+  opacity: 0;
+  transition: opacity 1s ease;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 80%);
+  mask-image: radial-gradient(ellipse at center, black 55%, transparent 80%);
+  will-change: transform;
+}
+
+.mo-sphere.is-loaded {
+  opacity: 0.9;
+}
+
+/* ============================================================
+   TELA 8 — o convite (form sem caixas, só hairlines)
+   ============================================================ */
+.mo-contact {
+  z-index: 3;
+  border-top: 1px solid var(--line);
+  padding-block: clamp(6rem, 14vh, 10rem);
+}
+
+.mo-contact-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.mo-c-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(4.2rem, 11vw, 12rem);
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+}
+
+.mo-c-title .line {
+  text-align: center;
+}
+
+.mo-c-sub {
+  margin-top: clamp(1.4rem, 3vh, 2.2rem);
+  justify-content: center;
+  opacity: 0;
+}
+
+/* form verbatim, redesenhado: sem caixa, campos só com hairline */
+.mo-contact .s8-form {
+  margin-top: clamp(2.6rem, 6vh, 4.5rem);
+  width: min(760px, 86vw);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  gap: 2.4rem 3rem;
+}
+
+.mo-contact .f-field input,
+.mo-contact .f-field select {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.55rem 0.1rem;
+  transition: border-color 0.35s;
+}
+
+.mo-contact .f-field input:focus,
+.mo-contact .f-field select:focus {
+  background: transparent;
+  border-bottom-color: var(--irid-2);
+}
+
+.mo-contact .f-field select {
+  background-position: right 0.2rem center;
+}
+
+.mo-contact .f-submit {
+  margin-top: 1.2rem;
+}
+
+/* o cubo holográfico assina a cena */
+.mo-sig {
+  position: absolute;
+  right: clamp(2rem, 9vw, 10rem);
+  bottom: 16vh;
+  width: clamp(80px, 8vw, 120px);
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mo-sig img {
+  width: 100%;
+  height: auto;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 82%);
+  mask-image: radial-gradient(ellipse at center, black 55%, transparent 82%);
+}
+
+/* ============================================================
+   MOVIMENTO REDUZIDO — tudo legível, nada pinado
+   ============================================================ */
+html.reduced-motion .mo-progress,
+html.reduced-motion .mo-kicker,
+html.reduced-motion .mo-cap,
+html.reduced-motion .mo-s1-sub,
+html.reduced-motion .mo-s1-cta,
+html.reduced-motion .mo-eclipse,
+html.reduced-motion .mo-note,
+html.reduced-motion .mo-s3-t,
+html.reduced-motion .mo-s4-label,
+html.reduced-motion .mo-price,
+html.reduced-motion .mo-s4-t,
+html.reduced-motion .mo-s4-sub,
+html.reduced-motion .mo-shard,
+html.reduced-motion .mo-exec,
+html.reduced-motion .mo-exec-sub,
+html.reduced-motion .mo-s6-t,
+html.reduced-motion .mo-s6-sub,
+html.reduced-motion .mo-c-sub,
+html.reduced-motion .mo-sig,
+html.reduced-motion .s8-form {
+  opacity: 1;
+}
+
+html.reduced-motion .mo-acts {
+  position: relative;
+  inset: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+  padding-block: 22vh;
+}
+
+html.reduced-motion .mo-act {
+  position: static;
+  inset: auto;
+  opacity: 1;
+}
+
+html.reduced-motion .mo-band {
+  opacity: 1;
+  transform: none;
+  background: radial-gradient(ellipse 60% 50% at center, rgba(125, 211, 252, 0.12), transparent 72%);
+}
+
+html.reduced-motion .mo-band-video,
+html.reduced-motion .mo-sun-video,
+html.reduced-motion .mo-sun,
+html.reduced-motion .mo-arc,
+html.reduced-motion .mo-blackout {
+  display: none;
+}
+
+html.reduced-motion .mo-words {
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem 2.6rem;
+}
+
+html.reduced-motion .mo-word {
+  opacity: 1;
+  font-size: clamp(1.8rem, 3.4vw, 3.4rem);
+}
+
+html.reduced-motion .mo-cut {
+  transform: scaleX(1);
+  opacity: 0.25;
+}
+
+html.reduced-motion .mo-exec {
+  clip-path: none;
+}
+
+html.reduced-motion .mo-orbit {
+  position: absolute;
+  inset: auto 0 14vh 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.8rem 2.4rem;
+}
+
+html.reduced-motion .mo-receipt {
+  position: static;
+  opacity: 1;
+}

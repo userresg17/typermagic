@@ -1,0 +1,1123 @@
+/* ============================================================
+   LAYOUT NARRATIVO — cenas contínuas, sem containers
+   ============================================================ */
+
+/* ---------- Palco 3D persistente (o blob atravessa tudo) ---------- */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  --bs: 0.4;   /* escala do fallback, dirigida pelo scroll */
+  --bx: 0px;
+  --by: 0px;
+  --bop: 1;
+}
+
+/* Mundos em crossfade (opacity dirigida pelo scroll em scenes.js) */
+.worlds {
+  position: absolute;
+  inset: 0;
+}
+
+.world {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: none; /* o scrub dirige a opacidade, sem lag */
+  /* sem blend mode: fundo é preto puro — visual igual, compositing barato */
+}
+
+.world--mob {
+  display: none;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  .world--desk {
+    display: none;
+  }
+
+  .world--mob {
+    display: block;
+  }
+}
+
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.hero-canvas.is-live {
+  opacity: 1;
+}
+
+/* fallback CSS + vídeo seguem a mesma coreografia via CSS vars */
+.stage .blob-ph,
+.stage .stage-video {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62vmin;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  transform: translate3d(var(--bx), var(--by), 0) scale(var(--bs));
+  opacity: var(--bop);
+}
+
+.stage-video {
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Palco mobile: vídeo vertical 9:16 em tela cheia, coreografia própria */
+.stage-video--mob {
+  display: none;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  .stage .stage-video--desk {
+    display: none;
+  }
+
+  .stage .stage-video--mob {
+    display: block;
+    left: 50%;
+    top: 50%;
+    width: 100vw;
+    height: 100svh;
+    aspect-ratio: auto;
+    border-radius: 0;
+    translate: -50% -50%;
+    transform: scale(calc(0.8 + var(--bs) * 0.35));
+    opacity: calc(var(--bop) * var(--mvo, 0.85));
+  }
+
+  .stage .blob-ph {
+    width: 78vmin;
+  }
+}
+
+.stage.has-3d .blob-ph,
+.stage.has-3d .stage-video {
+  display: none;
+}
+
+/* Amanhecer da liquidação (cena 7) */
+.dawn {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(120% 70% at 50% 108%, rgba(251, 191, 36, 0.22), transparent 60%),
+    linear-gradient(to top, rgba(30, 27, 75, 0.35), transparent 55%);
+}
+
+/* ---------- HUD persistente ---------- */
+.hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem clamp(1.25rem, 4vw, 3rem);
+  transition: transform 0.5s var(--ease-out);
+}
+
+.hud.is-hidden {
+  transform: translateY(-120%);
+}
+
+.nav-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+}
+
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.lang-toggle button {
+  color: var(--fg-faint);
+  padding: 0.3rem 0.15rem;
+  transition: color 0.3s;
+}
+
+.lang-toggle button:hover {
+  color: var(--fg-dim);
+}
+
+.lang-toggle button.is-active {
+  color: var(--fg);
+}
+
+.lang-sep {
+  color: var(--fg-faint);
+}
+
+.hud-contact {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  padding-block: 0.3rem;
+  transition: color 0.3s;
+}
+
+.hud-contact::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--grad-irid);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.hud-contact:hover {
+  color: var(--fg);
+}
+
+.hud-contact:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ---------- Régua da jornada (lateral esquerda, estilo painel) ---------- */
+.journey {
+  position: fixed;
+  left: clamp(1rem, 2.4vw, 2.2rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--fg-faint);
+}
+
+.journey-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.6rem;
+  color: var(--fg-faint);
+  margin-bottom: 0.4rem;
+}
+
+.journey-num {
+  color: var(--fg);
+}
+
+.journey-track {
+  position: relative;
+  width: 1px;
+  height: clamp(70px, 14vh, 150px);
+  background: var(--line);
+}
+
+.journey-track span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--grad-irid);
+  transform: scaleY(0);
+  transform-origin: top;
+}
+
+/* marcador que desliza pela trilha (ref. QClay) */
+.journey-marker {
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 5px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--fg);
+  transform: translateY(-50%);
+  box-shadow: 0 0 10px rgba(242, 242, 240, 0.5);
+}
+
+/* ---------- Conteúdo acima do palco ---------- */
+#smooth-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+/* ---------- Cenas ---------- */
+.scene {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-inline: clamp(1.25rem, 6vw, 7rem);
+  overflow: clip;
+}
+
+.giant {
+  font-size: clamp(2.6rem, 9vw, 8.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 500;
+}
+
+.big {
+  font-size: clamp(1.5rem, 3.6vw, 3.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 480;
+}
+
+.mono-line {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.scene-copy {
+  position: relative;
+  z-index: 3;
+  max-width: 30ch;
+}
+
+.scene-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  z-index: 0;
+}
+
+.scene-bg.is-live {
+  opacity: 0.14;
+}
+
+.scene-bg--cta.is-live {
+  opacity: 0.3;
+}
+
+/* Vórtice dourado — o "amanhecer" da liquidação */
+.scene-bg--vortex.is-live {
+  opacity: 0.28;
+  mix-blend-mode: screen;
+}
+
+/* Objetos flutuantes (assets do Nano Banana) */
+/* PNGs agora têm alpha real (fundo recortado no pipeline) — sem hacks */
+.float-obj {
+  position: absolute;
+  width: clamp(90px, 13vw, 220px);
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.float-obj.is-loaded {
+  opacity: 0.95;
+}
+
+/* ---------- CENA 0 — abertura ---------- */
+.scene-0 {
+  align-items: center;
+  text-align: center;
+}
+
+/* véu escuro atrás do copy: o vídeo brilha, o texto não some */
+.scene-0::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 72% 56% at 50% 46%,
+    rgba(5, 5, 5, 0.62),
+    rgba(5, 5, 5, 0.28) 55%,
+    transparent 78%
+  );
+  pointer-events: none;
+}
+
+.scene-0 > * {
+  position: relative;
+}
+
+.s0-title {
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.65);
+}
+
+.s0-pre {
+  color: rgba(242, 242, 240, 0.72);
+}
+
+.s0-pre {
+  justify-content: center;
+  margin-bottom: 2.2rem;
+  opacity: 0;
+}
+
+.s0-title .line {
+  text-align: center;
+}
+
+.s0-sub {
+  margin-top: 1.8rem;
+  color: rgba(242, 242, 240, 0.82);
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+}
+
+.scene-0 .s0-cta.btn {
+  position: absolute;
+  bottom: 2.4rem;
+  left: 50%;
+  translate: -50% 0;
+  opacity: 0;
+}
+
+.hero-scroll-line {
+  display: block;
+  width: 56px;
+  height: 1px;
+  background: var(--line-strong);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-scroll-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--grad-irid);
+  transform: translateX(-100%);
+  animation: scroll-line 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes scroll-line {
+  0% { transform: translateX(-100%); }
+  55% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+/* ---------- CENA 1 — o ruído ---------- */
+.noise-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.scene-1 .scene-copy .big {
+  opacity: 0;
+}
+
+/* ---------- CENA 2 — a porta ---------- */
+.scene-2 {
+  align-items: center;
+  text-align: center;
+  gap: 1.6rem;
+}
+
+.door {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(64vw, 720px);
+  transform: translate(-50%, -50%);
+}
+
+.door-line {
+  display: block;
+  height: 1px;
+  background: var(--grad-irid);
+  transform: scaleX(0);
+  box-shadow: 0 0 24px rgba(167, 139, 250, 0.65);
+}
+
+.s2-a {
+  justify-content: center;
+  opacity: 0;
+  margin-bottom: 42vh;
+}
+
+.s2-b {
+  font-size: clamp(1.8rem, 4.4vw, 3.8rem);
+  opacity: 0;
+  margin-top: 34vh;
+}
+
+/* ---------- CENA 3 — a mesa ---------- */
+.scene-3 {
+  align-items: center;
+  text-align: center;
+}
+
+.s3-t {
+  max-width: 34ch;
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  color: var(--fg-dim);
+  opacity: 0;
+}
+
+.drift-word {
+  position: absolute;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(1.8rem, 4.5vw, 4.2rem);
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  opacity: 0.9;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.dw-1 { left: 8vw; top: 22vh; }
+.dw-2 { right: 10vw; top: 34vh; }
+.dw-3 { left: 12vw; bottom: 26vh; }
+.dw-4 { right: 14vw; bottom: 18vh; }
+
+.fo-1 { left: 4vw; top: 52vh; }
+.fo-2 { right: 5vw; top: 12vh; }
+
+/* ---------- CENA 4 — o preço trava ---------- */
+.scene-4 {
+  gap: 1.6rem;
+}
+
+.s4-label {
+  opacity: 0;
+}
+
+.price {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: clamp(2.2rem, 8.6vw, 7.6rem);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.price .ch {
+  display: inline-block;
+  min-width: 0.58em;
+  text-align: center;
+  color: var(--fg-faint);
+  transition: color 0.2s;
+}
+
+.price .ch.is-locked {
+  color: var(--fg);
+}
+
+.price .ch.is-sep {
+  min-width: 0.35em;
+}
+
+.s4-t {
+  opacity: 0;
+}
+
+.s4-sub {
+  opacity: 0;
+  text-transform: none;
+  letter-spacing: 0.12em;
+}
+
+.fo-3 { right: 8vw; bottom: 14vh; }
+
+/* ---------- CENA 5 — a execução ---------- */
+.scene-5 {
+  align-items: center;
+  text-align: center;
+  gap: 1.4rem;
+}
+
+.exec-line {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--grad-irid);
+  transform: scaleX(0);
+  transform-origin: left;
+  box-shadow: 0 0 34px rgba(167, 139, 250, 0.8);
+  z-index: 1;
+}
+
+.exec-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.s5-t,
+.s5-sub {
+  position: relative;
+  z-index: 3;
+  opacity: 0;
+}
+
+/* ---------- CENA 6 — a liquidação ---------- */
+.scene-6 {
+  align-items: center;
+  text-align: center;
+  gap: 1.4rem;
+}
+
+.s6-t,
+.s6-sub {
+  opacity: 0;
+}
+
+.s6-sub {
+  color: var(--fg-dim);
+}
+
+.receipt {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  opacity: 0;
+}
+
+.receipt i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--irid-4);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+}
+
+.r-1 { left: 9vw; top: 24vh; }
+.r-2 { right: 8vw; top: 32vh; }
+.r-3 { left: 12vw; bottom: 22vh; }
+.r-4 { right: 12vw; bottom: 30vh; }
+
+.fo-vault {
+  left: 50%;
+  top: 8vh;
+  transform: translateX(-50%);
+  width: clamp(70px, 9vw, 150px);
+  opacity: 0;
+}
+
+.fo-vault.is-loaded {
+  opacity: 0.6;
+}
+
+/* ---------- CENA 7 — quem ---------- */
+.scene-7 {
+  align-items: center;
+  text-align: center;
+}
+
+.ghost {
+  position: absolute;
+  font-size: clamp(3rem, 11vw, 10rem);
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  color: rgba(242, 242, 240, 0.05);
+  white-space: nowrap;
+  z-index: 0;
+  user-select: none;
+}
+
+.g-1 { top: 12vh; left: -6vw; }
+.g-2 { top: 34vh; right: -10vw; }
+.g-3 { bottom: 30vh; left: -4vw; }
+.g-4 { bottom: 8vh; right: -12vw; }
+
+.s7-t {
+  position: relative;
+  z-index: 2;
+  opacity: 0;
+}
+
+.fo-4 { right: 6vw; top: 14vh; }
+
+/* ---------- CENA 8 — o fim ---------- */
+.scene-8 {
+  align-items: center;
+  text-align: center;
+  gap: 2rem;
+}
+
+.s8-btn {
+  opacity: 0;
+}
+
+.s8-sub {
+  opacity: 0;
+  justify-content: center;
+}
+
+/* ---------- CAMADA INSTITUCIONAL (fundo sólido, sóbria) ---------- */
+.inst,
+.nums {
+  position: relative;
+  z-index: 3;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: clamp(4.5rem, 11vh, 8rem) clamp(1.25rem, 6vw, 7rem);
+}
+
+.inst-inner {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+.inst-title {
+  font-size: clamp(2rem, 4.6vw, 3.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  margin-top: 1.6rem;
+}
+
+.inst-text {
+  margin-top: 1.8rem;
+  max-width: 58ch;
+  color: var(--fg-dim);
+  font-size: clamp(0.98rem, 1.3vw, 1.15rem);
+}
+
+.inst-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.4rem;
+  margin-top: clamp(2.5rem, 6vh, 4.5rem);
+}
+
+.pillar {
+  border-top: 1px solid var(--line);
+  padding-top: 1.4rem;
+}
+
+.pillar-num {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--fg-faint);
+}
+
+.pillar h3 {
+  margin-top: 0.9rem;
+  font-size: 1.08rem;
+  font-weight: 550;
+}
+
+.pillar p {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--fg-dim);
+}
+
+/* ---------- NÚMEROS (dados mock) ---------- */
+.nums-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  margin-top: clamp(2.5rem, 6vh, 4rem);
+}
+
+.num {
+  border-top: 1px solid var(--line);
+  padding-top: 1.3rem;
+}
+
+.num-v {
+  font-size: clamp(1.9rem, 3.6vw, 3.2rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-l {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+/* ---------- GRÁFICO (série única, violeta validado #9678f2) ---------- */
+.chart {
+  margin-top: clamp(3rem, 7vh, 5rem);
+  position: relative;
+}
+
+.chart-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 550;
+}
+
+.chart-unit {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.chart-box svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-box .grid-line {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.chart-box .axis-label {
+  font-family: var(--font-mono);
+  /* font-size vem do atributo do SVG (o mobile usa corpo maior) */
+  fill: var(--fg-faint);
+  letter-spacing: 0.06em;
+}
+
+.chart-box .vol-line {
+  fill: none;
+  stroke: #9678f2;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-box .vol-area {
+  fill: url(#volGrad);
+  opacity: 0;
+  transition: opacity 0.9s ease 0.4s;
+}
+
+.chart-box.is-drawn .vol-area {
+  opacity: 1;
+}
+
+.chart-box .vol-dot {
+  fill: #9678f2;
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.chart-box .vol-cross {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.chart-box .direct-label {
+  font-family: var(--font-mono);
+  /* font-size vem do atributo do SVG */
+  fill: var(--fg);
+  letter-spacing: 0.04em;
+}
+
+.chart-tip {
+  position: absolute;
+  padding: 0.45rem 0.7rem;
+  background: rgba(10, 10, 12, 0.92);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -130%);
+  z-index: 5;
+}
+
+.mock-note {
+  margin-top: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  color: rgba(251, 191, 36, 0.55);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- FORMULÁRIO DEMO (cena 8) ---------- */
+.s8-form {
+  margin-top: 2.4rem;
+  width: min(680px, 92vw);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem 1.2rem;
+  text-align: left;
+  padding: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 8, 10, 0.85);
+  opacity: 0;
+}
+
+.f-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.f-field label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.f-field input,
+.f-field select {
+  font: inherit;
+  font-size: 16px; /* nunca menos: evita o zoom automático do iOS no focus */
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  min-height: 46px; /* alvo de toque confortável */
+  outline: none;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.f-submit {
+  min-height: 48px;
+}
+
+.f-field input:focus,
+.f-field select:focus {
+  border-color: #9678f2;
+  background: rgba(150, 120, 242, 0.06);
+}
+
+.f-field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+}
+
+.f-submit {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 0.4rem;
+}
+
+.form-demo {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  color: rgba(251, 191, 36, 0.75);
+}
+
+@media (max-width: 860px) {
+  .inst-pillars {
+    grid-template-columns: 1fr;
+    gap: 1.8rem;
+  }
+
+  .nums-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.6rem;
+  }
+
+  .s8-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- DOSSIÊ ---------- */
+.dossier {
+  position: relative;
+  z-index: 3;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: clamp(4rem, 9vh, 7rem) clamp(1.25rem, 6vw, 7rem) 3rem;
+}
+
+.dossier-label {
+  margin-bottom: 2.5rem;
+}
+
+.dossier-list {
+  max-width: 860px;
+}
+
+.faq-item {
+  border-top: 1px solid var(--line);
+}
+
+.faq-item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-q {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  width: 100%;
+  text-align: left;
+  padding: 1.15rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  transition: color 0.3s;
+}
+
+.faq-q:hover {
+  color: var(--fg);
+}
+
+.faq-idx {
+  color: var(--fg-faint);
+  font-size: 0.7rem;
+}
+
+.faq-icon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.faq-icon::before,
+.faq-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+
+.faq-icon::after {
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.faq-item.is-open .faq-icon {
+  transform: rotate(45deg);
+}
+
+.faq-a {
+  height: 0;
+  overflow: hidden;
+}
+
+.faq-a p {
+  padding: 0.2rem 0 1.4rem 2.6rem;
+  color: var(--fg-dim);
+  max-width: 58ch;
+  font-size: 0.92rem;
+}
+
+.footer-disclaimer {
+  margin-top: 3.5rem;
+  font-size: 0.72rem;
+  color: var(--fg-faint);
+  max-width: 72ch;
+}
+
+.footer-rights {
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: var(--fg-faint);
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 720px) {
+  .drift-word { font-size: clamp(1.4rem, 6.5vw, 2rem); }
+  .dw-1 { left: 6vw; top: 16vh; }
+  .dw-2 { right: 6vw; top: 28vh; }
+  .dw-3 { left: 8vw; bottom: 30vh; }
+  .dw-4 { right: 8vw; bottom: 22vh; }
+
+  .receipt { position: static; opacity: 0; margin-top: 0.5rem; }
+  .scene-6 { gap: 0.8rem; }
+
+  .ghost { font-size: 16vw; }
+
+  .journey { display: none; }
+
+  .faq-a p { padding-left: 0; }
+}

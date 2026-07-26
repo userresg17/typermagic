@@ -1,0 +1,29 @@
+# Deploy do site-otc no Fly.io.
+# Requer o secret FLY_API_TOKEN configurado em Settings → Secrets → Actions.
+name: fly-deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/otc-crypto-site-planning-ctymal]
+    paths:
+      - "site-otc/**"
+      - ".github/workflows/fly-deploy.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency: fly-deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::warning::secret FLY_API_TOKEN não configurado (Settings → Secrets → Actions) — deploy pulado"
+            exit 0
+          fi
+          flyctl apps create operacao-invisivel || true
+          cd site-otc && flyctl deploy --remote-only --ha=false

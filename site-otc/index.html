@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mesa OTC de Criptoativos — Execução Institucional</title>
+    <meta name="description" content="Mesa OTC para grandes volumes em cripto: cotação firme, preço único, liquidação no mesmo dia e compliance completo — KYC/AML, contratos e comprovantes de ponta a ponta." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Mesa OTC de Criptoativos — Execução Institucional" />
+    <meta property="og:description" content="Cotação firme, preço único, liquidação T+0 e compliance completo para grandes volumes em cripto." />
+    <meta property="og:image" content="assets/img/og.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#050505" />
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+    <script type="module" src="src/js/main.js"></script>
+  </head>
+  <body>
+    <!-- Preloader -->
+    <div class="preloader" id="preloader" aria-hidden="true">
+      <div class="preloader-panel preloader-panel--l"></div>
+      <div class="preloader-panel preloader-panel--r"></div>
+      <div class="preloader-center">
+        <div class="preloader-count" id="preloaderCount">00</div>
+        <div class="preloader-bar"><span id="preloaderBar"></span></div>
+      </div>
+    </div>
+
+    <!-- Cursor custom -->
+    <div class="cursor" aria-hidden="true">
+      <div class="cursor-dot" id="cursorDot"></div>
+      <div class="cursor-ring" id="cursorRing"></div>
+    </div>
+
+    <!-- Grain -->
+    <div class="grain" aria-hidden="true"></div>
+
+    <!-- Palco persistente: mundos em crossfade + o blob que atravessa tudo -->
+    <div class="stage" id="stage" aria-hidden="true">
+      <!-- Mundos (referência QClay: o ambiente muda, a interface flutua parada) -->
+      <div class="worlds">
+        <video class="asset-video world world--particles world--desk" data-world="particles"
+          src="assets/video/env-particles-desk.mp4" autoplay muted loop playsinline preload="auto"></video>
+        <video class="asset-video world world--particles world--mob" data-world="particles"
+          src="assets/video/env-particles-mob.mp4" autoplay muted loop playsinline preload="auto"></video>
+        <video class="asset-video world world--caustics" data-world="caustics"
+          src="assets/video/caustics.mp4" muted loop playsinline preload="none"></video>
+        <video class="asset-video world world--vortex" data-world="vortex"
+          src="assets/video/vortex.mp4" muted loop playsinline preload="none"></video>
+        <video class="asset-video world world--cta" data-world="cta"
+          src="assets/video/blob-cta.mp4" muted loop playsinline preload="none"></video>
+      </div>
+      <div class="blob-ph" id="blobFallback">
+        <span></span><span></span><span></span>
+      </div>
+      <video
+        class="asset-video stage-video stage-video--desk"
+        src="assets/video/hero-blob.mp4"
+        poster="assets/img/poster-blob.jpg"
+        autoplay muted loop playsinline preload="metadata"
+      ></video>
+      <!-- Mobile tem palco próprio: vídeo vertical 9:16 do blob -->
+      <video
+        class="asset-video stage-video stage-video--mob"
+        src="assets/video/hero-blob-mobile.mp4"
+        poster="assets/img/poster-blob.jpg"
+        autoplay muted loop playsinline preload="metadata"
+      ></video>
+      <canvas id="heroCanvas" class="hero-canvas"></canvas>
+      <div class="dawn" id="dawn"></div>
+    </div>
+
+    <!-- UI persistente -->
+    <header class="hud" id="hud">
+      <a class="nav-mark" href="#cena-0" aria-label="Início" data-cursor>
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <defs>
+            <linearGradient id="markGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7dd3fc" />
+              <stop offset="45%" stop-color="#a78bfa" />
+              <stop offset="100%" stop-color="#fbbf24" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2 L22 12 L12 22 L2 12 Z" fill="none" stroke="url(#markGrad)" stroke-width="1.6" />
+        </svg>
+      </a>
+      <div class="hud-right">
+        <div class="lang-toggle" role="group" aria-label="Idioma">
+          <button type="button" data-lang="pt" class="is-active" data-cursor>PT</button>
+          <span class="lang-sep">/</span>
+          <button type="button" data-lang="en" data-cursor>EN</button>
+        </div>
+        <a href="#cena-8" class="hud-contact" data-cursor><span data-i18n="ui.contact">falar com a mesa</span></a>
+      </div>
+    </header>
+
+    <!-- Régua da jornada (lateral esquerda, estilo painel de navegação) -->
+    <div class="journey" aria-hidden="true">
+      <span class="journey-label" data-i18n="ui.journey">execução institucional</span>
+      <span class="journey-num" id="journeyNum">01</span>
+      <span class="journey-track"><span id="journeyBar"></span><i class="journey-marker" id="journeyMarker"></i></span>
+      <span class="journey-total">09</span>
+    </div>
+
+    <div id="smooth-wrapper">
+    <div id="smooth-content">
+    <main>
+
+      <!-- CENA 0 — abertura -->
+      <section class="scene scene-0" id="cena-0" data-scene="01">
+        <p class="mono-line s0-pre" data-i18n="s0.pre">mesa otc de criptoativos · operação 100% regular</p>
+        <h1 class="giant s0-title">
+          <span class="line"><span class="line-inner" data-i18n="s0.t1">Volume grande se opera</span></span>
+          <span class="line"><span class="line-inner accent-serif" data-i18n="s0.t2">de outro jeito.</span></span>
+        </h1>
+        <p class="s0-sub" data-i18n="s0.sub">Mesa OTC para operações acima de R$ 100 mil: cotação firme, liquidação no mesmo dia e compliance completo.</p>
+        <a href="#cena-1" class="btn btn--pill s0-cta" data-magnetic data-cursor>
+          <span data-i18n="s0.cta">ver como funciona</span>
+          <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v10M3.5 7.5 8 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </section>
+
+      <!-- CENA 1 — o ruído -->
+      <section class="scene scene-1" id="cena-1" data-scene="02">
+        <canvas class="noise-rain" id="noiseRain" aria-hidden="true"></canvas>
+        <div class="scene-copy">
+          <p class="big s1-a"><span data-i18n="s1.t1">No livro público, ordem grande</span></p>
+          <p class="big s1-b"><span data-i18n="s1.t2">vira slippage.</span></p>
+          <p class="big s1-c accent-serif" data-i18n="s1.t3">Você paga essa conta.</p>
+        </div>
+      </section>
+
+      <!-- CENA 2 — a porta -->
+      <section class="scene scene-2" id="cena-2" data-scene="03">
+        <div class="door" aria-hidden="true">
+          <span class="door-line" id="doorLine"></span>
+        </div>
+        <p class="mono-line s2-a" data-i18n="s2.t1">Existe um jeito melhor.</p>
+        <p class="big s2-b accent-serif" data-i18n="s2.t2">Bem-vindo à mesa.</p>
+      </section>
+
+      <!-- CENA 3 — a mesa -->
+      <section class="scene scene-3" id="cena-3" data-scene="04">
+        <span class="drift-word dw-1" data-depth="-30" data-i18n="s3.w1">cotação firme.</span>
+        <span class="drift-word dw-2" data-depth="45" data-i18n="s3.w2">preço único.</span>
+        <span class="drift-word dw-3" data-depth="-60" data-i18n="s3.w3">spread justo.</span>
+        <span class="drift-word dw-4" data-depth="35" data-i18n="s3.w4">zero slippage.</span>
+        <img class="float-obj fo-1" src="assets/img/obj-01.png" alt="" loading="lazy" data-asset data-depth="-45" />
+        <img class="float-obj fo-2" src="assets/img/obj-02.png" alt="" loading="lazy" data-asset data-depth="55" />
+        <p class="scene-copy s3-t" data-i18n="s3.t">Negociação direta com a mesa: o preço fecha antes da execução, sem mover o mercado. Com contrato, comprovante e registro de ponta a ponta.</p>
+      </section>
+
+      <!-- CENA 4 — o preço trava -->
+      <section class="scene scene-4" id="cena-4" data-scene="05">
+        <p class="mono-line s4-label"><span class="kicker-dot"></span><span data-i18n="s4.label">cotação firme</span></p>
+        <div class="price" id="price" data-price data-i18n="s4.price">R$ 590.000.000</div>
+        <p class="big s4-t" data-i18n="s4.t">Um preço. Inteiro. Travado.</p>
+        <p class="mono-line s4-sub" data-i18n="s4.sub">válido para o volume todo — sem slippage, sem surpresa</p>
+        <img class="float-obj fo-3" src="assets/img/obj-03.png" alt="" loading="lazy" data-asset data-depth="40" />
+      </section>
+
+      <!-- CENA 5 — a execução -->
+      <section class="scene scene-5" id="cena-5" data-scene="06">
+        <span class="exec-line" id="execLine" aria-hidden="true"></span>
+        <div class="exec-flash" id="execFlash" aria-hidden="true"></div>
+        <h2 class="giant s5-t accent-serif" data-i18n="s5.t">Executado.</h2>
+        <p class="mono-line s5-sub" data-i18n="s5.sub">preço único · de uma vez · em segundos</p>
+      </section>
+
+      <!-- CENA 6 — a liquidação (amanhecer) -->
+      <section class="scene scene-6" id="cena-6" data-scene="07">
+        <h2 class="giant s6-t accent-serif" data-i18n="s6.t">T+0.</h2>
+        <p class="big s6-sub" data-i18n="s6.sub">Liquidado no mesmo dia. Em reais ou em cripto.</p>
+        <span class="receipt r-1" data-depth="-25"><i></i><em data-i18n="s6.f1">comprovante emitido</em></span>
+        <span class="receipt r-2" data-depth="35"><i></i><em data-i18n="s6.f2">KYC &amp; AML verificados</em></span>
+        <span class="receipt r-3" data-depth="-45"><i></i><em data-i18n="s6.f3">registro fiscal em dia</em></span>
+        <span class="receipt r-4" data-depth="25"><i></i><em data-i18n="s6.f4">custódia segregada</em></span>
+        <img class="float-obj fo-vault" src="assets/img/security-vault.png" alt="" loading="lazy" data-asset data-depth="-20" />
+      </section>
+
+      <!-- CENA 7 — quem opera assim -->
+      <section class="scene scene-7" id="cena-7" data-scene="08">
+        <span class="ghost g-1" data-i18n="s7.g1">family offices</span>
+        <span class="ghost g-2" data-i18n="s7.g2">tesourarias</span>
+        <span class="ghost g-3" data-i18n="s7.g3">fundos</span>
+        <span class="ghost g-4" data-i18n="s7.g4">grandes patrimônios</span>
+        <p class="big s7-t" data-i18n="s7.t">Quem opera grande, opera com estrutura.</p>
+        <img class="float-obj fo-4" src="assets/img/obj-04.png" alt="" loading="lazy" data-asset data-depth="50" />
+      </section>
+
+      <!-- CAMADA INSTITUCIONAL — sóbria, dados MOCK para aprovação de layout -->
+      <section class="inst" id="institucional">
+        <div class="inst-inner">
+          <p class="mono-line"><span class="kicker-dot"></span><span data-i18n="inst.label">a mesa</span></p>
+          <h2 class="inst-title">
+            <span class="line"><span class="line-inner" data-i18n="inst.title.a">Estrutura dedicada</span></span>
+            <span class="line"><span class="line-inner accent-serif" data-i18n="inst.title.b">para operar grande.</span></span>
+          </h2>
+          <p class="inst-text" data-i18n="inst.text">Uma mesa de operações construída para o investidor institucional e o grande patrimônio: atendimento direto, liquidez global e disciplina de compliance em cada etapa — do primeiro contato à liquidação.</p>
+          <div class="inst-pillars">
+            <div class="pillar" data-reveal>
+              <span class="pillar-num">01</span>
+              <h3 data-i18n="inst.p1.t">Mesa dedicada</h3>
+              <p data-i18n="inst.p1.d">Um especialista acompanha cada operação do início ao fim. Sem filas, sem tickets, sem intermediários.</p>
+            </div>
+            <div class="pillar" data-reveal>
+              <span class="pillar-num">02</span>
+              <h3 data-i18n="inst.p2.t">Liquidez global</h3>
+              <p data-i18n="inst.p2.d">Acesso simultâneo a múltiplas fontes de liquidez para garantir o melhor preço, em qualquer tamanho de operação.</p>
+            </div>
+            <div class="pillar" data-reveal>
+              <span class="pillar-num">03</span>
+              <h3 data-i18n="inst.p3.t">Compliance primeiro</h3>
+              <p data-i18n="inst.p3.d">KYC/AML, contratos e comprovantes em todas as operações. Estrutura em conformidade com a regulação brasileira.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="nums" id="numeros">
+        <div class="inst-inner">
+          <p class="mono-line"><span class="kicker-dot"></span><span data-i18n="num.label">números</span></p>
+          <h2 class="inst-title">
+            <span class="line"><span class="line-inner" data-i18n="num.title.a">A mesa</span></span>
+            <span class="line"><span class="line-inner accent-serif" data-i18n="num.title.b">em números.</span></span>
+          </h2>
+          <div class="nums-grid">
+            <div class="num" data-reveal>
+              <div class="num-v" data-count data-i18n="num.s1.v">R$ 2,4 bi+</div>
+              <div class="num-l" data-i18n="num.s1.l">volume negociado acumulado</div>
+            </div>
+            <div class="num" data-reveal>
+              <div class="num-v" data-count data-i18n="num.s2.v">1.800+</div>
+              <div class="num-l" data-i18n="num.s2.l">operações liquidadas</div>
+            </div>
+            <div class="num" data-reveal>
+              <div class="num-v" data-count data-i18n="num.s3.v">4 min</div>
+              <div class="num-l" data-i18n="num.s3.l">tempo médio de cotação</div>
+            </div>
+            <div class="num" data-reveal>
+              <div class="num-v" data-count data-i18n="num.s4.v">120+</div>
+              <div class="num-l" data-i18n="num.s4.l">clientes ativos</div>
+            </div>
+          </div>
+          <figure class="chart" id="chartFigure">
+            <figcaption class="chart-caption">
+              <span class="chart-title" data-i18n="num.chart.title">Volume negociado por mês</span>
+              <span class="chart-unit" data-i18n="num.chart.unit">em R$ milhões</span>
+            </figcaption>
+            <div class="chart-box" id="chartBox"></div>
+            <div class="chart-tip" id="chartTip" hidden></div>
+          </figure>
+          <p class="mock-note" data-i18n="num.note">* dados ilustrativos — layout em fase de aprovação</p>
+        </div>
+      </section>
+
+      <!-- CENA 8 — o fim / contato -->
+      <section class="scene scene-8" id="cena-8" data-scene="09">
+        <h2 class="giant s8-t">
+          <span class="line"><span class="line-inner" data-i18n="s8.t1">Fale com</span></span>
+          <span class="line"><span class="line-inner accent-serif" data-i18n="s8.t2">a mesa.</span></span>
+        </h2>
+        <p class="mono-line s8-sub" data-i18n="s8.sub">resposta em minutos · mesa 24/7</p>
+        <!-- Formulário DEMO — não envia nada; placeholder p/ aprovação de layout -->
+        <form class="s8-form" id="demoForm" novalidate>
+          <div class="f-field">
+            <label for="f-name" data-i18n="form.name">nome</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" data-cursor />
+          </div>
+          <div class="f-field">
+            <label for="f-email" data-i18n="form.email">e-mail</label>
+            <input id="f-email" name="email" type="email" autocomplete="email" data-cursor />
+          </div>
+          <div class="f-field">
+            <label for="f-phone" data-i18n="form.phone">whatsapp</label>
+            <input id="f-phone" name="phone" type="tel" autocomplete="tel" data-cursor />
+          </div>
+          <div class="f-field">
+            <label for="f-volume" data-i18n="form.volume">volume estimado</label>
+            <select id="f-volume" name="volume" data-cursor>
+              <option data-i18n="form.v1">R$ 100 mil – 500 mil</option>
+              <option data-i18n="form.v2">R$ 500 mil – 2 milhões</option>
+              <option data-i18n="form.v3">R$ 2 – 10 milhões</option>
+              <option data-i18n="form.v4">acima de R$ 10 milhões</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn--primary f-submit" data-magnetic data-cursor>
+            <span data-i18n="form.send">solicitar cotação</span>
+          </button>
+          <p class="form-demo" id="formDemo" hidden data-i18n="form.demo">demonstração de layout — envio desativado nesta versão</p>
+        </form>
+      </section>
+
+      <!-- DOSSIÊ — anexo técnico, estilo terminal -->
+      <section class="dossier" id="dossier">
+        <p class="mono-line dossier-label"><span class="kicker-dot"></span><span data-i18n="dossier.label">dossiê operacional</span></p>
+        <div class="dossier-list" id="dossierList">
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">01</span>
+              <span data-i18n="dossier.q1">o que é uma mesa OTC</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a1">OTC (over-the-counter) é a negociação direta entre duas partes, fora do livro de ofertas das exchanges. Para grandes volumes: preço travado antes da execução, zero slippage e atendimento dedicado — tudo documentado.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">02</span>
+              <span data-i18n="dossier.q2">a operação é regulada?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a2">Sim. Operação por pessoa jurídica formal, com KYC/AML em todas as operações, contratos e comprovantes de cada negociação e reporte de operações com criptoativos à Receita Federal conforme a IN 1888/2019.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">03</span>
+              <span data-i18n="dossier.q3">volume mínimo</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a3">Operações a partir de R$ 100 mil. Abaixo disso, uma exchange tradicional tende a ser mais eficiente para o seu caso.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">04</span>
+              <span data-i18n="dossier.q4">ativos negociados</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a4">Bitcoin, Ethereum, stablecoins (USDT, USDC) e os principais criptoativos. Outros sob consulta.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">05</span>
+              <span data-i18n="dossier.q5">como funciona a cotação</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a5">Você informa ativo e volume; a mesa retorna um preço firme, válido por uma janela curta. Aceitou, o preço vale para a operação inteira — registrado em contrato.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">06</span>
+              <span data-i18n="dossier.q6">prazo de liquidação</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a6">Na grande maioria dos casos, no mesmo dia útil (T+0), em reais ou em cripto, com comprovação completa.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">07</span>
+              <span data-i18n="dossier.q7">como começar</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a7">Cadastro com verificação KYC — pessoa física ou jurídica. Aprovado o cadastro, a mesa está à disposição.</p></div>
+          </div>
+        </div>
+        <p class="footer-disclaimer" data-i18n="footer.disclaimer">Criptoativos envolvem riscos, incluindo alta volatilidade e possibilidade de perda do capital investido. Este site tem caráter informativo e não constitui recomendação de investimento.</p>
+        <p class="footer-rights" data-i18n="footer.rights">© 2026 — todos os direitos reservados</p>
+      </section>
+
+    </main>
+    </div><!-- /#smooth-content -->
+    </div><!-- /#smooth-wrapper -->
+  </body>
+</html>

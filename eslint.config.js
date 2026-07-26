@@ -17,6 +17,8 @@ export default tseslint.config(
       "editor/workbench/**",
       "editor/extensions/**",
       "**/*.tsbuildinfo",
+      // site-otc: subprojeto Vite standalone (contexto browser), com tooling próprio
+      "site-otc/**",
     ],
   },
   js.configs.recommended,
