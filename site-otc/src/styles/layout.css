@@ -364,6 +364,32 @@
   text-align: center;
 }
 
+/* véu escuro atrás do copy: o vídeo brilha, o texto não some */
+.scene-0::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 72% 56% at 50% 46%,
+    rgba(5, 5, 5, 0.62),
+    rgba(5, 5, 5, 0.28) 55%,
+    transparent 78%
+  );
+  pointer-events: none;
+}
+
+.scene-0 > * {
+  position: relative;
+}
+
+.s0-title {
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.65);
+}
+
+.s0-pre {
+  color: rgba(242, 242, 240, 0.72);
+}
+
 .s0-pre {
   justify-content: center;
   margin-bottom: 2.2rem;
@@ -376,8 +402,9 @@
 
 .s0-sub {
   margin-top: 1.8rem;
-  color: var(--fg-dim);
+  color: rgba(242, 242, 240, 0.82);
   font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.7);
   opacity: 0;
 }
 

@@ -228,10 +228,11 @@ export function initScenes({ reduced, blob }) {
         p < 0.89 ? 0.8 : 0.55;
       setStageVar('--bs', s.toFixed(3));
       setStageVar('--bop', p > 0.556 && p < 0.667 ? '0.25' : '1');
-      // curva do palco mobile: protagonista na abertura, coadjuvante no meio
+      // curva do palco mobile: forte na abertura (sem ofuscar o copy),
+      // coadjuvante no meio da jornada
       const mvo =
-        p < 0.08 ? 0.85 :
-        p < 0.2 ? gsap.utils.mapRange(0.08, 0.2, 0.85, 0.2, p) :
+        p < 0.08 ? 0.62 :
+        p < 0.2 ? gsap.utils.mapRange(0.08, 0.2, 0.62, 0.2, p) :
         p < 0.83 ? 0.2 :
         gsap.utils.mapRange(0.83, 1, 0.2, 0.45, p);
       setStageVar('--mvo', mvo.toFixed(3));
