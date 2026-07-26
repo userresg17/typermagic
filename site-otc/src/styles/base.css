@@ -1,0 +1,203 @@
+/* ============ TOKENS ============ */
+:root {
+  --bg: #050505;
+  --bg-2: #0a0a0c;
+  --fg: #f2f2f0;
+  --fg-dim: rgba(242, 242, 240, 0.55);
+  --fg-faint: rgba(242, 242, 240, 0.3);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+
+  --irid-1: #7dd3fc;
+  --irid-2: #a78bfa;
+  --irid-3: #f0abfc;
+  --irid-4: #fbbf24;
+  --grad-irid: linear-gradient(120deg, var(--irid-1), var(--irid-2), var(--irid-3), var(--irid-4));
+
+  --up: #4ade80;
+  --down: #f87171;
+
+  --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --pad-x: clamp(1.25rem, 5vw, 5rem);
+  --section-gap: clamp(6rem, 14vh, 11rem);
+  --radius: 20px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ============ RESET ============ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: auto; /* Lenis assume o controle */
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+ul {
+  list-style: none;
+}
+
+::selection {
+  background: var(--irid-2);
+  color: #0a0a0c;
+}
+
+:focus-visible {
+  outline: 1.5px solid var(--irid-2);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Em desktop com cursor custom, esconde o nativo */
+html.has-custom-cursor,
+html.has-custom-cursor a,
+html.has-custom-cursor button {
+  cursor: none;
+}
+
+/* ============ TIPOGRAFIA ============ */
+h1,
+h2,
+h3 {
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.kicker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--grad-irid);
+  background-size: 300% 300%;
+  animation: irid-shift 6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.accent-serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  background: var(--grad-irid);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: irid-shift 8s ease-in-out infinite;
+  padding-right: 0.08em; /* itálico não corta na borda */
+}
+
+/* Linhas mascaradas para reveal (só quando JS ativo) */
+.line {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.06em;
+}
+
+.line-inner {
+  display: inline-block;
+  will-change: transform;
+}
+
+html.js .line-inner {
+  transform: translateY(115%);
+}
+
+html.js .line-inner.is-shown,
+html.reduced-motion .line-inner {
+  transform: none;
+}
+
+/* ============ LAYOUT BASE ============ */
+.section {
+  position: relative;
+  padding-block: var(--section-gap);
+}
+
+.section-inner {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+
+.section-title {
+  font-size: clamp(2.2rem, 5.2vw, 4.6rem);
+}
+
+/* ============ GRAIN ============ */
+.grain {
+  position: fixed;
+  inset: -100px;
+  z-index: 9990;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  animation: grain-jitter 0.9s steps(4) infinite;
+}
+
+@keyframes grain-jitter {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-24px, 16px); }
+  50% { transform: translate(18px, -22px); }
+  75% { transform: translate(-14px, -12px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes irid-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}

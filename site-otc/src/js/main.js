@@ -1,0 +1,66 @@
+// Fontes (self-hosted via fontsource)
+import '@fontsource-variable/inter';
+import '@fontsource/instrument-serif';
+import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+
+// Estilos
+import '../styles/base.css';
+import '../styles/layout.css';
+import '../styles/components.css';
+import '../styles/animations.css';
+
+// Módulos
+import { initI18n } from './i18n.js';
+import { initSmoothScroll, getSmoother } from './smooth-scroll.js';
+import { initNav } from './nav.js';
+import { initAssetMedia } from './assets.js';
+import { initTicker } from './ticker.js';
+import { initAnimations, runHeroIntro } from './animations.js';
+import { initFaq } from './faq.js';
+import { initIcons } from './icons.js';
+import { initCursor } from './cursor.js';
+import { initMagnetic } from './magnetic.js';
+import { initTilt } from './tilt.js';
+import { initPreloader } from './preloader.js';
+import { initBlob3D } from './blob3d.js';
+
+const html = document.documentElement;
+html.classList.add('js');
+
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduced) html.classList.add('reduced-motion');
+
+function boot() {
+  initI18n();
+  initSmoothScroll({ reduced });
+  initNav();
+  initAssetMedia();
+  initTicker();
+  initAnimations({ reduced });
+  initFaq();
+  initIcons({ reduced });
+  initCursor({ reduced });
+  initMagnetic({ reduced });
+  initTilt({ reduced });
+  const blob = initBlob3D({ reduced });
+
+  const smoother = getSmoother();
+  if (smoother) smoother.paused(true);
+
+  initPreloader({
+    reduced,
+    onDone: () => {
+      if (smoother) smoother.paused(false);
+      runHeroIntro({ reduced });
+      blob.start(); // 3D só liga depois do preloader — nada compete com a intro
+    },
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot, { once: true });
+} else {
+  boot();
+}

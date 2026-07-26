@@ -1,0 +1,46 @@
+/* ============ ESTADOS DE REVEAL (controlados pelo GSAP) ============ */
+html.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(46px);
+}
+
+html.js [data-reveal].is-revealed,
+html.reduced-motion [data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Crossfade na troca de idioma */
+[data-i18n] {
+  transition: opacity 0.25s ease;
+}
+
+html.lang-switching [data-i18n] {
+  opacity: 0;
+}
+
+/* ============ MOVIMENTO REDUZIDO ============ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .grain {
+    animation: none;
+  }
+}
+
+html.reduced-motion .grain,
+html.reduced-motion .blob-ph,
+html.reduced-motion .blob-ph span,
+html.reduced-motion .hero-scroll-line::after {
+  animation: none;
+}
+
+html.reduced-motion .preloader {
+  display: none;
+}
