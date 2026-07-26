@@ -39,7 +39,7 @@ export function initBlob3D({ reduced }) {
     return noop;
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
 
@@ -58,7 +58,8 @@ export function initBlob3D({ reduced }) {
   amber.position.set(0, -4, -3);
   scene.add(violet, sky, amber);
 
-  const geometry = new THREE.IcosahedronGeometry(1.65, 4);
+  // detail 3: mesma silhueta orgânica com ~1/4 dos vértices
+  const geometry = new THREE.IcosahedronGeometry(1.65, 3);
   const basePositions = geometry.attributes.position.array.slice();
 
   const material = new THREE.MeshPhysicalMaterial({
@@ -96,7 +97,12 @@ export function initBlob3D({ reduced }) {
       pos.array[ix + 2] = z * s;
     }
     pos.needsUpdate = true;
-    geometry.computeVertexNormals();
+  }
+
+  let normalTick = 0;
+  function refreshNormals() {
+    // normais são o passo caro — atualizar a cada 3 morphs é indistinguível
+    if (normalTick++ % 3 === 0) geometry.computeVertexNormals();
   }
 
   // ---------- A jornada ----------
@@ -185,6 +191,9 @@ export function initBlob3D({ reduced }) {
     geometry.dispose();
     material.dispose();
     renderer.dispose();
+    // devolve o palco ao vídeo quadrado
+    const v = document.querySelector('.stage-video--desk');
+    if (v) v.play().catch(() => {});
   }
 
   function start() {
@@ -193,9 +202,16 @@ export function initBlob3D({ reduced }) {
 
     const clock = new THREE.Clock();
 
+    // com o 3D no comando, os vídeos do palco não precisam decodificar
+    document.querySelectorAll('.stage-video').forEach((v) => {
+      v.pause();
+      v.removeAttribute('autoplay');
+    });
+
     if (reduced) {
       applyJourney(0);
       morph(0.6, 1);
+      geometry.computeVertexNormals();
       blob.scale.setScalar(0.7);
       renderer.render(scene, camera);
       return;
@@ -207,6 +223,7 @@ export function initBlob3D({ reduced }) {
     let wt = 0; // relógio "warpado": o mouse acelera/reverte o tempo do blob
 
     renderer.setAnimationLoop(() => {
+      if (document.hidden) return;
       const t = clock.getElapsedTime();
       const dt = t - lastT;
       lastT = t;
@@ -222,7 +239,10 @@ export function initBlob3D({ reduced }) {
 
       applyJourney(journey);
 
-      if (frame % 2 === 0) morph(wt * 0.55, state.amp);
+      if (frame % 2 === 0) {
+        morph(wt * 0.55, state.amp);
+        refreshNormals();
+      }
 
       mouse.x += (mouse.tx - mouse.x) * 0.04;
       mouse.y += (mouse.ty - mouse.y) * 0.04;

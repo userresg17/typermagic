@@ -24,6 +24,7 @@ import { initMagnetic } from './magnetic.js';
 import { initPreloader } from './preloader.js';
 import { initBlob3D } from './blob3d.js';
 import { initInteract } from './interact.js';
+import { initStageMedia, preloadCritical } from './loader.js';
 
 const html = document.documentElement;
 html.classList.add('js');
@@ -33,6 +34,7 @@ if (reduced) html.classList.add('reduced-motion');
 
 function boot() {
   initI18n();
+  initStageMedia(); // desliga o vídeo de palco que não vale p/ o dispositivo
   initSmoothScroll({ reduced });
   initNav();
   initAssetMedia();
@@ -50,6 +52,7 @@ function boot() {
 
   initPreloader({
     reduced,
+    waitFor: (onProgress) => preloadCritical(onProgress), // progresso REAL
     onDone: () => {
       if (smoother) smoother.paused(false);
       runIntro({ reduced });

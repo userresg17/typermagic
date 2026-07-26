@@ -1,6 +1,7 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { startNoise, stopNoise, setNoiseIntensity } from './noise.js';
+import { prefetchByProgress } from './loader.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -86,6 +87,8 @@ function normProgress(p) {
 
 let worldEls = null;
 
+// Além do crossfade: vídeo invisível fica PAUSADO e escondido (zero decode).
+// Ele volta a tocar um pouco antes da rampa dele começar — imperceptível.
 function updateWorlds(p) {
   if (!worldEls) {
     worldEls = WORLD_MAP.map((w) => ({
@@ -95,8 +98,22 @@ function updateWorlds(p) {
   }
   worldEls.forEach((w) => {
     const o = ramp(p, w.a, w.b, w.c, w.d) * w.peak;
+    const near = p > w.a - 0.06 && p < w.d + 0.06;
     w.els.forEach((el) => {
-      el.style.opacity = o.toFixed(3);
+      if (Math.abs(o - (el.__o ?? -1)) > 0.003) {
+        el.style.opacity = o.toFixed(3);
+        el.__o = o;
+      }
+      const shouldRun = o > 0.001 || near;
+      if (el.__run !== shouldRun) {
+        el.__run = shouldRun;
+        el.style.visibility = shouldRun ? '' : 'hidden';
+        if (shouldRun) {
+          if (el.paused && el.dataset.scrub !== '1') el.play().catch(() => {});
+        } else if (!el.paused) {
+          el.pause();
+        }
+      }
     });
   });
 }
@@ -120,18 +137,30 @@ function buildPrice() {
   });
 }
 
-function setPriceLock(progress) {
+let lockedCount = -1;
+
+// só toca no DOM quando a contagem de dígitos travados muda
+function applyLock(progress) {
   const digits = priceChars.filter((s) => !s.classList.contains('is-sep'));
   const locked = Math.floor(progress * (digits.length + 1));
+  if (locked === lockedCount) return;
+  lockedCount = locked;
   digits.forEach((s, i) => {
     if (i < locked) {
       s.textContent = s.dataset.final;
       s.classList.add('is-locked');
     } else {
       s.classList.remove('is-locked');
-      s.textContent = String(Math.floor(Math.random() * 10));
     }
   });
+}
+
+// o embaralhamento roda num ticker próprio (~11fps), só com a cena 4 por perto
+function scramblePrice() {
+  const digits = priceChars.filter((s) => !s.classList.contains('is-sep'));
+  for (let i = Math.max(0, lockedCount); i < digits.length; i++) {
+    digits[i].textContent = String(Math.floor(Math.random() * 10));
+  }
 }
 
 // ---------- Cenas ----------
@@ -154,13 +183,20 @@ export function initScenes({ reduced, blob }) {
     gsap.set('.door-line', { scaleX: 1 });
     gsap.set('.exec-line', { scaleX: 1 });
     buildPrice();
-    setPriceLock(1);
+    applyLock(1);
     setStageVar('--bs', '0.7');
     return;
   }
 
   // ----- Jornada global: dirige mundos, blob 3D, régua e fallback CSS -----
   ScrollTrigger.addEventListener('refresh', computeBounds);
+
+  // caches de DOM: nada de querySelector dentro do scrub
+  const elBar = document.getElementById('journeyBar');
+  const elMarker = document.getElementById('journeyMarker');
+  const elNum = document.getElementById('journeyNum');
+  let lastP = -1;
+  let lastNum = '';
 
   ScrollTrigger.create({
     start: 0,
@@ -171,13 +207,18 @@ export function initScenes({ reduced, blob }) {
         ? self.scroll() / ScrollTrigger.maxScroll(window)
         : 0;
       const p = normProgress(raw); // progresso narrativo (1/9 por cena)
+      if (Math.abs(p - lastP) < 0.0012) return; // nada mudou de verdade
+      lastP = p;
       blobApi.setProgress(p);
       updateWorlds(p);
-      document.getElementById('journeyBar').style.transform = `scaleY(${p})`;
-      const marker = document.getElementById('journeyMarker');
-      if (marker) marker.style.top = `${(p * 100).toFixed(2)}%`;
-      const num = document.getElementById('journeyNum');
-      if (num) num.textContent = String(Math.min(8, Math.floor(p * 9)) + 1).padStart(2, '0');
+      prefetchByProgress(p); // mundos futuros baixam antes da chegada
+      elBar.style.transform = `scaleY(${p})`;
+      if (elMarker) elMarker.style.top = `${(p * 100).toFixed(2)}%`;
+      const numTxt = String(Math.min(8, Math.floor(p * 9)) + 1).padStart(2, '0');
+      if (elNum && numTxt !== lastNum) {
+        lastNum = numTxt;
+        elNum.textContent = numTxt;
+      }
       // fallback CSS acompanha em versão simplificada (grade de nonos)
       const s =
         p < 0.11 ? 0.42 :
@@ -216,7 +257,20 @@ export function initScenes({ reduced, blob }) {
   let lastPriceProgress = 0;
   document.addEventListener('langchange', () => {
     buildPrice();
-    setPriceLock(lastPriceProgress);
+    lockedCount = -1;
+    applyLock(lastPriceProgress);
+  });
+
+  // embaralhamento em ticker próprio, ligado só quando a cena 4 está na área
+  let scrambleTimer = 0;
+  ScrollTrigger.create({
+    trigger: '.scene-4',
+    start: 'top bottom',
+    end: 'bottom top',
+    onToggle: (self) => {
+      clearInterval(scrambleTimer);
+      if (self.isActive) scrambleTimer = setInterval(scramblePrice, 95);
+    },
   });
 
   // ----- Cenas pinadas: coreografia separada por dispositivo -----
@@ -285,7 +339,7 @@ export function initScenes({ reduced, blob }) {
               0, 1,
               gsap.utils.mapRange(0.15, 0.75, 0, 1, self.progress)
             );
-            setPriceLock(lastPriceProgress);
+            applyLock(lastPriceProgress);
           },
         },
       });

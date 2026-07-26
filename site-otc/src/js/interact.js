@@ -38,6 +38,7 @@ export function initInteract({ reduced }) {
   const vstate = new Map(); // video -> { t, manual }
 
   const visibleOpacity = (el) => {
+    if (el.style.visibility === 'hidden') return 0; // pausado pelo gerenciador
     const inline = parseFloat(el.style.opacity);
     if (!Number.isNaN(inline)) return inline;
     return parseFloat(getComputedStyle(el).opacity) || 0;
@@ -74,6 +75,7 @@ export function initInteract({ reduced }) {
       if (v === star && active) {
         if (!st || !st.manual) {
           v.pause();
+          v.dataset.scrub = '1'; // avisa o gerenciador de visibilidade
           vstate.set(v, { t: v.currentTime, manual: true });
         }
         const s = vstate.get(v);
@@ -84,7 +86,8 @@ export function initInteract({ reduced }) {
       } else if (st && st.manual) {
         // devolve ao loop nativo de onde parou
         st.manual = false;
-        v.play().catch(() => {});
+        delete v.dataset.scrub;
+        if (v.style.visibility !== 'hidden') v.play().catch(() => {});
       }
     });
   }

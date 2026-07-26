@@ -11,6 +11,10 @@
 > **Assets extras que você gerar também entram** — me manda que eu crio o slot
 > na cena que fizer sentido (fundos full-bleed, objetos flutuantes, texturas).
 
+> **Nota do pipeline:** imagens PNG podem vir com fundo preto — o projeto recorta
+> automaticamente (luma→alpha via ffmpeg) antes de entrar no site. Só evitar
+> objetos escuros demais (fundo preto + objeto preto = recorte ruim).
+
 Regras gerais para TODOS os assets:
 
 - Fundo **preto puro (#000000)** — o site é preto, o asset precisa "derreter" na página.

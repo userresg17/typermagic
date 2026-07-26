@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>A operação invisível — Mesa OTC de Criptoativos</title>
-    <meta name="description" content="Grandes volumes em cripto, negociados no privado. Preço travado antes da execução, liquidação no mesmo dia. O mercado nunca fica sabendo." />
+    <title>Mesa OTC de Criptoativos — Execução Institucional</title>
+    <meta name="description" content="Mesa OTC para grandes volumes em cripto: cotação firme, preço único, liquidação no mesmo dia e compliance completo — KYC/AML, contratos e comprovantes de ponta a ponta." />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="A operação invisível — Mesa OTC de Criptoativos" />
-    <meta property="og:description" content="Grandes volumes em cripto, negociados no privado. O mercado nunca fica sabendo." />
+    <meta property="og:title" content="Mesa OTC de Criptoativos — Execução Institucional" />
+    <meta property="og:description" content="Cotação firme, preço único, liquidação T+0 e compliance completo para grandes volumes em cripto." />
     <meta property="og:image" content="assets/img/og.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#050505" />
@@ -39,15 +39,15 @@
       <!-- Mundos (referência QClay: o ambiente muda, a interface flutua parada) -->
       <div class="worlds">
         <video class="asset-video world world--particles world--desk" data-world="particles"
-          src="assets/video/env-particles-desk.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          src="assets/video/env-particles-desk.mp4" autoplay muted loop playsinline preload="auto"></video>
         <video class="asset-video world world--particles world--mob" data-world="particles"
-          src="assets/video/env-particles-mob.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          src="assets/video/env-particles-mob.mp4" autoplay muted loop playsinline preload="auto"></video>
         <video class="asset-video world world--caustics" data-world="caustics"
-          src="assets/video/caustics.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          src="assets/video/caustics.mp4" muted loop playsinline preload="none"></video>
         <video class="asset-video world world--vortex" data-world="vortex"
-          src="assets/video/vortex.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          src="assets/video/vortex.mp4" muted loop playsinline preload="none"></video>
         <video class="asset-video world world--cta" data-world="cta"
-          src="assets/video/blob-cta.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          src="assets/video/blob-cta.mp4" muted loop playsinline preload="none"></video>
       </div>
       <div class="blob-ph" id="blobFallback">
         <span></span><span></span><span></span>
@@ -95,7 +95,7 @@
 
     <!-- Régua da jornada (lateral esquerda, estilo painel de navegação) -->
     <div class="journey" aria-hidden="true">
-      <span class="journey-label" data-i18n="ui.journey">a operação invisível</span>
+      <span class="journey-label" data-i18n="ui.journey">execução institucional</span>
       <span class="journey-num" id="journeyNum">01</span>
       <span class="journey-track"><span id="journeyBar"></span><i class="journey-marker" id="journeyMarker"></i></span>
       <span class="journey-total">09</span>
@@ -107,14 +107,14 @@
 
       <!-- CENA 0 — abertura -->
       <section class="scene scene-0" id="cena-0" data-scene="01">
-        <p class="mono-line s0-pre" data-i18n="s0.pre">mercado aberto · ruído · slippage</p>
+        <p class="mono-line s0-pre" data-i18n="s0.pre">mesa otc de criptoativos · operação 100% regular</p>
         <h1 class="giant s0-title">
-          <span class="line"><span class="line-inner" data-i18n="s0.t1">O mercado não precisa</span></span>
-          <span class="line"><span class="line-inner accent-serif" data-i18n="s0.t2">saber.</span></span>
+          <span class="line"><span class="line-inner" data-i18n="s0.t1">Volume grande se opera</span></span>
+          <span class="line"><span class="line-inner accent-serif" data-i18n="s0.t2">de outro jeito.</span></span>
         </h1>
-        <p class="s0-sub" data-i18n="s0.sub">Mesa OTC para grandes volumes em cripto.</p>
+        <p class="s0-sub" data-i18n="s0.sub">Mesa OTC para operações acima de R$ 100 mil: cotação firme, liquidação no mesmo dia e compliance completo.</p>
         <a href="#cena-1" class="btn btn--pill s0-cta" data-magnetic data-cursor>
-          <span data-i18n="s0.cta">iniciar a jornada</span>
+          <span data-i18n="s0.cta">ver como funciona</span>
           <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v10M3.5 7.5 8 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
         </a>
       </section>
@@ -123,9 +123,9 @@
       <section class="scene scene-1" id="cena-1" data-scene="02">
         <canvas class="noise-rain" id="noiseRain" aria-hidden="true"></canvas>
         <div class="scene-copy">
-          <p class="big s1-a"><span data-i18n="s1.t1">Volume grande em livro público</span></p>
-          <p class="big s1-b"><span data-i18n="s1.t2">move o preço.</span></p>
-          <p class="big s1-c accent-serif" data-i18n="s1.t3">Contra você.</p>
+          <p class="big s1-a"><span data-i18n="s1.t1">No livro público, ordem grande</span></p>
+          <p class="big s1-b"><span data-i18n="s1.t2">vira slippage.</span></p>
+          <p class="big s1-c accent-serif" data-i18n="s1.t3">Você paga essa conta.</p>
         </div>
       </section>
 
@@ -134,19 +134,19 @@
         <div class="door" aria-hidden="true">
           <span class="door-line" id="doorLine"></span>
         </div>
-        <p class="mono-line s2-a" data-i18n="s2.t1">Existe outro caminho.</p>
+        <p class="mono-line s2-a" data-i18n="s2.t1">Existe um jeito melhor.</p>
         <p class="big s2-b accent-serif" data-i18n="s2.t2">Bem-vindo à mesa.</p>
       </section>
 
       <!-- CENA 3 — a mesa -->
       <section class="scene scene-3" id="cena-3" data-scene="04">
-        <span class="drift-word dw-1" data-depth="-30" data-i18n="s3.w1">privado.</span>
-        <span class="drift-word dw-2" data-depth="45" data-i18n="s3.w2">direto.</span>
-        <span class="drift-word dw-3" data-depth="-60" data-i18n="s3.w3">sem livro.</span>
-        <span class="drift-word dw-4" data-depth="35" data-i18n="s3.w4">sem rastro.</span>
+        <span class="drift-word dw-1" data-depth="-30" data-i18n="s3.w1">cotação firme.</span>
+        <span class="drift-word dw-2" data-depth="45" data-i18n="s3.w2">preço único.</span>
+        <span class="drift-word dw-3" data-depth="-60" data-i18n="s3.w3">spread justo.</span>
+        <span class="drift-word dw-4" data-depth="35" data-i18n="s3.w4">zero slippage.</span>
         <img class="float-obj fo-1" src="assets/img/obj-01.png" alt="" loading="lazy" data-asset data-depth="-45" />
         <img class="float-obj fo-2" src="assets/img/obj-02.png" alt="" loading="lazy" data-asset data-depth="55" />
-        <p class="scene-copy s3-t" data-i18n="s3.t">Cada operação negociada de pessoa para pessoa. O preço fecha antes da execução — e o mercado nunca fica sabendo.</p>
+        <p class="scene-copy s3-t" data-i18n="s3.t">Negociação direta com a mesa: o preço fecha antes da execução, sem mover o mercado. Com contrato, comprovante e registro de ponta a ponta.</p>
       </section>
 
       <!-- CENA 4 — o preço trava -->
@@ -163,17 +163,17 @@
         <span class="exec-line" id="execLine" aria-hidden="true"></span>
         <div class="exec-flash" id="execFlash" aria-hidden="true"></div>
         <h2 class="giant s5-t accent-serif" data-i18n="s5.t">Executado.</h2>
-        <p class="mono-line s5-sub" data-i18n="s5.sub">fora do livro · de uma vez · em segundos</p>
+        <p class="mono-line s5-sub" data-i18n="s5.sub">preço único · de uma vez · em segundos</p>
       </section>
 
       <!-- CENA 6 — a liquidação (amanhecer) -->
       <section class="scene scene-6" id="cena-6" data-scene="07">
         <h2 class="giant s6-t accent-serif" data-i18n="s6.t">T+0.</h2>
         <p class="big s6-sub" data-i18n="s6.sub">Liquidado no mesmo dia. Em reais ou em cripto.</p>
-        <span class="receipt r-1" data-depth="-25"><i></i><em data-i18n="s6.f1">confirmação enviada</em></span>
-        <span class="receipt r-2" data-depth="35"><i></i><em data-i18n="s6.f2">custódia segregada</em></span>
-        <span class="receipt r-3" data-depth="-45"><i></i><em data-i18n="s6.f3">trilha de auditoria completa</em></span>
-        <span class="receipt r-4" data-depth="25"><i></i><em data-i18n="s6.f4">contrato registrado</em></span>
+        <span class="receipt r-1" data-depth="-25"><i></i><em data-i18n="s6.f1">comprovante emitido</em></span>
+        <span class="receipt r-2" data-depth="35"><i></i><em data-i18n="s6.f2">KYC &amp; AML verificados</em></span>
+        <span class="receipt r-3" data-depth="-45"><i></i><em data-i18n="s6.f3">registro fiscal em dia</em></span>
+        <span class="receipt r-4" data-depth="25"><i></i><em data-i18n="s6.f4">custódia segregada</em></span>
         <img class="float-obj fo-vault" src="assets/img/security-vault.png" alt="" loading="lazy" data-asset data-depth="-20" />
       </section>
 
@@ -183,7 +183,7 @@
         <span class="ghost g-2" data-i18n="s7.g2">tesourarias</span>
         <span class="ghost g-3" data-i18n="s7.g3">fundos</span>
         <span class="ghost g-4" data-i18n="s7.g4">grandes patrimônios</span>
-        <p class="big s7-t" data-i18n="s7.t">Quem opera grande já opera assim.</p>
+        <p class="big s7-t" data-i18n="s7.t">Quem opera grande, opera com estrutura.</p>
         <img class="float-obj fo-4" src="assets/img/obj-04.png" alt="" loading="lazy" data-asset data-depth="50" />
       </section>
 
@@ -210,47 +210,55 @@
               <span data-i18n="dossier.q1">o que é uma mesa OTC</span>
               <span class="faq-icon" aria-hidden="true"></span>
             </button>
-            <div class="faq-a"><p data-i18n="dossier.a1">OTC (over-the-counter) é a negociação direta entre duas partes, fora das exchanges. Para grandes volumes: preço travado, zero slippage, total privacidade.</p></div>
+            <div class="faq-a"><p data-i18n="dossier.a1">OTC (over-the-counter) é a negociação direta entre duas partes, fora do livro de ofertas das exchanges. Para grandes volumes: preço travado antes da execução, zero slippage e atendimento dedicado — tudo documentado.</p></div>
           </div>
           <div class="faq-item">
             <button type="button" class="faq-q" data-cursor aria-expanded="false">
               <span class="faq-idx">02</span>
-              <span data-i18n="dossier.q2">volume mínimo</span>
+              <span data-i18n="dossier.q2">a operação é regulada?</span>
               <span class="faq-icon" aria-hidden="true"></span>
             </button>
-            <div class="faq-a"><p data-i18n="dossier.a2">Operações a partir de R$ 100 mil. Abaixo disso, uma exchange tradicional tende a ser mais eficiente.</p></div>
+            <div class="faq-a"><p data-i18n="dossier.a2">Sim. Operação por pessoa jurídica formal, com KYC/AML em todas as operações, contratos e comprovantes de cada negociação e reporte de operações com criptoativos à Receita Federal conforme a IN 1888/2019.</p></div>
           </div>
           <div class="faq-item">
             <button type="button" class="faq-q" data-cursor aria-expanded="false">
               <span class="faq-idx">03</span>
-              <span data-i18n="dossier.q3">ativos negociados</span>
+              <span data-i18n="dossier.q3">volume mínimo</span>
               <span class="faq-icon" aria-hidden="true"></span>
             </button>
-            <div class="faq-a"><p data-i18n="dossier.a3">Bitcoin, Ethereum, stablecoins (USDT, USDC) e os principais criptoativos. Outros sob consulta.</p></div>
+            <div class="faq-a"><p data-i18n="dossier.a3">Operações a partir de R$ 100 mil. Abaixo disso, uma exchange tradicional tende a ser mais eficiente para o seu caso.</p></div>
           </div>
           <div class="faq-item">
             <button type="button" class="faq-q" data-cursor aria-expanded="false">
               <span class="faq-idx">04</span>
-              <span data-i18n="dossier.q4">como funciona a cotação</span>
+              <span data-i18n="dossier.q4">ativos negociados</span>
               <span class="faq-icon" aria-hidden="true"></span>
             </button>
-            <div class="faq-a"><p data-i18n="dossier.a4">Você informa ativo e volume; a mesa retorna um preço firme, válido por uma janela curta. Aceitou, travou — para a operação inteira.</p></div>
+            <div class="faq-a"><p data-i18n="dossier.a4">Bitcoin, Ethereum, stablecoins (USDT, USDC) e os principais criptoativos. Outros sob consulta.</p></div>
           </div>
           <div class="faq-item">
             <button type="button" class="faq-q" data-cursor aria-expanded="false">
               <span class="faq-idx">05</span>
-              <span data-i18n="dossier.q5">prazo de liquidação</span>
+              <span data-i18n="dossier.q5">como funciona a cotação</span>
               <span class="faq-icon" aria-hidden="true"></span>
             </button>
-            <div class="faq-a"><p data-i18n="dossier.a5">Na grande maioria dos casos, no mesmo dia útil (T+0), em reais ou em cripto.</p></div>
+            <div class="faq-a"><p data-i18n="dossier.a5">Você informa ativo e volume; a mesa retorna um preço firme, válido por uma janela curta. Aceitou, o preço vale para a operação inteira — registrado em contrato.</p></div>
           </div>
           <div class="faq-item">
             <button type="button" class="faq-q" data-cursor aria-expanded="false">
               <span class="faq-idx">06</span>
-              <span data-i18n="dossier.q6">como começar</span>
+              <span data-i18n="dossier.q6">prazo de liquidação</span>
               <span class="faq-icon" aria-hidden="true"></span>
             </button>
-            <div class="faq-a"><p data-i18n="dossier.a6">Cadastro simples com verificação KYC — pessoa física ou jurídica. Aprovado, a mesa está à disposição.</p></div>
+            <div class="faq-a"><p data-i18n="dossier.a6">Na grande maioria dos casos, no mesmo dia útil (T+0), em reais ou em cripto, com comprovação completa.</p></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-q" data-cursor aria-expanded="false">
+              <span class="faq-idx">07</span>
+              <span data-i18n="dossier.q7">como começar</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a"><p data-i18n="dossier.a7">Cadastro com verificação KYC — pessoa física ou jurídica. Aprovado o cadastro, a mesa está à disposição.</p></div>
           </div>
         </div>
         <p class="footer-disclaimer" data-i18n="footer.disclaimer">Criptoativos envolvem riscos, incluindo alta volatilidade e possibilidade de perda do capital investido. Este site tem caráter informativo e não constitui recomendação de investimento.</p>

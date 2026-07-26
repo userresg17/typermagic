@@ -28,7 +28,7 @@
   object-fit: cover;
   opacity: 0;
   transition: none; /* o scrub dirige a opacidade, sem lag */
-  mix-blend-mode: screen;
+  /* sem blend mode: fundo é preto puro — visual igual, compositing barato */
 }
 
 .world--mob {
@@ -74,7 +74,6 @@
 .stage-video {
   object-fit: cover;
   border-radius: 50%;
-  mix-blend-mode: screen; /* fundo preto do vídeo some no palco */
 }
 
 /* Palco mobile: vídeo vertical 9:16 em tela cheia, coreografia própria */
@@ -346,20 +345,17 @@
 }
 
 /* Objetos flutuantes (assets do Nano Banana) */
+/* PNGs agora têm alpha real (fundo recortado no pipeline) — sem hacks */
 .float-obj {
   position: absolute;
   width: clamp(90px, 13vw, 220px);
-  mix-blend-mode: screen;
   opacity: 0;
   z-index: 1;
   pointer-events: none;
 }
 
-/* opacity 1 + blend screen: o fundo preto do PNG some por completo;
-   controle de intensidade via brightness (escala pro preto = invisível) */
 .float-obj.is-loaded {
-  opacity: 1;
-  filter: brightness(0.9);
+  opacity: 0.95;
 }
 
 /* ---------- CENA 0 — abertura ---------- */
@@ -631,8 +627,7 @@
 }
 
 .fo-vault.is-loaded {
-  opacity: 1;
-  filter: brightness(0.55);
+  opacity: 0.6;
 }
 
 /* ---------- CENA 7 — quem ---------- */

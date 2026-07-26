@@ -15,8 +15,8 @@ export function initSmoothScroll({ reduced }) {
     smoother = ScrollSmoother.create({
       wrapper: '#smooth-wrapper',
       content: '#smooth-content',
-      smooth: 1.3,
-      effects: true, // habilita data-speed / data-lag
+      smooth: 1.2,
+      effects: false, // nenhum data-speed em uso; economiza um passe por frame
       smoothTouch: 0.1,
       normalizeScroll: true,
     });
