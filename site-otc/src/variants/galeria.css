@@ -1,0 +1,737 @@
+/* ============================================================
+   VARIANTE A — "A GALERIA"
+   Galeria de arte + banco privado: assets emoldurados como obras,
+   grid editorial fantasma, hairlines 1px, legendas de museu em mono.
+   Fundo: preto sólido (--bg). Só desktop (mobile redireciona p/ ./).
+   ============================================================ */
+
+/* ---------- Grid fantasma: 12 hairlines verticais ---------- */
+.ga-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  pointer-events: none;
+  opacity: 0; /* runIntro revela suavemente após o preloader */
+}
+
+.ga-grid span {
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ga-grid span:last-child {
+  border-right: 0;
+}
+
+/* ---------- Base das cenas ---------- */
+.ga-scene {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-inline: clamp(1.25rem, 6vw, 7rem);
+  overflow: clip;
+}
+
+/* placa de sala: número da cena no canto (estética de museu) */
+.ga-scene::after {
+  content: attr(data-scene) ' / 08';
+  position: absolute;
+  top: clamp(4.6rem, 9vh, 6.5rem);
+  right: clamp(1.25rem, 6vw, 7rem);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  color: var(--fg-faint);
+  pointer-events: none;
+}
+
+/* ---------- Moldura de obra (hairline + legenda de museu) ---------- */
+.ga-frame {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--line-strong);
+  padding: clamp(0.8rem, 1.2vw, 1.1rem);
+  background: rgba(8, 8, 10, 0.6);
+}
+
+/* tiques de canto — detalhe de prancheta técnica */
+.ga-frame::before,
+.ga-frame::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+}
+
+.ga-frame::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid var(--fg-dim);
+  border-left: 1px solid var(--fg-dim);
+}
+
+.ga-frame::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid var(--fg-dim);
+  border-right: 1px solid var(--fg-dim);
+}
+
+.ga-frame-media {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+.ga-frame-media video,
+.ga-frame-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ga-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.ga-caption-dim {
+  color: var(--fg-faint);
+}
+
+/* ============================================================
+   TELA 1 — abertura split 55/45
+   ============================================================ */
+.ga-s1-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  width: 100%;
+}
+
+.ga-h1 {
+  font-size: clamp(2.6rem, 6.4vw, 6.2rem);
+}
+
+.ga-kicker {
+  margin-bottom: clamp(1.6rem, 3vw, 2.6rem);
+}
+
+.ga-sub {
+  margin-top: 1.8rem;
+  max-width: 44ch;
+  color: var(--fg-dim);
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+}
+
+.ga-cta {
+  margin-top: 2.6rem;
+}
+
+.ga-s1-art {
+  position: relative;
+}
+
+.ga-frame--hero {
+  width: 100%;
+  max-width: 520px;
+  margin-left: auto;
+}
+
+/* faixa estreita de poeira prateada atrás do painel, mascarada no preto */
+.ga-strip {
+  position: absolute;
+  top: 31%;
+  left: -16%;
+  right: -32%;
+  height: 38%;
+  opacity: 0.12;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+.ga-strip video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ============================================================
+   TELA 2 — livro de ofertas simulado
+   ============================================================ */
+.ga-s2-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 42fr) minmax(0, 58fr);
+  gap: clamp(2.5rem, 6vw, 6rem);
+  align-items: center;
+  width: 100%;
+}
+
+.ga-book {
+  border: 1px solid var(--line);
+  background: rgba(8, 8, 10, 0.72);
+  font-family: var(--font-mono);
+  max-width: 460px;
+  width: 100%;
+}
+
+.ga-book-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.ga-book-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--down);
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
+  flex-shrink: 0;
+  animation: ga-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes ga-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.ga-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.55rem 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-dim);
+}
+
+.ga-row-i {
+  font-size: 0.62rem;
+  color: var(--fg-faint);
+}
+
+.ga-row-d {
+  margin-left: auto;
+  font-size: 0.66rem;
+  color: var(--fg-faint);
+}
+
+.ga-row--slip {
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 0;
+  color: var(--down);
+  padding-block: 0.8rem;
+}
+
+.ga-row--slip .ga-row-i {
+  color: var(--down);
+}
+
+.ga-book-note {
+  margin: 0;
+  padding: 0.75rem 1.1rem 0.9rem;
+  border-top: 1px dashed var(--line);
+}
+
+.ga-s2a,
+.ga-s2b {
+  max-width: 18ch;
+}
+
+.ga-s2c {
+  margin-top: 1.4rem;
+}
+
+/* ============================================================
+   TELA 3 — banda de caustics com promessas gigantes
+   ============================================================ */
+.ga-s3 {
+  padding-inline: 0;
+}
+
+.ga-band {
+  position: relative;
+  width: 100%;
+  height: 40vh;
+  background: radial-gradient(60% 100% at 50% 50%, rgba(125, 211, 252, 0.05), transparent 70%);
+  /* bordas superior/inferior derretem no preto */
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+}
+
+.ga-band-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  /* laterais também derretem */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+.ga-band-words {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ga-word {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 34px rgba(0, 0, 0, 0.85);
+}
+
+.ga-band-cap {
+  padding-inline: clamp(1.25rem, 6vw, 7rem);
+  margin-top: 1rem;
+}
+
+.ga-s3t {
+  margin: clamp(2rem, 5vh, 3.2rem) auto 0;
+  max-width: 36ch;
+  text-align: center;
+  color: var(--fg-dim);
+  font-size: clamp(1rem, 1.4vw, 1.3rem);
+  padding-inline: clamp(1.25rem, 6vw, 7rem);
+}
+
+/* ============================================================
+   TELA 4 — o preço trava (fundo preto puro)
+   ============================================================ */
+.ga-s4 {
+  align-items: flex-start;
+  gap: 1.6rem;
+  background: var(--bg);
+}
+
+.ga-s4sub {
+  text-transform: none;
+  letter-spacing: 0.12em;
+}
+
+.ga-shard {
+  position: absolute;
+  right: 7vw;
+  bottom: 12vh;
+  width: clamp(80px, 9vw, 150px);
+  pointer-events: none;
+  transform: translate3d(var(--px, 0px), var(--py, 0px), 0);
+  will-change: transform;
+}
+
+.ga-shard img {
+  width: 100%;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+.ga-shard img.is-loaded {
+  opacity: 0.85;
+}
+
+/* ============================================================
+   TELA 5 — a execução
+   ============================================================ */
+.ga-s5 {
+  align-items: center;
+  text-align: center;
+  gap: 1.4rem;
+}
+
+.ga-exec-line {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--grad-irid);
+  transform: scaleX(0);
+  transform-origin: left;
+  box-shadow: 0 0 34px rgba(167, 139, 250, 0.8);
+  z-index: 1;
+}
+
+.ga-exec-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ga-s5t,
+.ga-s5sub {
+  position: relative;
+  z-index: 3;
+}
+
+/* ============================================================
+   TELA 6 — o extrato (comprovante T+0)
+   ============================================================ */
+.ga-s6 {
+  align-items: center;
+  text-align: center;
+  gap: 1.3rem;
+}
+
+.ga-s6-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(72vw, 960px);
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%);
+  opacity: 0; /* timeline leva a ~.25 */
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 28%, transparent 72%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 28%, transparent 72%);
+}
+
+.ga-s6-glow video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: screen;
+}
+
+.ga-s6t {
+  position: relative;
+  z-index: 2;
+  justify-content: center;
+}
+
+.ga-receipt {
+  position: relative;
+  z-index: 2;
+  width: min(420px, 90vw);
+  border: 1px solid var(--line-strong);
+  background: rgba(8, 8, 10, 0.85);
+  font-family: var(--font-mono);
+  text-align: left;
+}
+
+.ga-receipt-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px dashed var(--line-strong);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.ga-rrow {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  transition: color 0.4s;
+}
+
+.ga-rrow.is-done {
+  color: var(--fg);
+}
+
+.ga-check {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--up);
+}
+
+.ga-receipt-foot {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1.1rem;
+  border-top: 1px dashed var(--line);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.ga-s6sub {
+  position: relative;
+  z-index: 2;
+  color: var(--fg-dim);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+}
+
+.ga-s6-note {
+  position: relative;
+  z-index: 2;
+  margin-top: 0.2rem;
+}
+
+/* ============================================================
+   TELA 7 — ponte editorial
+   ============================================================ */
+.ga-s7 {
+  align-items: center;
+  text-align: center;
+  gap: 1.8rem;
+  min-height: 72svh;
+}
+
+.ga-s7::after {
+  content: none; /* sem placa: respiro antes da camada institucional */
+}
+
+.ga-s7g {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ga-s7g i {
+  font-style: normal;
+  color: var(--fg-faint);
+}
+
+.ga-s7t {
+  max-width: 24ch;
+}
+
+/* ============================================================
+   CAMADA INSTITUCIONAL — hairlines de relatório anual
+   ============================================================ */
+.inst-pillars {
+  gap: 0;
+}
+
+.inst-pillars .pillar {
+  border-left: 1px solid var(--line);
+  padding-left: 1.6rem;
+  padding-right: 1.6rem;
+}
+
+.inst-pillars .pillar:last-child {
+  border-right: 1px solid var(--line);
+}
+
+.nums-grid {
+  gap: 0;
+}
+
+.nums-grid .num {
+  border-left: 1px solid var(--line);
+  padding-left: 1.4rem;
+  padding-right: 1.4rem;
+}
+
+.nums-grid .num:last-child {
+  border-right: 1px solid var(--line);
+}
+
+/* objetos pequenos emoldurados no fim dos pilares 01 e 03 */
+.ga-obj {
+  margin: 1.8rem 0 0.2rem;
+  width: 90px;
+  border: 1px solid var(--line);
+  padding: 0.55rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ga-obj img {
+  width: 100%;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+.ga-obj img.is-loaded {
+  opacity: 0.9;
+}
+
+/* ============================================================
+   TELA 8 — contato
+   ============================================================ */
+.ga-contact {
+  position: relative;
+  z-index: 3;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: clamp(4.5rem, 11vh, 8rem) clamp(1.25rem, 6vw, 7rem);
+}
+
+.ga-contact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: clamp(2.5rem, 6vw, 6rem);
+  align-items: center;
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+}
+
+.ga-h2 {
+  font-size: clamp(2.4rem, 5.6vw, 5.4rem);
+}
+
+.ga-s8sub {
+  margin-top: 1.3rem;
+}
+
+.ga-contact .s8-form {
+  width: 100%;
+  max-width: 680px;
+  margin-top: 2.4rem;
+}
+
+.ga-frame--poster {
+  width: 100%;
+  max-width: 340px;
+  justify-self: center;
+}
+
+/* ============================================================
+   ESTADOS INICIAIS (só com JS ativo — sem JS tudo fica visível)
+   ============================================================ */
+html.js .ga-kicker,
+html.js .ga-sub,
+html.js .ga-cta,
+html.js .ga-frame--hero .ga-caption,
+html.js .ga-strip,
+html.js .ga-s2a,
+html.js .ga-s2b,
+html.js .ga-s2c,
+html.js .ga-row,
+html.js .ga-book-note,
+html.js .ga-word,
+html.js .ga-band-cap,
+html.js .ga-s3t,
+html.js .ga-s4-label,
+html.js .ga-price,
+html.js .ga-s4t,
+html.js .ga-s4sub,
+html.js .ga-s5t,
+html.js .ga-s5sub,
+html.js .ga-s6t,
+html.js .ga-rrow,
+html.js .ga-s6sub,
+html.js .ga-s6-note,
+html.js .ga-s8sub {
+  opacity: 0;
+}
+
+html.js .ga-frame--hero {
+  clip-path: inset(0% 0% 100% 0%);
+}
+
+html.js .ga-receipt {
+  clip-path: inset(0% 0% 100% 0%);
+}
+
+/* ============================================================
+   MOVIMENTO REDUZIDO — tudo visível, sem pins, sem vídeo rodando
+   (este bloco vem por último para vencer os estados iniciais)
+   ============================================================ */
+html.reduced-motion .ga-grid {
+  opacity: 1;
+}
+
+html.reduced-motion .ga-kicker,
+html.reduced-motion .ga-sub,
+html.reduced-motion .ga-cta,
+html.reduced-motion .ga-frame--hero .ga-caption,
+html.reduced-motion .ga-s2a,
+html.reduced-motion .ga-s2b,
+html.reduced-motion .ga-s2c,
+html.reduced-motion .ga-row,
+html.reduced-motion .ga-book-note,
+html.reduced-motion .ga-band-cap,
+html.reduced-motion .ga-s3t,
+html.reduced-motion .ga-s4-label,
+html.reduced-motion .ga-price,
+html.reduced-motion .ga-s4t,
+html.reduced-motion .ga-s4sub,
+html.reduced-motion .ga-s5t,
+html.reduced-motion .ga-s5sub,
+html.reduced-motion .ga-s6t,
+html.reduced-motion .ga-rrow,
+html.reduced-motion .ga-s6sub,
+html.reduced-motion .ga-s6-note,
+html.reduced-motion .ga-s8sub {
+  opacity: 1;
+}
+
+html.reduced-motion .ga-strip {
+  opacity: 0.12;
+}
+
+html.reduced-motion .ga-frame--hero,
+html.reduced-motion .ga-receipt {
+  clip-path: none;
+}
+
+html.reduced-motion .s8-form {
+  opacity: 1;
+}
+
+html.reduced-motion .ga-exec-line {
+  transform: scaleX(1);
+  opacity: 0.3;
+}
+
+/* vídeos secundários nunca carregam em reduced — o glow fica apagado */
+html.reduced-motion .ga-s6-glow,
+html.reduced-motion .ga-band-video {
+  opacity: 0;
+}
+
+/* as 4 promessas viram lista estática legível */
+html.reduced-motion .ga-band-words {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 1.2em;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem var(--pad-x);
+}
+
+html.reduced-motion .ga-word {
+  position: static;
+  inset: auto;
+  display: inline;
+  opacity: 1;
+  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+  text-shadow: none;
+}
