@@ -16,13 +16,11 @@ import { initI18n } from './i18n.js';
 import { initSmoothScroll, getSmoother } from './smooth-scroll.js';
 import { initNav } from './nav.js';
 import { initAssetMedia } from './assets.js';
-import { initTicker } from './ticker.js';
-import { initAnimations, runHeroIntro } from './animations.js';
+import { initScenes, runIntro } from './scenes.js';
 import { initFaq } from './faq.js';
 import { initIcons } from './icons.js';
 import { initCursor } from './cursor.js';
 import { initMagnetic } from './magnetic.js';
-import { initTilt } from './tilt.js';
 import { initPreloader } from './preloader.js';
 import { initBlob3D } from './blob3d.js';
 
@@ -37,14 +35,13 @@ function boot() {
   initSmoothScroll({ reduced });
   initNav();
   initAssetMedia();
-  initTicker();
-  initAnimations({ reduced });
   initFaq();
   initIcons({ reduced });
   initCursor({ reduced });
   initMagnetic({ reduced });
-  initTilt({ reduced });
+
   const blob = initBlob3D({ reduced });
+  initScenes({ reduced, blob });
 
   const smoother = getSmoother();
   if (smoother) smoother.paused(true);
@@ -53,8 +50,8 @@ function boot() {
     reduced,
     onDone: () => {
       if (smoother) smoother.paused(false);
-      runHeroIntro({ reduced });
-      blob.start(); // 3D só liga depois do preloader — nada compete com a intro
+      runIntro({ reduced });
+      blob.start(); // o personagem entra em cena depois do preloader
     },
   });
 }

@@ -1,5 +1,16 @@
 # ASSETS — Prompts para geração (Sora = vídeo · Nano Banana = imagem)
 
+> **Onde cada asset entra na narrativa (site em 9 cenas):**
+> - `hero-blob.mp4` / `poster-blob.jpg` → fallback do personagem 3D (palco fixo)
+> - `chrome-waves.mp4` → fundo da CENA 4 "a mesa"
+> - `blob-cta.mp4` → fundo da CENA 9 "o fim"
+> - `obj-01/02.png` → objetos flutuando na CENA 4
+> - `obj-03.png` → CENA 5 "o preço trava" · `obj-04.png` → CENA 8 "quem"
+> - `security-vault.png` → CENA 7 "a liquidação"
+>
+> **Assets extras que você gerar também entram** — me manda que eu crio o slot
+> na cena que fizer sentido (fundos full-bleed, objetos flutuantes, texturas).
+
 Regras gerais para TODOS os assets:
 
 - Fundo **preto puro (#000000)** — o site é preto, o asset precisa "derreter" na página.
@@ -164,10 +175,55 @@ the upper left area. Premium, minimal, luxurious. Ultra realistic 3D render,
 
 | Arquivo | Pasta destino | Status |
 | --- | --- | --- |
-| `hero-blob.mp4` | `public/assets/video/` | opcional (3D é real-time) |
-| `chrome-waves.mp4` | `public/assets/video/` | pendente |
-| `blob-cta.mp4` | `public/assets/video/` | pendente |
-| `poster-blob.jpg` | `public/assets/img/` | placeholder incluído |
-| `obj-01.png` … `obj-04.png` | `public/assets/img/` | placeholder incluído |
+| `hero-blob.mp4` | `public/assets/video/` | ✅ RECEBIDO (crop do vídeo vertical) |
+| `hero-blob-mobile.mp4` | `public/assets/video/` | ✅ RECEBIDO (vídeo vertical 9:16 — palco mobile) |
+| `caustics.mp4` | `public/assets/video/` | ✅ RECEBIDO (gif de light leaks → cena "a mesa") |
+| `vortex.mp4` | `public/assets/video/` | ✅ RECEBIDO (espiral dourada → cena "liquidação") |
+| `env-particles-desk.mp4` | `public/assets/video/` | ✅ RECEBIDO (mundo 1 desktop — poeira do mercado) |
+| `env-particles-mob.mp4` | `public/assets/video/` | ✅ RECEBIDO (mundo 1 mobile, 9:16 nativo) |
+| `chrome-waves.mp4` | `public/assets/video/` | opcional (caustics já cobre) |
+| `blob-cta.mp4` | `public/assets/video/` | pendente (mundo 4 — cena final) |
+| `poster-blob.jpg` | `public/assets/img/` | ✅ RECEBIDO |
+| `obj-01.png` (shard) | `public/assets/img/` | ✅ RECEBIDO |
+| `obj-02.png` (torus) | `public/assets/img/` | ✅ RECEBIDO |
+| `obj-03.png` (esfera chrome) | `public/assets/img/` | ✅ RECEBIDO |
+| `obj-04.png` (cubo holográfico) | `public/assets/img/` | ✅ RECEBIDO |
+
+### Mapa dos MUNDOS (fundos em crossfade contínuo, ref. QClay)
+| Mundo | Vídeo | Cenas |
+| --- | --- | --- |
+| 1 · poeira do mercado | `env-particles-desk/mob.mp4` | 0–1 (abertura + ruído) |
+| 2 · a mesa | `caustics.mp4` | 3–4 (mesa + preço) |
+| 3 · amanhecer | `vortex.mp4` | 6–7 (liquidação + quem) |
+| 4 · o fim | `blob-cta.mp4` (pendente) | 8 (contato) |
 | `security-vault.png` | `public/assets/img/` | placeholder incluído |
 | `og.jpg` | `public/assets/img/` | placeholder incluído |
+
+---
+
+## NOVOS PROMPTS — inspirados na referência QClay (paisagem monumental)
+
+### V4 — `crystal-landscape.mp4` (Sora) — fundo épico p/ cena de abertura
+- **Formato:** 16:9 (mínimo 1920×1080) · 10s · loop seamless · sem áudio
+- **Prompt:**
+```
+A monumental dark landscape made of black volcanic rock with massive clusters
+of glowing amethyst and iridescent crystal formations emerging from the
+ground, seen from a low dramatic angle. Deep black sky. The crystals emit
+soft violet, blue and amber light that barely illuminates the rock around
+them. Very subtle slow camera drift forward, dust particles floating in the
+light beams. Cinematic, mysterious, luxurious. Ultra realistic 3D render,
+4K detail. Seamless loop. No text, no logo, no watermark.
+```
+
+### V5 — `crystal-landscape-mobile.mp4` (Sora) — mesma cena em 9:16
+- **Formato:** 9:16 (mínimo 1080×1920) · 10s · loop seamless · sem áudio
+- **Prompt:** mesmo do V4, acrescentando no início:
+```
+Vertical portrait composition (9:16), crystals towering upward filling the frame.
+```
+
+> Onde entram: fundo da CENA 1 (abertura) atrás do título, em ~25% de opacidade —
+> o "mundo" onde a história acontece. Basta soltar os arquivos na pasta de vídeo
+> que eu crio o slot. Os demais assets que você gerar (novas texturas, objetos,
+> fundos) também entram — me manda que eu encaixo na cena certa.
