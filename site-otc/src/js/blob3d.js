@@ -157,10 +157,11 @@ export function initBlob3D({ reduced }) {
       others = lerp(1, 0.35, t);
       amp = 0.8;
     } else {
-      // cena 8: paz — pequeno e calmo no centro
+      // cena 8: paz — pequeno, calmo e SOBE (deixa o formulário limpo)
       const t = seg(p, 0.833, 1);
-      s = lerp(0.85, 0.55, t);
-      x = 0; y = 0;
+      s = lerp(0.85, 0.5, t);
+      x = 0;
+      y = lerp(-0.15, 0.85, t);
       amberI = lerp(90, 24, t);
       others = lerp(0.35, 0.8, t);
       amp = 0.6;

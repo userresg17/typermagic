@@ -25,6 +25,7 @@ import { initPreloader } from './preloader.js';
 import { initBlob3D } from './blob3d.js';
 import { initInteract } from './interact.js';
 import { initStageMedia, preloadCritical } from './loader.js';
+import { initInstitutional } from './institutional.js';
 
 const html = document.documentElement;
 html.classList.add('js');
@@ -46,6 +47,7 @@ function boot() {
 
   const blob = initBlob3D({ reduced });
   initScenes({ reduced, blob });
+  initInstitutional({ reduced }); // camada institucional (dados mock)
 
   const smoother = getSmoother();
   if (smoother) smoother.paused(true);

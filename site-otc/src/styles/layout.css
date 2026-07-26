@@ -703,6 +703,297 @@
   justify-content: center;
 }
 
+/* ---------- CAMADA INSTITUCIONAL (fundo sólido, sóbria) ---------- */
+.inst,
+.nums {
+  position: relative;
+  z-index: 3;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: clamp(4.5rem, 11vh, 8rem) clamp(1.25rem, 6vw, 7rem);
+}
+
+.inst-inner {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+.inst-title {
+  font-size: clamp(2rem, 4.6vw, 3.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  margin-top: 1.6rem;
+}
+
+.inst-text {
+  margin-top: 1.8rem;
+  max-width: 58ch;
+  color: var(--fg-dim);
+  font-size: clamp(0.98rem, 1.3vw, 1.15rem);
+}
+
+.inst-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.4rem;
+  margin-top: clamp(2.5rem, 6vh, 4.5rem);
+}
+
+.pillar {
+  border-top: 1px solid var(--line);
+  padding-top: 1.4rem;
+}
+
+.pillar-num {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--fg-faint);
+}
+
+.pillar h3 {
+  margin-top: 0.9rem;
+  font-size: 1.08rem;
+  font-weight: 550;
+}
+
+.pillar p {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--fg-dim);
+}
+
+/* ---------- NÚMEROS (dados mock) ---------- */
+.nums-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  margin-top: clamp(2.5rem, 6vh, 4rem);
+}
+
+.num {
+  border-top: 1px solid var(--line);
+  padding-top: 1.3rem;
+}
+
+.num-v {
+  font-size: clamp(1.9rem, 3.6vw, 3.2rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-l {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+/* ---------- GRÁFICO (série única, violeta validado #9678f2) ---------- */
+.chart {
+  margin-top: clamp(3rem, 7vh, 5rem);
+  position: relative;
+}
+
+.chart-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 550;
+}
+
+.chart-unit {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.chart-box svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-box .grid-line {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.chart-box .axis-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--fg-faint);
+  letter-spacing: 0.06em;
+}
+
+.chart-box .vol-line {
+  fill: none;
+  stroke: #9678f2;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-box .vol-area {
+  fill: url(#volGrad);
+  opacity: 0;
+  transition: opacity 0.9s ease 0.4s;
+}
+
+.chart-box.is-drawn .vol-area {
+  opacity: 1;
+}
+
+.chart-box .vol-dot {
+  fill: #9678f2;
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.chart-box .vol-cross {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.chart-box .direct-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--fg);
+  letter-spacing: 0.04em;
+}
+
+.chart-tip {
+  position: absolute;
+  padding: 0.45rem 0.7rem;
+  background: rgba(10, 10, 12, 0.92);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -130%);
+  z-index: 5;
+}
+
+.mock-note {
+  margin-top: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  color: rgba(251, 191, 36, 0.55);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- FORMULÁRIO DEMO (cena 8) ---------- */
+.s8-form {
+  margin-top: 2.4rem;
+  width: min(680px, 92vw);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem 1.2rem;
+  text-align: left;
+  padding: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 8, 10, 0.85);
+  opacity: 0;
+}
+
+.f-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.f-field label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.f-field input,
+.f-field select {
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  outline: none;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.f-field input:focus,
+.f-field select:focus {
+  border-color: #9678f2;
+  background: rgba(150, 120, 242, 0.06);
+}
+
+.f-field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+}
+
+.f-submit {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 0.4rem;
+}
+
+.form-demo {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  color: rgba(251, 191, 36, 0.75);
+}
+
+@media (max-width: 860px) {
+  .inst-pillars {
+    grid-template-columns: 1fr;
+    gap: 1.8rem;
+  }
+
+  .nums-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.6rem;
+  }
+
+  .s8-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- DOSSIÊ ---------- */
 .dossier {
   position: relative;

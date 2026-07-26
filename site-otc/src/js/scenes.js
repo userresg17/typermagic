@@ -176,7 +176,7 @@ export function initScenes({ reduced, blob }) {
       [
         '.s0-pre', '.s0-sub', '.s0-cta', '.scene-1 .big', '.s2-a', '.s2-b', '.s3-t', '.s4-label',
         '.s4-t', '.s4-sub', '.s5-t', '.s5-sub', '.s6-t', '.s6-sub',
-        '.receipt', '.s7-t', '.s8-btn', '.s8-sub', '.hud', '.journey',
+        '.receipt', '.s7-t', '.s8-sub', '.s8-form', '.hud', '.journey',
       ],
       { opacity: 1 }
     );
@@ -236,21 +236,10 @@ export function initScenes({ reduced, blob }) {
         p < 0.83 ? 0.2 :
         gsap.utils.mapRange(0.83, 1, 0.2, 0.45, p);
       setStageVar('--mvo', mvo.toFixed(3));
+      // no fim da jornada o fallback CSS também sobe (formulário limpo)
+      const by = p < 0.9 ? 0 : gsap.utils.mapRange(0.9, 1, 0, -24, p);
+      setStageVar('--by', `${by.toFixed(1)}vh`);
     },
-  });
-
-  // ----- CENA 0: o título sai de cena com blur -----
-  gsap.to('.s0-title', {
-    yPercent: -26,
-    opacity: 0,
-    filter: 'blur(10px)',
-    ease: 'none',
-    scrollTrigger: { trigger: '.scene-0', start: 'center center', end: 'bottom top', scrub: true },
-  });
-  gsap.to(['.s0-pre', '.s0-sub', '.s0-cta'], {
-    opacity: 0,
-    ease: 'none',
-    scrollTrigger: { trigger: '.scene-0', start: 'center center', end: '75% top', scrub: true },
   });
 
   // ----- Preço que trava (estado compartilhado com o pin da cena 4) -----
@@ -286,9 +275,24 @@ export function initScenes({ reduced, blob }) {
     },
     (ctx) => {
       const { isMobile } = ctx.conditions;
+      // TODAS as cenas pinadas: nada passa voando, todo texto completa na tela
       const cfg = isMobile
-        ? { s1: '+=110%', s2: '+=100%', s4: '+=150%', s5: '+=90%', scrub: 0.35 }
-        : { s1: '+=160%', s2: '+=140%', s4: '+=200%', s5: '+=120%', scrub: 0.55 };
+        ? { s0: '+=50%', s1: '+=110%', s2: '+=100%', s3: '+=110%', s4: '+=150%', s5: '+=90%', s6: '+=95%', s7: '+=80%', scrub: 0.35 }
+        : { s0: '+=70%', s1: '+=160%', s2: '+=140%', s3: '+=150%', s4: '+=200%', s5: '+=120%', s6: '+=130%', s7: '+=110%', scrub: 0.55 };
+
+      // ----- CENA 0: o título respira antes de liberar -----
+      const s0 = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.scene-0',
+          start: 'top top',
+          end: cfg.s0,
+          pin: true,
+          scrub: cfg.scrub,
+        },
+      });
+      s0.to({}, { duration: 0.45 }) // segura o quadro
+        .to('.s0-title', { yPercent: -22, opacity: 0, filter: 'blur(10px)', duration: 0.4 }, 0.5)
+        .to(['.s0-pre', '.s0-sub', '.s0-cta'], { opacity: 0, duration: 0.3 }, 0.5);
 
       // ----- CENA 1: ruído do mercado (pinada) -----
       const s1 = gsap.timeline({
@@ -326,6 +330,21 @@ export function initScenes({ reduced, blob }) {
         .to('.door-line', { opacity: 0, boxShadow: '0 0 90px rgba(167,139,250,1)', duration: 0.18 }, 0.5)
         .fromTo('.s2-b', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.16 }, 0.62)
         .to('.s2-b', { opacity: 0, duration: 0.12 }, 0.9);
+
+      // ----- CENA 3: a mesa (pinada) — palavras entram, texto segura, tudo lê -----
+      const s3 = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.scene-3',
+          start: 'top top',
+          end: cfg.s3,
+          pin: true,
+          scrub: cfg.scrub,
+        },
+      });
+      s3.fromTo('.drift-word', { opacity: 0 }, { opacity: 0.9, stagger: 0.07, duration: 0.22 }, 0.05)
+        .fromTo('.s3-t', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.22 }, 0.22)
+        .to({}, { duration: 0.3 }) // leitura
+        .to(['.drift-word', '.s3-t'], { opacity: 0, duration: 0.18 }, 0.86);
 
       // ----- CENA 4: o preço trava (pinada) -----
       const s4 = gsap.timeline({
@@ -366,7 +385,35 @@ export function initScenes({ reduced, blob }) {
         .fromTo('.s5-t', { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.18 }, 0.45)
         .fromTo('.s5-sub', { opacity: 0 }, { opacity: 1, duration: 0.12 }, 0.6);
 
-      return () => [s1, s2, s4, s5].forEach((tl) => tl.scrollTrigger?.kill());
+      // ----- CENA 6: a liquidação (pinada) — título, sub e recibos completam -----
+      const s6 = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.scene-6',
+          start: 'top top',
+          end: cfg.s6,
+          pin: true,
+          scrub: cfg.scrub,
+        },
+      });
+      s6.fromTo('.s6-t', { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.2 }, 0.05)
+        .fromTo('.s6-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.18 }, 0.2)
+        .fromTo('.receipt', { opacity: 0 }, { opacity: 1, stagger: 0.06, duration: 0.24 }, 0.32)
+        .to({}, { duration: 0.3 }); // leitura
+
+      // ----- CENA 7: quem opera (pinada) -----
+      const s7 = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.scene-7',
+          start: 'top top',
+          end: cfg.s7,
+          pin: true,
+          scrub: cfg.scrub,
+        },
+      });
+      s7.fromTo('.s7-t', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.28 }, 0.12)
+        .to({}, { duration: 0.4 }); // leitura
+
+      return () => [s0, s1, s2, s3, s4, s5, s6, s7].forEach((tl) => tl.scrollTrigger?.kill());
     }
   );
 
@@ -384,26 +431,6 @@ export function initScenes({ reduced, blob }) {
     );
   });
 
-  gsap.fromTo(
-    '.drift-word',
-    { opacity: 0 },
-    {
-      opacity: 0.9,
-      stagger: 0.12,
-      duration: 0.5,
-      scrollTrigger: { trigger: '.scene-3', start: 'top 60%', end: 'center center', scrub: true },
-    }
-  );
-  gsap.fromTo(
-    '.s3-t',
-    { opacity: 0, y: 24 },
-    {
-      opacity: 1,
-      y: 0,
-      scrollTrigger: { trigger: '.scene-3', start: '30% 60%', end: 'center 45%', scrub: true },
-    }
-  );
-
   // ----- CENA 6: a liquidação — amanhecer -----
   gsap.fromTo(
     '#dawn',
@@ -419,25 +446,6 @@ export function initScenes({ reduced, blob }) {
     ease: 'none',
     scrollTrigger: { trigger: '.scene-7', start: 'top 60%', end: 'center center', scrub: true },
   });
-  gsap.fromTo(
-    '.s6-t',
-    { opacity: 0, y: 34 },
-    { opacity: 1, y: 0, scrollTrigger: { trigger: '.scene-6', start: 'top 55%', end: 'center 55%', scrub: true } }
-  );
-  gsap.fromTo(
-    '.s6-sub',
-    { opacity: 0, y: 20 },
-    { opacity: 1, y: 0, scrollTrigger: { trigger: '.scene-6', start: '20% 55%', end: 'center 45%', scrub: true } }
-  );
-  gsap.fromTo(
-    '.receipt',
-    { opacity: 0 },
-    {
-      opacity: 1,
-      stagger: 0.1,
-      scrollTrigger: { trigger: '.scene-6', start: '25% 60%', end: '65% 45%', scrub: true },
-    }
-  );
 
   // ----- CENA 7: fantasmas cruzam a tela -----
   document.querySelectorAll('.ghost').forEach((g, i) => {
@@ -451,11 +459,33 @@ export function initScenes({ reduced, blob }) {
       }
     );
   });
-  gsap.fromTo(
-    '.s7-t',
-    { opacity: 0, y: 26 },
-    { opacity: 1, y: 0, scrollTrigger: { trigger: '.scene-7', start: 'top 50%', end: 'center 45%', scrub: true } }
-  );
+  // ----- CAMADA INSTITUCIONAL: reveals sóbrios -----
+  ScrollTrigger.batch('[data-reveal]', {
+    start: 'top 88%',
+    once: true,
+    onEnter: (els) => {
+      els.forEach((el) => el.classList.add('is-revealed'));
+      gsap.fromTo(
+        els,
+        { opacity: 0, y: 36 },
+        { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.08, overwrite: true }
+      );
+    },
+  });
+
+  gsap.utils.toArray('.inst-title').forEach((title) => {
+    gsap.fromTo(
+      title.querySelectorAll('.line-inner'),
+      { yPercent: 115 },
+      {
+        yPercent: 0,
+        duration: 1,
+        ease: 'power4.out',
+        stagger: 0.1,
+        scrollTrigger: { trigger: title, start: 'top 82%', once: true },
+      }
+    );
+  });
 
   // ----- CENA 8: o fim -----
   gsap.fromTo(
@@ -470,7 +500,7 @@ export function initScenes({ reduced, blob }) {
     }
   );
   gsap.fromTo(
-    ['.s8-btn', '.s8-sub'],
+    ['.s8-sub', '.s8-form'],
     { opacity: 0, y: 22 },
     {
       opacity: 1,
