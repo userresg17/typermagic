@@ -453,7 +453,7 @@ function initScenes({ reduced }) {
   gsap.utils.toArray('.inst-title').forEach((title) =>
     gsap.fromTo(
       title.querySelectorAll('.line-inner'),
-      { yPercent: 115 },
+      { yPercent: 115, y: 0 },
       {
         yPercent: 0,
         duration: 1,

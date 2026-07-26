@@ -230,7 +230,7 @@ function initScenes({ reduced }) {
   gsap.utils.toArray('.inst-title').forEach((t) =>
     gsap.fromTo(
       t.querySelectorAll('.line-inner'),
-      { yPercent: 115 },
+      { yPercent: 115, y: 0 },
       {
         yPercent: 0,
         duration: 1,
@@ -456,7 +456,7 @@ function initScenes({ reduced }) {
   // ============================================================
   gsap.fromTo(
     '.ga-contact .line-inner',
-    { yPercent: 115 },
+    { yPercent: 115, y: 0 },
     {
       yPercent: 0,
       duration: 1,
@@ -513,7 +513,7 @@ function runIntro({ reduced }) {
     .fromTo('.ga-kicker', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.1)
     .fromTo(
       '.ga-s1 .line-inner',
-      { yPercent: 115 },
+      { yPercent: 115, y: 0 },
       { yPercent: 0, duration: 1.15, stagger: 0.12 },
       0.18
     )

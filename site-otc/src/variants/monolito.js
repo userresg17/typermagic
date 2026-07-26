@@ -275,7 +275,7 @@ function initScenes({ reduced }) {
   gsap.utils.toArray('.inst-title').forEach((t) =>
     gsap.fromTo(
       t.querySelectorAll('.line-inner'),
-      { yPercent: 115 },
+      { yPercent: 115, y: 0 },
       {
         yPercent: 0,
         duration: 1,
@@ -530,7 +530,7 @@ function initScenes({ reduced }) {
   // ============================================================
   gsap.fromTo(
     '.mo-c-title .line-inner',
-    { yPercent: 115 },
+    { yPercent: 115, y: 0 },
     {
       yPercent: 0,
       duration: 1.1,
@@ -599,7 +599,7 @@ function runIntro({ reduced }) {
     .fromTo('.mo-s1-pre', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.5)
     .fromTo(
       '.mo-s1-title .line-inner',
-      { yPercent: 115 },
+      { yPercent: 115, y: 0 },
       { yPercent: 0, duration: 1.25, stagger: 0.14 },
       0.55
     )
