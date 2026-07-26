@@ -4,6 +4,12 @@ import en from '../i18n/en.json';
 const dict = { pt, en };
 const STORAGE_KEY = 'otc-lang';
 
+// Variantes registram strings próprias antes do initI18n()
+export function registerDict(extra) {
+  if (extra?.pt) Object.assign(dict.pt, extra.pt);
+  if (extra?.en) Object.assign(dict.en, extra.en);
+}
+
 // PT-BR é a língua principal do site; EN só quando o visitante escolhe no toggle
 let current = localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'pt';
 

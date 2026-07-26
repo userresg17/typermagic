@@ -31,9 +31,11 @@ export function initInteract({ reduced }) {
     lastT = now;
   });
 
-  // vídeos que respondem ao tempo (desktop): mundos + palco quadrado
+  // vídeos que respondem ao tempo (desktop): mundos + palco + qualquer [data-scrub]
   const videos = [
-    ...document.querySelectorAll('.world--desk, .world--caustics, .world--vortex, .world--cta, .stage-video--desk'),
+    ...document.querySelectorAll(
+      '.world--desk, .world--caustics, .world--vortex, .world--cta, .stage-video--desk, video[data-scrub]'
+    ),
   ];
   const vstate = new Map(); // video -> { t, manual }
 

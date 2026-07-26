@@ -45,13 +45,19 @@ export function initStageMedia() {
 }
 
 // Assets críticos do primeiro quadro — o preloader espera por isto.
+// Páginas de variante marcam os seus com data-preload="critical".
 export function preloadCritical(onProgress) {
   const mob = isMobile();
+  const marked = [...document.querySelectorAll('video[data-preload="critical"]')];
   const tasks = [
     document.fonts ? document.fonts.ready.then(() => {}) : Promise.resolve(),
-    videoReady(document.querySelector(mob ? '.stage-video--mob' : '.stage-video--desk')),
-    videoReady(document.querySelector(mob ? '.world--particles.world--mob' : '.world--particles.world--desk')),
     imgReady('assets/img/poster-blob.jpg'),
+    ...(marked.length
+      ? marked.map((v) => videoReady(v))
+      : [
+          videoReady(document.querySelector(mob ? '.stage-video--mob' : '.stage-video--desk')),
+          videoReady(document.querySelector(mob ? '.world--particles.world--mob' : '.world--particles.world--desk')),
+        ]),
   ];
   let done = 0;
   return Promise.all(

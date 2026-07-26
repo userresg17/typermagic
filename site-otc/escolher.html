@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escolher versão — Desktop</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        min-height: 100svh; display: grid; place-items: center;
+        background: #050505; color: #f2f2f0;
+        font-family: system-ui, sans-serif; padding: 2rem;
+      }
+      .wrap { max-width: 720px; width: 100%; }
+      h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; }
+      p.hint { margin-top: 0.5rem; color: rgba(242,242,240,.55); font-size: .9rem; }
+      .opts { margin-top: 2rem; display: grid; gap: 1rem; }
+      a.opt {
+        display: block; padding: 1.4rem 1.6rem; border: 1px solid rgba(255,255,255,.12);
+        border-radius: 16px; color: inherit; text-decoration: none;
+        transition: border-color .25s, background .25s;
+      }
+      a.opt:hover { border-color: #a78bfa; background: rgba(167,139,250,.07); }
+      a.opt b { display: block; font-size: 1.05rem; }
+      a.opt span { display: block; margin-top: .35rem; color: rgba(242,242,240,.55); font-size: .85rem; }
+      .tag { font-family: ui-monospace, monospace; font-size: .65rem; letter-spacing: .2em;
+             text-transform: uppercase; color: rgba(242,242,240,.4); }
+      .atual { margin-top: 1.6rem; font-size: .8rem; color: rgba(242,242,240,.45); }
+      .atual a { color: #a78bfa; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="tag">aprovação interna · desktop</p>
+      <h1>Qual versão do desktop vamos entregar?</h1>
+      <p class="hint">Abra cada uma, role até o fim, e compare. O mobile é o mesmo (aprovado) nas três.</p>
+      <div class="opts">
+        <a class="opt" href="galeria.html"><b>A · Galeria</b><span>Private bank editorial — assets emoldurados, hairlines, grid de relatório anual.</span></a>
+        <a class="opt" href="terminal.html"><b>B · Terminal</b><span>A mesa como interface — cotação viva, livro de ofertas, ticket de execução, pipeline T+0.</span></a>
+        <a class="opt" href="monolito.html"><b>C · Monólito</b><span>Cinema de luxo — composições monumentais, mídia com bordas esfumadas, serif gigante.</span></a>
+      </div>
+      <p class="atual">Versão atual em produção: <a href="./">abrir</a></p>
+    </div>
+  </body>
+</html>
