@@ -4,6 +4,18 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "references": [{ "path": "../router" }, { "path": "../skills" }],
-  "include": ["src/**/*.ts"]
+  "references": [
+    {
+      "path": "../router"
+    },
+    {
+      "path": "../skills"
+    },
+    {
+      "path": "../agent"
+    }
+  ],
+  "include": [
+    "src/**/*.ts"
+  ]
 }

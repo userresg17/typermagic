@@ -17,9 +17,11 @@
   },
   "dependencies": {
     "@typer/router": "workspace:*",
-    "@typer/skills": "workspace:*"
+    "@typer/skills": "workspace:*",
+    "@typer/agent": "workspace:*"
   },
   "devDependencies": {
-    "@typer/crypto": "workspace:*"
+    "@typer/crypto": "workspace:*",
+    "@typer/index": "workspace:*"
   }
 }

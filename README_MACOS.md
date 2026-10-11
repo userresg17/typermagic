@@ -80,10 +80,22 @@ Plano completo em `docs/PLANO-APRENDIZADO-GUI.md`.
 /skills                 # lista (🟡 candidata · ✅ selada)
 /skills <id>            # detalhe
 
+/ensaiar <id>           # Fase 8: executa a candidata no programa real, passo a passo (foto por passo)
+
 # CLI
 scripts/env.sh node app/agent-cli/dist/main.js learn <url> --app "DaVinci Resolve"
 scripts/env.sh node app/agent-cli/dist/main.js learn list
+scripts/env.sh node app/agent-cli/dist/main.js learn rehearse <id>   # -y aprova sem perguntar
 ```
+
+**Ensaio (Fase 8).** Cada passo da skill vira um sub-objetivo do agente de desktop (AX
+primeiro, visão depois), seguido de uma verificação independente: o modelo olha a tela e a
+árvore de acessibilidade e responde se o estado esperado do passo foi atingido (rigoroso: na
+dúvida, falha). Até 2 tentativas por passo, foto por passo no Telegram, ação irreversível pede
+confirmação, `/parar` interrompe. Passou em todos → a skill é **selada** (assinada, entra no
+recall do agente). Falhou → continua candidata com `lastRehearsal` e o motivo. O programa
+precisa estar em `TYPER_ALLOWED_APPS`, e o ensaio começa com uma confirmação por botão
+mostrando o roteiro — não use o Mac enquanto roda.
 
 Etapas e artefatos (em `~/.typer/learn/<videoId>/`): `*.mp4` + `*.vtt` (yt-dlp, 720p, uma
 língua de legenda por vez para evitar 429) → `transcript.json` (VTT de-duplicado; sem legenda

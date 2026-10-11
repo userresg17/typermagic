@@ -18,7 +18,8 @@ import { createEngine, type CapabilityGrant, type EngineEvent } from "@typer/eng
 import { openBrowser, isStopRequested, stopFile, spentToday, type BrowserSession, type DesktopSession } from "@typer/agent";
 import { existsSync, unlinkSync } from "node:fs";
 import { openVault, type Vault } from "@typer/vault";
-import { learn, listSkills, readSkill, summarizeSkill, setupLearn } from "@typer/learn";
+import { learn, listSkills, readSkill, summarizeSkill, setupLearn, rehearse, rehearsalPlan, writeSkill } from "@typer/learn";
+import { openSkills, pickEngineEmbedder } from "@typer/engine";
 import { RateLimiter } from "./rate-limit.js";
 import { PendingStore, type PendingKind } from "./pending.js";
 import type { ChannelAdapter, GatewayConfig, IncomingMessage } from "./types.js";
@@ -68,7 +69,7 @@ const MAX_APPROVALS_PER_TASK = 2;
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
-const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar", "/aprender", "/skills"];
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar", "/aprender", "/skills", "/ensaiar"];
 /** data dos botões inline de confirmação/handoff */
 const BTN_OK = "ok";
 const BTN_CANCEL = "cancel";
@@ -578,6 +579,7 @@ export class Gateway {
           "/continuar — remove o arquivo STOP (trava total) se existir",
           "/aprender <url> [programa] — assiste um tutorial em vídeo e aprende uma skill (candidata; só vale depois de ensaiar)",
           "/skills [id] — lista as skills aprendidas (candidatas e seladas) ou mostra uma",
+          "/ensaiar <id> — executa a skill candidata no programa real, passo a passo com foto; se passar, ela é selada e entra na biblioteca",
           "",
           "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
         ].join("\n"),
@@ -665,6 +667,87 @@ export class Gateway {
         await this.adapter.send(chatId, [`📚 Skills (${all.length}) — 🟡 candidata · ✅ selada`, ...lines, "", "Detalhe: /skills <id>"].join("\n"));
       } catch (e) {
         await this.adapter.send(chatId, `não consegui listar: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return;
+    }
+    if (cmd === "/ensaiar") {
+      const id = parts[1];
+      const skillsDir = join(this.config.root, ".typer", "skills");
+      const skill = id ? await readSkill(skillsDir, id) : null;
+      if (!skill) {
+        await this.adapter.send(chatId, id ? `skill não encontrada: ${id}` : "Uso: /ensaiar <id>  (veja /skills)");
+        return;
+      }
+      if (skill.kind !== "gui" || !skill.steps?.length) {
+        await this.adapter.send(chatId, "Essa skill não é de GUI (ou não tem passos) — nada para ensaiar.");
+        return;
+      }
+      if (skill.sealed) {
+        await this.adapter.send(chatId, "✅ Essa skill já está selada. (Re-ensaio de skill selada entra na Fase 12.)");
+        return;
+      }
+      const desktop = this.ensureDesktop();
+      if (!desktop) {
+        await this.adapter.send(chatId, "Desktop desligado neste gateway — o ensaio precisa do sidecar macOS (desktop: true).");
+        return;
+      }
+      if (existsSync(stopFile())) {
+        await this.adapter.send(chatId, `⛔ Arquivo STOP presente (${stopFile()}) — nada roda até /continuar.`);
+        return;
+      }
+      // roteiro + confirmação explícita: o ensaio mexe no programa de verdade
+      const ok = await this.approveViaChannel(chatId, { action: rehearsalPlan(skill), target: skill.app ?? "", detail: "Confirma o ensaio? Não use o Mac enquanto roda." });
+      if (!ok) return;
+      const ac = new AbortController();
+      this.running.set(chatId, ac);
+      const t0 = Date.now();
+      try {
+        const setup = await setupLearn({ root: this.config.root, provider: this.config.provider, model: this.config.model, local: this.config.local });
+        const model = setup.distillModel;
+        const llm = async (system: string, messages: Array<{ role: "user" | "assistant" | "system"; content: string; images?: string[] }>): Promise<string> => {
+          let text = "";
+          for await (const ch of setup.provider.chat({ messages, model, system, maxTokens: 4096 })) text += ch.text;
+          return text;
+        };
+        const report = await rehearse(skill, {
+          platform: desktop,
+          llm,
+          approve: async (card) => {
+            const lines = [card.action];
+            if (card.amount) lines.push(`Valor: ${card.amount}`);
+            if (card.recipient) lines.push(`Destinatário: ${card.recipient}`);
+            return this.approveViaChannel(chatId, { action: lines.join(" · "), target: card.app ?? "" });
+          },
+          ask: (kind, q) => this.askUser(chatId, kind, q),
+          handoff: (reason, png) => this.handoffViaChannel(chatId, reason, png),
+          checkpoint: async (png, caption) => {
+            if (this.adapter.sendPhoto) await this.adapter.sendPhoto(chatId, png, caption);
+            else await this.adapter.send(chatId, caption);
+          },
+          onProgress: (m) => this.adapter.send(chatId, m),
+          signal: ac.signal,
+          surface: this.surface,
+        });
+        const secs = Math.round((Date.now() - t0) / 1000);
+        const rehearsed = { ...skill, lastRehearsal: { at: report.finishedAt, passed: report.passed, reason: report.reason.slice(0, 300) } };
+        if (report.passed) {
+          // a porta: só entra na biblioteca (assinada, recuperável) depois do ensaio aprovado
+          const { embedder } = await pickEngineEmbedder(this.config.local ?? false);
+          const store = await openSkills(this.config.root, embedder);
+          const sealed = await store.seal({ ...rehearsed, state: "sealed" }, { state: "Verificado", passed: true, output: report.reason, durationMs: report.durationMs, applied: [] });
+          await this.adapter.send(chatId, sealed ? `✅ Ensaio aprovado em ${secs}s (${report.steps.length} passos). Skill SELADA e na biblioteca: ${skill.id}` : `ensaio passou, mas o selo recusou a skill (${skill.id})`);
+          this.hooks.onAudit?.({ sender: chatId, result: "ok", detail: `/ensaiar ${skill.id} passou` });
+        } else {
+          await writeSkill(skillsDir, rehearsed);
+          const failed = report.steps.filter((st) => !st.passed).map((st) => `passo ${st.n}: ${st.reason}`).join("\n");
+          await this.adapter.send(chatId, `❌ Ensaio reprovado em ${secs}s — ${report.reason}${failed ? "\n" + failed : ""}\nA skill continua candidata (${skill.id}); corrija o pré-requisito ou re-aprenda com outro tutorial.`);
+          this.hooks.onAudit?.({ sender: chatId, result: "ok", detail: `/ensaiar ${skill.id} falhou` });
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await this.adapter.send(chatId, ac.signal.aborted ? "🛑 Ensaio interrompido." : `✗ ensaio falhou: ${msg}`);
+      } finally {
+        this.running.delete(chatId);
       }
       return;
     }

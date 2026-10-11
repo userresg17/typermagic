@@ -8,7 +8,9 @@ export { detectScenes, planTimestamps, extractFrames, existingFrames, dHashFromG
 export { describeFrames, extractJsonArray } from "./describe.js";
 export { distill, toSkill, coerceDistilled, renderMethodology, slugify, extractJsonObject } from "./distill.js";
 export type { Distilled, DistillInput } from "./distill.js";
-export { learn, listSkills, readSkill, summarizeSkill } from "./pipeline.js";
+export { learn, listSkills, readSkill, summarizeSkill, writeSkill } from "./pipeline.js";
 export type { LearnDeps } from "./pipeline.js";
 export { setupLearn, resolveModels, defaultWorkDir } from "./setup.js";
 export type { LearnSetup } from "./setup.js";
+export { rehearse, rehearsalPlan, stepGoal, parseVerdict } from "./rehearse.js";
+export type { RehearseDeps, RehearsalReport, StepReport } from "./rehearse.js";

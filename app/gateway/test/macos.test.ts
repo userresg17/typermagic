@@ -172,3 +172,27 @@ describe("gateway macOS — aprendizado por tutorial (Fase 7)", () => {
     expect(ch.lastReply()).toContain("eco: oi");
   });
 });
+
+describe("gateway macOS — ensaio (Fase 8)", () => {
+  it("/ensaiar: uso, id inexistente, skill sem passos e gateway sem desktop", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake" });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/ensaiar" });
+    expect(ch.lastReply()).toMatch(/Uso: \/ensaiar/);
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/ensaiar nao-existe" });
+    expect(ch.lastReply()).toMatch(/não encontrada/);
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(join(root, ".typer", "skills", "s-gui"), { recursive: true });
+    await writeFile(
+      join(root, ".typer", "skills", "s-gui", "SKILL.md"),
+      '---\nid: s-gui\nname: X\ndescription: d\ncodeVersion: gui\nsealed: false\ncreatedAt: 2026-10-11T00:00:00Z\nkind: gui\napp: TextEdit\nstate: candidate\nsteps: [{"n":1,"intent":"a","how":"b","verify":"c"}]\n---\n\n# X\n',
+    );
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/ensaiar s-gui" });
+    expect(ch.lastReply()).toMatch(/Desktop desligado/);
+    await mkdir(join(root, ".typer", "skills", "s-legacy"), { recursive: true });
+    await writeFile(join(root, ".typer", "skills", "s-legacy", "SKILL.md"), "---\nid: s-legacy\nname: L\ndescription: d\ncodeVersion: v1\nsealed: false\ncreatedAt: 2026-10-11T00:00:00Z\n---\n\ntexto\n");
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/ensaiar s-legacy" });
+    expect(ch.lastReply()).toMatch(/não é de GUI/);
+  });
+});

@@ -243,6 +243,9 @@ importers:
 
   core/learn:
     dependencies:
+      '@typer/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@typer/router':
         specifier: workspace:*
         version: link:../router
@@ -253,6 +256,9 @@ importers:
       '@typer/crypto':
         specifier: workspace:*
         version: link:../crypto
+      '@typer/index':
+        specifier: workspace:*
+        version: link:../index
 
   core/mcp: {}
 

@@ -175,3 +175,12 @@ export function summarizeSkill(s: Skill, maxSteps = 12): string {
   if (s.lastRehearsal) lines.push("", `Último ensaio: ${s.lastRehearsal.passed ? "✅ passou" : "❌ falhou"} em ${s.lastRehearsal.at}${s.lastRehearsal.reason ? ` — ${s.lastRehearsal.reason}` : ""}`);
   return lines.join("\n");
 }
+
+/** Regrava a skill no mesmo caminho (ex.: registrar o último ensaio numa candidata). */
+export async function writeSkill(skillsDir: string, skill: Skill): Promise<string> {
+  const dir = join(skillsDir, skill.id);
+  await mkdir(dir, { recursive: true });
+  const p = join(dir, "SKILL.md");
+  await writeFile(p, serializeSkill(skill), "utf8");
+  return p;
+}
