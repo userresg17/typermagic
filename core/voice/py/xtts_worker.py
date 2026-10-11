@@ -26,19 +26,34 @@ def main():
         return
 
     model_name = os.environ.get("XTTS_MODEL", "tts_models/multilingual/multi-dataset/xtts_v2")
+    # Dispositivo: XTTS_DEVICE=mps|cuda|cpu|auto. "auto" usa a GPU do Mac (Metal/MPS) quando existe —
+    # muito mais rápido que CPU no Apple Silicon. Ops sem kernel MPS caem p/ CPU (fallback do torch).
+    os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+    want = os.environ.get("XTTS_DEVICE", "auto")
+    device = "cpu"
     try:
-        tts = TTS(model_name)  # baixa o modelo (~2GB) na 1ª vez; roda em CPU
+        if want in ("auto", "mps") and torch.backends.mps.is_available():
+            device = "mps"
+        elif want in ("auto", "cuda") and torch.cuda.is_available():
+            device = "cuda"
+    except Exception:
+        device = "cpu"
+    try:
+        tts = TTS(model_name)  # baixa o modelo (~2GB) na 1ª vez
         try:
+            tts.to(device)
+        except Exception as e:
+            sys.stderr.write(f"[xtts] {device} indisponível ({e}); usando cpu\n")
+            device = "cpu"
             tts.to("cpu")
-        except Exception:
-            pass
     except Exception as e:
         emit({"fatal": f"load falhou: {e}"})
         return
+    sys.stderr.write(f"[xtts] modelo carregado em {device}\n")
 
     speakers = list(getattr(tts, "speakers", None) or [])
     default_speaker = speakers[0] if speakers else None
-    emit({"ready": True, "speakers": speakers[:80]})
+    emit({"ready": True, "speakers": speakers[:80], "device": device})
 
     for line in sys.stdin:
         line = line.strip()

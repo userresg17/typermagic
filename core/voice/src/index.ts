@@ -46,7 +46,9 @@ export function asrReady(model: AsrModel): boolean {
 const SPOKEN_MAX = 700;
 /** XTTS é ~6x mais lento que tempo real na CPU (pior sob contenção de RAM) — encurta MUITO a fala
  *  (uma frase curta); o texto completo o usuário lê na hora. */
-const XTTS_SPOKEN_MAX = 160;
+// macOS/GPU: o dono prefere resposta completa e natural a resposta rápida — teto alto. Configurável
+// por TYPER_SPOKEN_MAX (chars). Em CPU pura, 160 era o usável; em MPS cabe muito mais.
+const XTTS_SPOKEN_MAX = Number(process.env.TYPER_SPOKEN_MAX ?? 1200);
 
 /** corta o texto no limite `cap`, preferindo terminar numa frase (evita cortar no meio). */
 function capSpoken(s: string, cap: number): string {
