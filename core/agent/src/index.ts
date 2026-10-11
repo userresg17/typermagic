@@ -51,10 +51,15 @@ export {
   memorySkillSection,
   MEMORY_SKILL,
   openBrowser,
+  openCdpBrowser,
+  findMacBrowser,
+  defaultCdpProfile,
+  isPersonalProfile,
   desktopSkillSection,
   DESKTOP_SKILL,
 } from "./tools/index.js";
-export type { BrowserOptions } from "./tools/index.js";
+export type { BrowserOptions, CdpBrowserOptions } from "./tools/index.js";
+export { BROWSER_AGENT_PROMPT_MACOS } from "./browser/prompt-macos.js";
 export type {
   Tool,
   ToolRegistry,

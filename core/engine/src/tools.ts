@@ -65,6 +65,7 @@ export interface ToolCallDeps {
   checkpoint?: ToolDeps["checkpoint"];
   signal?: ToolDeps["signal"];
   taskLabel?: ToolDeps["taskLabel"];
+  browserPrompt?: ToolDeps["browserPrompt"];
 }
 
 /** Executa uma ferramenta com o broker à frente. Nunca lança: devolve ToolResult
@@ -134,6 +135,7 @@ export async function callRegistryTool(
     ...(deps.checkpoint !== undefined ? { checkpoint: deps.checkpoint } : {}),
     ...(deps.signal !== undefined ? { signal: deps.signal } : {}),
     ...(deps.taskLabel !== undefined ? { taskLabel: deps.taskLabel } : {}),
+    ...(deps.browserPrompt !== undefined ? { browserPrompt: deps.browserPrompt } : {}),
   };
 
   const ctx: ToolContext = {

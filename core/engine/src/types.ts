@@ -104,6 +104,8 @@ export interface EngineConfig {
   signal?: AbortSignal;
   /** rótulo da tarefa p/ o log estruturado */
   taskLabel?: string;
+  /** system prompt alternativo do sub-agente de navegador (macOS) */
+  browserPrompt?: string;
 }
 
 export interface TaskRequest {

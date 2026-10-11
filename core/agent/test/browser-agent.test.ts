@@ -125,6 +125,10 @@ describe("browser sub-agente (loop perceber→agir)", () => {
     ];
     let n = 0;
     const approvals: string[] = [];
+    // Fase 5 (macOS): pagamento exige host na allowlist de checkout e teto de gasto > valor.
+    process.env.TYPER_CHECKOUT_ALLOW_HOSTS = "pay";
+    process.env.TYPER_MAX_PER_TX = "100";
+    process.env.TYPER_SPEND_LEDGER = "/tmp/typer-test-spend.json";
     const out = await runBrowserAgent("pagar", {
       session,
       llm: async () => scripts[n++] ?? '{"actions":[{"action":"done","text":"fim"}]}',

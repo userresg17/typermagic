@@ -242,6 +242,11 @@ const taskTool: Tool = {
       approve: ctx.approve,
       ...(ctx.deps?.vault !== undefined ? { vault: ctx.deps.vault } : {}),
       ...(ctx.deps?.ask !== undefined ? { ask: ctx.deps.ask } : {}),
+      ...(ctx.deps?.handoff !== undefined ? { handoff: ctx.deps.handoff } : {}),
+      ...(ctx.deps?.checkpoint !== undefined ? { checkpoint: ctx.deps.checkpoint } : {}),
+      ...(ctx.deps?.signal !== undefined ? { signal: ctx.deps.signal } : {}),
+      ...(ctx.deps?.browserPrompt !== undefined ? { prompt: ctx.deps.browserPrompt } : {}),
+      ...(ctx.deps?.taskLabel !== undefined ? { taskLabel: ctx.deps.taskLabel } : {}),
       onStep: (s) => {
         // trace seguro (sem segredos): vault_fill loga só o nome do campo. Mostra rótulos +
         // raciocínio curto p/ diagnosticar onde o agente patina em site real.

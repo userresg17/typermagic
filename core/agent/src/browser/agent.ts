@@ -6,6 +6,8 @@
 import type { BrowserSession, PageState } from "../tools/types.js";
 import { serializeState } from "./dom.js";
 import { BROWSER_AGENT_PROMPT } from "./prompt.js";
+import { checkSpend, checkoutHostAllowed, isStopRequested, parseAmountBRL, recordSpend } from "../guard.js";
+import { logStep, sha256 } from "../steplog.js";
 
 /** Mensagem simples do loop (sem acoplar o Message do router). images = screenshots (visão). */
 type Msg = { role: "user" | "assistant"; content: string; images?: string[] };
@@ -23,6 +25,18 @@ export interface BrowserAgentDeps {
   /** pergunta ao usuário (esclarecimento / OTP do banco). */
   ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
   maxSteps?: number;
+  /** human_handoff: pausa, avisa o humano (motivo + screenshot) e espera "ok"/"cancelar".
+   *  No fluxo macOS substitui qualquer tentativa de resolver CAPTCHA/anti-bot. */
+  handoff?: (reason: string, pngBase64?: string) => Promise<"ok" | "cancelar">;
+  /** screenshot de checkpoint p/ o canal (passo 1, a cada N, antes de confirmar, final) */
+  checkpoint?: (pngBase64: string, caption: string) => Promise<void>;
+  checkpointEvery?: number;
+  /** cancelamento (/parar) */
+  signal?: AbortSignal;
+  /** system prompt alternativo (macOS: sem instruções de anti-bot, com handoff) */
+  prompt?: string;
+  surface?: string;
+  taskLabel?: string;
   /** observabilidade (trace perceber→agir). describe = ações com rótulo do alvo. */
   onStep?: (info: {
     step: number;
@@ -44,6 +58,10 @@ export interface Action {
   question?: string;
   kind?: string;
   summary?: string;
+  amount?: string | number;
+  recipient?: string;
+  address?: string;
+  reason?: string;
   success?: boolean;
   down?: boolean;
   pages?: number;
@@ -144,9 +162,47 @@ async function execAction(
         const ans = await deps.ask(a.kind === "otp" ? "otp" : "clarify", String(a.question ?? ""));
         return { result: `usuário respondeu: ${ans}`, terminal: true };
       }
+      case "handoff": {
+        if (!deps.handoff) return { result: "ERRO: handoff indisponível neste canal — use ask_user", terminal: true };
+        let shot = "";
+        try {
+          shot = await s.screenshot();
+        } catch {
+          /* sem imagem */
+        }
+        const ans = await deps.handoff(String(a.reason ?? "preciso de ajuda humana nesta página"), shot || undefined);
+        if (ans === "cancelar") return { result: "handoff: usuário CANCELOU", terminal: true, doneText: "Tarefa cancelada por você no handoff." };
+        return { result: "handoff: usuário resolveu na janela e mandou continuar — releia o estado", terminal: true };
+      }
       case "finalize": {
         const summary = String(a.summary || elText(state, idx) || "concluir a ação");
-        const ok = deps.approve ? await deps.approve(summary) : false;
+        // Fase 5: pagar/finalizar compra só em host da allowlist e dentro dos tetos de gasto.
+        const looksLikePayment = a.amount !== undefined || /(pagar|pay|compra|comprar|buy|order|pedido|checkout|finalizar)/i.test(summary + " " + elText(state, idx));
+        if (looksLikePayment) {
+          const host = checkoutHostAllowed(state.url);
+          if (!host.ok) {
+            return { result: `BLOQUEADO: checkout em "${host.host}" não está na allowlist TYPER_CHECKOUT_ALLOW_HOSTS. Faça done explicando.`, terminal: true, denied: true };
+          }
+          // valor: campo amount do finalize; se faltar, tenta extrair do summary ("pagar R$ 10")
+          const spend = checkSpend(parseAmountBRL(a.amount ?? summary));
+          if (!spend.ok) return { result: `BLOQUEADO pelo limite de gasto: ${spend.reason}. Faça done explicando.`, terminal: true, denied: true };
+        }
+        const card = [
+          `Ação: ${summary}`,
+          ...(a.amount !== undefined ? [`Valor: ${a.amount}`] : []),
+          ...(a.recipient ? [`Vendedor/destinatário: ${a.recipient}`] : []),
+          ...(a.address ? [`Endereço: ${a.address}`] : []),
+          `Site: ${state.url}`,
+        ].join("\n");
+        if (deps.checkpoint) {
+          try {
+            const shot = await s.screenshot();
+            if (shot) await deps.checkpoint(shot, `📸 antes de confirmar: ${summary.slice(0, 180)}`);
+          } catch {
+            /* segue */
+          }
+        }
+        const ok = deps.approve ? await deps.approve(card) : false;
         if (!ok)
           return {
             result: "BLOQUEADO: usuário NÃO confirmou. NÃO tente de novo; faça done explicando que aguarda a confirmação.",
@@ -154,6 +210,10 @@ async function execAction(
             denied: true,
           };
         await s.actByIndex(idx, "click");
+        if (looksLikePayment) {
+          const amt = parseAmountBRL(a.amount ?? summary);
+          if (amt !== null) recordSpend(amt);
+        }
         return { result: `FINALIZEI [${idx}] (aprovado pelo usuário)`, terminal: true };
       }
       case "done":
@@ -185,7 +245,12 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
   let denials = 0;
   let holdChallenges = 0; // desafios "aperte e segure" repetidos = anti-bot detectando automação
 
+  const systemPrompt = deps.prompt ?? BROWSER_AGENT_PROMPT;
+  const every = deps.checkpointEvery ?? 5;
+  const surface = deps.surface ?? "browser";
+  const taskLabel = deps.taskLabel ?? goal.slice(0, 80);
   for (let step = 1; step <= maxSteps; step++) {
+    if (isStopRequested(deps.signal)) return "⛔ Parado pelo kill switch (/parar ou arquivo STOP).";
     let state;
     try {
       state = await deps.session.state();
@@ -200,6 +265,9 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
     } catch {
       /* sessão sem visão: segue só com texto */
     }
+    if (shot && deps.checkpoint && (step === 1 || step % every === 0)) {
+      await deps.checkpoint(shot, `📸 passo ${step} · ${state.url.slice(0, 80)}`).catch(() => {});
+    }
     for (const m of messages) delete m.images;
     const stateMsg: Msg = {
       role: "user",
@@ -211,7 +279,7 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
 
     let raw: string;
     try {
-      raw = await deps.llm(BROWSER_AGENT_PROMPT, messages);
+      raw = await deps.llm(systemPrompt, messages);
     } catch (e) {
       return `Erro ao decidir a ação no navegador: ${(e as Error).message}`;
     }
@@ -243,11 +311,22 @@ export async function runBrowserAgent(goal: string, deps: BrowserAgentDeps): Pro
 
     const results: string[] = [];
     for (const a of plan.actions.slice(0, 5)) {
+      if (isStopRequested(deps.signal)) return "⛔ Parado pelo kill switch (/parar ou arquivo STOD).".replace("STOD", "STOP");
       if (a.action === "press_hold") holdChallenges++;
       const r = await execAction(a, deps, state);
       results.push(`${a.action}${a.index !== undefined ? `[${a.index}]` : ""}: ${r.result}`);
+      logStep({
+        surface, task: taskLabel, agent: "browser", step, action: a.action,
+        target: a.index !== undefined ? `[${a.index}] ${elText(state, a.index).slice(0, 40)}` : (a.url ?? a.keys ?? a.field ?? a.reason ?? ""),
+        ...(shot ? { screenshot_sha256: sha256(shot) } : {}),
+        result: r.result.slice(0, 200),
+        extra: { url: state.url.slice(0, 120) },
+      });
       if (r.denied) denials++;
-      if (r.doneText !== undefined) return r.doneText;
+      if (r.doneText !== undefined) {
+        if (shot && deps.checkpoint) await deps.checkpoint(shot, "📸 estado final").catch(() => {});
+        return r.doneText;
+      }
       if (r.terminal) break;
     }
     messages.push({ role: "user", content: "Resultado das ações:\n" + results.join("\n") });

@@ -18,7 +18,7 @@ import { realMouseAvailable, realClickAt, realPressHoldAt } from "./real-mouse.j
 /** Roda DENTRO da página (cada frame): acha os elementos interativos VISÍVEIS, marca cada um
  *  com data-typer-idx = offset+i (índice global), e devolve a lista numerada. É a "leitura da
  *  tela" — o modelo age pelo índice, não por seletor CSS frágil. */
-const EXTRACT_FN = (offset: number): unknown[] => {
+export const EXTRACT_FN = (offset: number): unknown[] => {
   const g = globalThis as any;
   const doc = g.document;
   if (!doc) return [];

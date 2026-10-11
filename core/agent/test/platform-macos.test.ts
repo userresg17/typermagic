@@ -30,7 +30,9 @@ describe.skipIf(!can)("plataforma macOS (sidecar pyobjc)", () => {
       await p.close();
     }
   });
-  it("mouse_move(x,y) lógico → mouse_location volta ao mesmo ponto (Retina ida e volta)", async () => {
+  // move o cursor REAL — só roda com TYPER_TEST_MOUSE=1 (alguém pode estar usando o Mac) e com
+  // Accessibility concedido; o scripts/test_macos_platform.py cobre o mesmo ponto a ponto.
+  it.skipIf(process.env.TYPER_TEST_MOUSE !== "1")("mouse_move(x,y) lógico → mouse_location volta ao mesmo ponto (Retina ida e volta)", async () => {
     const p = new MacOSPlatform({ root: root!, python: py, logicalWidth: 1440 });
     try {
       const before = await p.mouse_location();

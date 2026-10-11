@@ -27,6 +27,7 @@ export { reachSkillSection } from "./reach.js";
 export { browserSkillSection, BROWSER_SKILL } from "./browser.js";
 export { memorySkillSection, MEMORY_SKILL } from "./knowledge.js";
 export { openBrowser, type BrowserOptions } from "./playwright-browser.js";
+export { openCdpBrowser, findMacBrowser, defaultCdpProfile, isPersonalProfile, type CdpBrowserOptions } from "./cdp-browser.js";
 
 export * from "./types.js";
 export { DefaultToolRegistry } from "./registry.js";

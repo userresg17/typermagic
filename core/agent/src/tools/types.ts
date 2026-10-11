@@ -148,6 +148,8 @@ export interface ToolDeps {
   signal?: AbortSignal;
   /** rótulo da tarefa p/ o log estruturado (JSONL) */
   taskLabel?: string;
+  /** system prompt alternativo do sub-agente de navegador (macOS: handoff em vez de anti-bot) */
+  browserPrompt?: string;
   /** preferir modelo/embedder local (Ollama) quando aplicável */
   local?: boolean;
   /** tem chave OpenAI? (escolha de embedder) */

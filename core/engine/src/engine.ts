@@ -577,6 +577,7 @@ class EngineImpl implements Engine {
       ...(this.config.checkpoint !== undefined ? { checkpoint: this.config.checkpoint } : {}),
       ...(this.config.signal !== undefined ? { signal: this.config.signal } : {}),
       ...(this.config.taskLabel !== undefined ? { taskLabel: this.config.taskLabel } : {}),
+      ...(this.config.browserPrompt !== undefined ? { browserPrompt: this.config.browserPrompt } : {}),
       ...(this.config.vault !== undefined ? { vault: this.config.vault } : {}),
       ...(this.config.ask !== undefined ? { ask: this.config.ask } : {}),
       // memória: o MESMO embedder do recall, p/ escrita (memory_write) e leitura casarem
