@@ -242,7 +242,9 @@ class EngineImpl implements Engine {
     if (agentToolDeps) {
       agentToolDeps.llm = async (system, messages) => {
         let text = "";
-        for await (const chunk of provider.chat({ messages, model, system, maxTokens: 1024 })) text += chunk.text;
+        // 4096: modelos atuais (Opus/Sonnet 5.5) pensam antes de responder e o raciocínio consome o teto;
+        // com 1024 o JSON de ações do sub-agente vinha truncado.
+        for await (const chunk of provider.chat({ messages, model, system, maxTokens: 4096 })) text += chunk.text;
         return text;
       };
     }
