@@ -22,3 +22,7 @@ coverage/
 
 # Claude Code (config local da maquina)
 .claude/
+
+# backups locais
+*.bak*
+.venv/
