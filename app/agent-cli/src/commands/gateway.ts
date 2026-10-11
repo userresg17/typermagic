@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { Gateway, TelegramChannel, FakeChannel, type GatewayConfig, type ChannelAdapter, type GatewayHooks } from "@typer/gateway";
+import { openCdpBrowser, pickPlatform, BROWSER_AGENT_PROMPT_MACOS } from "@typer/agent";
 import { transcribe, asrReady, synthesize, ttsReady, xttsWorkerPath, type AsrModel, type TtsModel } from "@typer/voice";
 import { rootOf, type Flags } from "../config.js";
 import { dim, green, red, yellow } from "../render.js";
@@ -37,7 +38,18 @@ interface GatewayFile {
   browser?: GatewayConfig["browser"];
   /** liga o cofre cifrado (vault_fill) — abre ~/.typer/vault.enc sob demanda. */
   vault?: GatewayConfig["vault"];
+  /** macOS: liga o controle de DESKTOP (sidecar pyobjc) p/ as ferramentas desktop_*. */
+  desktop?: boolean;
+  /** override de modelo (ex.: "claude-opus-5-5"). Também via TYPER_MODEL. */
+  model?: string | null;
+  checkpointEvery?: number;
 }
+
+const list = (v: string | undefined): string[] =>
+  (v ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
 
 async function loadGatewayFile(root: string): Promise<GatewayFile> {
   try {
@@ -51,10 +63,20 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   const channel = flags.rest[0] ?? "telegram";
   const root = rootOf();
   const file = await loadGatewayFile(root);
+  // macOS: navegador real via CDP (perfil dedicado, sem stealth) + prompt sem anti-bot; desktop opt-in.
+  const mac = process.platform === "darwin";
+  const wantBrowser = file.browser !== undefined;
   const config: GatewayConfig = {
     root,
-    allow: file.allow ?? [],
-    provider: flags.provider ?? file.provider ?? null,
+    // allowlist: gateway.json OU TYPER_TELEGRAM_ALLOW do .env (macOS: tudo num lugar só)
+    allow: file.allow?.length ? file.allow : list(process.env.TYPER_TELEGRAM_ALLOW),
+    provider: flags.provider ?? file.provider ?? process.env.TYPER_PROVIDER ?? null,
+    model: flags.model ?? file.model ?? process.env.TYPER_MODEL ?? null,
+    ...(mac && wantBrowser && !file.browser?.cdpUrl
+      ? { openBrowser: () => openCdpBrowser(), browserPrompt: BROWSER_AGENT_PROMPT_MACOS }
+      : {}),
+    ...(mac && file.desktop ? { openDesktop: () => pickPlatform() } : {}),
+    ...(file.checkpointEvery !== undefined ? { checkpointEvery: file.checkpointEvery } : {}),
     local: flags.local,
     ...(file.rateCapacity !== undefined ? { rateCapacity: file.rateCapacity } : {}),
     ...(file.rateRefillMs !== undefined ? { rateRefillMs: file.rateRefillMs } : {}),
@@ -68,7 +90,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   }
   console.error(
     dim(
-      `· config: features=${JSON.stringify(config.features ?? {})} grants=${config.grants ? Object.keys(config.grants).join(",") : "—"} browser=${config.browser ? "on" : "off"} vault=${config.vault ? "on" : "off"}`,
+      `· config: features=${JSON.stringify(config.features ?? {})} grants=${config.grants ? Object.keys(config.grants).join(",") : "—"} browser=${config.browser || config.openBrowser ? (config.openBrowser ? "cdp-macos" : "on") : "off"} desktop=${config.openDesktop ? "on" : "off"} vault=${config.vault ? "on" : "off"} model=${config.model ?? "default"}`,
     ),
   );
 

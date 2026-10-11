@@ -4,7 +4,7 @@
 // gateway:<name> sobre a Engine, capability-scoped (READONLY por padrão).
 
 import type { CapabilityGrant, EngineFeatures } from "@typer/engine";
-import type { BrowserOptions } from "@typer/agent";
+import type { BrowserOptions, BrowserSession, DesktopSession } from "@typer/agent";
 
 export interface IncomingMessage {
   /** id do remetente (allowlist/rate-limit por aqui) */
@@ -14,6 +14,18 @@ export interface IncomingMessage {
   text: string;
   /** a mensagem veio como ÁUDIO (foi transcrita) — p/ responder por voz na Fase 4. */
   viaVoice?: boolean;
+  /** veio de um BOTÃO inline (callback_query) — text = data do botão ("ok"/"cancel") */
+  isCallback?: boolean;
+}
+
+/** botão inline: rótulo + dado devolvido no callback */
+export interface Button {
+  text: string;
+  data: string;
+}
+export interface SendOptions {
+  /** linhas de botões inline */
+  buttons?: Button[][];
 }
 
 export interface ChannelAdapter {
@@ -21,8 +33,10 @@ export interface ChannelAdapter {
   readonly name: string;
   /** registra o handler de mensagens recebidas */
   onMessage(cb: (m: IncomingMessage) => void | Promise<void>): void;
-  /** envia uma resposta ao chat */
-  send(chatId: string, text: string): Promise<void>;
+  /** envia uma resposta ao chat (opcionalmente com botões inline) */
+  send(chatId: string, text: string, opts?: SendOptions): Promise<void>;
+  /** envia uma FOTO (PNG base64) com legenda — screenshots de checkpoint/handoff. Opcional. */
+  sendPhoto?(chatId: string, pngBase64: string, caption?: string, opts?: SendOptions): Promise<void>;
   /** envia uma resposta em ÁUDIO (voz-OUT), com o texto JUNTO como legenda. Opcional. */
   sendVoice?(chatId: string, audioPath: string, caption?: string): Promise<void>;
   /** começa a escutar (bloqueante p/ canais reais; no-op no Fake) */
@@ -49,4 +63,14 @@ export interface GatewayConfig {
   browser?: BrowserOptions;
   /** habilita o cofre cifrado (vault_fill) — abre ~/.typer/vault.enc sob demanda. */
   vault?: boolean;
+  /** fábrica do navegador (macOS: CDP sem stealth). Ausente = openBrowser(config.browser). */
+  openBrowser?: () => Promise<BrowserSession>;
+  /** system prompt do sub-agente de navegador (macOS: handoff em vez de anti-bot) */
+  browserPrompt?: string;
+  /** controle de DESKTOP (macOS): fábrica da Platform. Ausente = sem desktop_*. */
+  openDesktop?: () => DesktopSession;
+  /** override de modelo (ex.: claude-opus-5-5) */
+  model?: string | null;
+  /** a cada quantos passos manda screenshot de checkpoint (default 5) */
+  checkpointEvery?: number;
 }

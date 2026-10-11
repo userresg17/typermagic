@@ -5,7 +5,7 @@
 // reentrante (o loop de polling não trava esperando a resposta). Uma pendência por chat
 // (fluxo sequencial); timeout → rejeita (default-deny: na dúvida, não age).
 
-export type PendingKind = "approval" | "clarify" | "otp";
+export type PendingKind = "approval" | "clarify" | "otp" | "handoff";
 
 interface Pending {
   kind: PendingKind;

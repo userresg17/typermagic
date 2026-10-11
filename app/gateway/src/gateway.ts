@@ -15,7 +15,8 @@ import { rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createEngine, type CapabilityGrant, type EngineEvent } from "@typer/engine";
-import { openBrowser, type BrowserSession } from "@typer/agent";
+import { openBrowser, isStopRequested, stopFile, spentToday, type BrowserSession, type DesktopSession } from "@typer/agent";
+import { existsSync, unlinkSync } from "node:fs";
 import { openVault, type Vault } from "@typer/vault";
 import { RateLimiter } from "./rate-limit.js";
 import { PendingStore, type PendingKind } from "./pending.js";
@@ -66,7 +67,12 @@ const MAX_APPROVALS_PER_TASK = 2;
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
-const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help"];
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar"];
+/** data dos botões inline de confirmação/handoff */
+const BTN_OK = "ok";
+const BTN_CANCEL = "cancel";
+const CONFIRM_BUTTONS = [[{ text: "✅ Confirmar", data: BTN_OK }, { text: "🚫 Cancelar", data: BTN_CANCEL }]];
+const HANDOFF_BUTTONS = [[{ text: "▶️ ok, continuar", data: BTN_OK }, { text: "🛑 cancelar", data: BTN_CANCEL }]];
 /** 1º token do comando, normalizado — tira o sufixo @nomedobot que o Telegram anexa. */
 function commandOf(text: string): string {
   const first = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
@@ -173,6 +179,10 @@ export class Gateway {
   /** navegador e cofre compartilhados, abertos sob demanda (lazy) */
   private browser: BrowserSession | undefined;
   private vault: Vault | undefined;
+  /** controle de desktop (macOS), aberto sob demanda */
+  private desktop: DesktopSession | undefined;
+  /** tarefas em andamento por chat → /parar aborta */
+  private readonly running = new Map<string, AbortController>();
   /** memória de conversa por chat (multi-turno): "quero esta opção" enxerga o que veio antes */
   private readonly history = new Map<string, Array<{ role: "user" | "assistant"; content: string }>>();
   /** monitoramento: falhas seguidas (p/ alerta proativo) e última falha (p/ /status) */
@@ -219,6 +229,13 @@ export class Gateway {
     if (!this.allowed(sender)) {
       await this.adapter.send(chatId, "⛔ Remetente não autorizado.");
       this.hooks.onAudit?.({ sender, result: "denied" });
+      return;
+    }
+
+    // 2.5. KILL SWITCH: /parar passa na frente de tudo (mesmo com tarefa rodando).
+    const cmd0 = commandOf(msg.text);
+    if (cmd0 === "/parar" || cmd0 === "/stop") {
+      await this.stopTasks(chatId, sender);
       return;
     }
 
@@ -296,8 +313,47 @@ export class Gateway {
         join(homedir(), ".typer", "browser", "profile");
       cleanupStaleBrowser(profile);
     }
-    this.browser = await openBrowser(this.config.browser ?? {});
+    this.browser = this.config.openBrowser ? await this.config.openBrowser() : await openBrowser(this.config.browser ?? {});
     return this.browser;
+  }
+
+  /** desktop compartilhado (macOS): sidecar aberto na 1ª tarefa que precisa. */
+  private ensureDesktop(): DesktopSession | undefined {
+    if (!this.config.openDesktop) return undefined;
+    if (!this.desktop) this.desktop = this.config.openDesktop();
+    return this.desktop;
+  }
+
+  /** /parar: aborta a(s) tarefa(s) do chat e cancela perguntas pendentes. */
+  private async stopTasks(chatId: string, sender: string): Promise<void> {
+    let n = 0;
+    for (const [id, ac] of this.running) {
+      if (id === chatId || this.config.allow.includes(sender)) {
+        ac.abort();
+        n++;
+      }
+    }
+    this.pending.cancel(chatId, "cancelado por /parar");
+    this.hooks.onAudit?.({ sender, result: "ok", detail: `/parar (${n} tarefa(s))` });
+    await this.adapter.send(chatId, n ? `🛑 Parando ${n} tarefa(s) agora.` : "🛑 Nenhuma tarefa em andamento. (Para travar tudo até segunda ordem, crie o arquivo STOP; /continuar remove.)");
+  }
+
+  /** human_handoff: foto + motivo + botões; espera ok/cancelar (ou texto). Timeout = cancelar. */
+  private async handoffViaChannel(chatId: string, reason: string, png?: string): Promise<"ok" | "cancelar"> {
+    const text = `⏸️ PAUSEI — preciso de você.\n• Motivo: ${reason.slice(0, 500)}\n\nResolva na tela e toque em "ok, continuar" (ou responda ok). "cancelar" encerra a tarefa.`;
+    const answer = this.pending.wait(chatId, "handoff", ASK_TIMEOUT_MS * 2);
+    if (png && this.adapter.sendPhoto) {
+      await this.adapter.sendPhoto(chatId, png, text.slice(0, 1024), { buttons: HANDOFF_BUTTONS }).catch(() => this.adapter.send(chatId, text, { buttons: HANDOFF_BUTTONS }));
+    } else {
+      await this.adapter.send(chatId, text, { buttons: HANDOFF_BUTTONS });
+    }
+    try {
+      const a = await answer;
+      return a === BTN_OK || AFFIRMATIVE.test(a) ? "ok" : "cancelar";
+    } catch {
+      await this.adapter.send(chatId, "⌛ Sem resposta no handoff — tarefa CANCELADA por segurança.");
+      return "cancelar";
+    }
   }
 
   /** cofre compartilhado (abre sob demanda). */
@@ -311,8 +367,19 @@ export class Gateway {
     const chatId = msg.chatId;
     const grant = this.grantFor(sender);
     // super-assistente: navegador real, cofre cifrado e o canal de perguntas (ask_user).
-    const browser = this.config.browser ? await this.ensureBrowser() : undefined;
+    const browser = this.config.browser || this.config.openBrowser ? await this.ensureBrowser() : undefined;
     const vault = this.config.vault ? await this.ensureVault() : undefined;
+    const desktop = this.ensureDesktop();
+    if (isStopRequested()) {
+      await this.adapter.send(chatId, `⛔ Arquivo STOP presente (${stopFile()}) — nada roda até /continuar.`);
+      return;
+    }
+    const ac = new AbortController();
+    this.running.set(chatId, ac);
+    const checkpoint = async (png: string, caption: string): Promise<void> => {
+      if (this.adapter.sendPhoto) await this.adapter.sendPhoto(chatId, png, caption);
+      else await this.adapter.send(chatId, caption);
+    };
     const ask = (kind: "clarify" | "otp", question: string): Promise<string> =>
       this.askUser(chatId, kind, question);
     // CONTINUIDADE: diz ao agente ONDE o navegador já está, p/ ele continuar de lá em vez de
@@ -332,6 +399,7 @@ export class Gateway {
         root: this.config.root,
         surface: this.surface,
         provider: this.config.provider ?? null,
+        ...(this.config.model ? { model: this.config.model } : {}),
         local: this.config.local ?? false,
         mode: "ask", // canal responde; não edita o repo
         // INTERATIVO (não "never"): tira a superfície do modo autônomo, então o policy
@@ -342,6 +410,13 @@ export class Gateway {
         ...(browser ? { browser } : {}),
         ...(vault ? { vault } : {}),
         ask,
+        // macOS: desktop, handoff humano, checkpoints de screenshot, /parar e prompt sem anti-bot
+        ...(desktop ? { desktop } : {}),
+        handoff: (reason, png) => this.handoffViaChannel(chatId, reason, png),
+        checkpoint,
+        signal: ac.signal,
+        taskLabel: msg.text.slice(0, 80),
+        ...(this.config.browserPrompt ? { browserPrompt: this.config.browserPrompt } : {}),
       },
       // HITL: toda aprovação vira uma pergunta no canal que ESPERA o seu SIM/NÃO.
       {
@@ -392,6 +467,7 @@ export class Gateway {
     } finally {
       done = true;
       clearTimeout(hint);
+      this.running.delete(chatId);
       await engine.dispose();
     }
     const reply = buf.trim() || "(sem resposta)";
@@ -440,20 +516,32 @@ export class Gateway {
   private async approveViaChannel(chatId: string, req: ApprovalLike): Promise<boolean> {
     let answer: string;
     try {
-      answer = await this.askUser(chatId, "approval", this.formatApproval(req));
+      const p = this.pending.wait(chatId, "approval", ASK_TIMEOUT_MS);
+      await this.adapter.send(chatId, this.formatApproval(req), { buttons: CONFIRM_BUTTONS });
+      answer = await p;
     } catch {
       await this.adapter.send(chatId, "⌛ Sem confirmação a tempo — ação CANCELADA por segurança.");
       return false;
     }
-    const ok = AFFIRMATIVE.test(answer);
+    // botão ✅ (data "ok") ou texto afirmativo; qualquer outra coisa = cancela (default-deny)
+    const ok = answer === BTN_OK || (answer !== BTN_CANCEL && AFFIRMATIVE.test(answer));
     await this.adapter.send(chatId, ok ? "✅ Confirmado." : "🚫 Cancelado.");
     return ok;
   }
 
+  /** Cartão de confirmação. O detail vem estruturado dos sub-agentes ("Ação: … \n Valor: … \n
+   *  Vendedor/destinatário: … \n Endereço: … \n Site: …"); mostramos linha a linha. */
   private formatApproval(req: ApprovalLike): string {
-    const lines = ["🔐 Confirmação necessária", `• Ação: ${req.action}`, `• Alvo: ${req.target}`];
-    if (req.detail) lines.push(`• Detalhe: ${req.detail}`);
-    lines.push("", "Responda SIM para aprovar ou NÃO para cancelar.");
+    const lines = ["🔐 CONFIRMAÇÃO NECESSÁRIA (ação irreversível)"];
+    const detail = req.detail ?? "";
+    if (/^(Ação|Valor|Vendedor|Destinat|Endereço|Site):/m.test(detail)) {
+      for (const l of detail.split(/\n|\s·\s/)) if (l.trim()) lines.push(`• ${l.trim()}`);
+    } else {
+      lines.push(`• Ação: ${req.action === "tool" ? detail || req.target : req.action}`);
+      if (req.action !== "tool") lines.push(`• Alvo: ${req.target}`);
+      if (req.detail && req.action !== "tool") lines.push(`• Detalhe: ${req.detail}`);
+    }
+    lines.push("", "Toque em ✅ Confirmar para executar ou 🚫 Cancelar. (Texto: sim / não.)");
     return lines.join("\n");
   }
 
@@ -484,7 +572,9 @@ export class Gateway {
           "/vault — mostra o que está guardado (cartão/senha mascarados)",
           "/forget <campo> — apaga um campo",
           "/reset — zera a memória da conversa (recomeça do zero)",
-          "/status — saúde do assistente (ferramentas, falhas, última falha)",
+          "/status — saúde do assistente (ferramentas, navegador, desktop, permissões, gasto do dia)",
+          "/parar — aborta a tarefa em andamento AGORA (kill switch)",
+          "/continuar — remove o arquivo STOP (trava total) se existir",
           "",
           "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
         ].join("\n"),
@@ -533,15 +623,38 @@ export class Gateway {
     }
     if (cmd === "/status") {
       const f = this.config.features ?? {};
-      await this.adapter.send(
-        chatId,
-        [
-          "🤖 Status do assistente",
-          `• Ferramentas: ${f.tools ? "on" : "off"} · Memória: ${f.memory ? "on" : "off"} · Navegador: ${this.config.browser ? "on" : "off"} · Cofre: ${this.config.vault ? "on" : "off"}`,
-          `• Falhas seguidas: ${this.consecutiveErrors}`,
-          `• Última falha: ${this.lastError ? clarifyError(this.lastError) : "nenhuma 👍"}`,
-        ].join("\n"),
-      );
+      const lines = [
+        "🤖 Status do assistente",
+        `• Ferramentas: ${f.tools ? "on" : "off"} · Memória: ${f.memory ? "on" : "off"} · Navegador: ${this.config.browser || this.config.openBrowser ? "on" : "off"} · Cofre: ${this.config.vault ? "on" : "off"} · Desktop: ${this.config.openDesktop ? "on" : "off"}`,
+        `• Modelo: ${this.config.model ?? "(default do provider)"} · Provider: ${this.config.provider ?? "auto"}`,
+        `• Tarefas rodando: ${this.running.size} · Arquivo STOP: ${existsSync(stopFile()) ? "PRESENTE ⛔" : "ausente"}`,
+        `• Gasto hoje: R$ ${spentToday().toFixed(2)} (teto tx R$ ${process.env.TYPER_MAX_PER_TX ?? 0} · dia R$ ${process.env.TYPER_MAX_PER_DAY ?? 0})`,
+        `• Falhas seguidas: ${this.consecutiveErrors}`,
+        `• Última falha: ${this.lastError ? clarifyError(this.lastError) : "nenhuma 👍"}`,
+      ];
+      if (this.config.openDesktop) {
+        try {
+          const t = await this.ensureDesktop()?.tcc?.();
+          if (t) lines.push(`• Permissões macOS: Screen Recording ${t.screen_recording ? "✓" : "✗"} · Accessibility ${t.accessibility ? "✓" : "✗"}${t.instructions.length ? "\n  " + t.instructions.join("\n  ") : ""}`);
+        } catch (e) {
+          lines.push(`• Desktop: sidecar não respondeu (${e instanceof Error ? e.message : String(e)})`);
+        }
+      }
+      await this.adapter.send(chatId, lines.join("\n"));
+      return;
+    }
+    if (cmd === "/continuar") {
+      const f = stopFile();
+      if (existsSync(f)) {
+        try {
+          unlinkSync(f);
+          await this.adapter.send(chatId, "▶️ Arquivo STOP removido — tarefas liberadas.");
+        } catch (e) {
+          await this.adapter.send(chatId, `não consegui remover ${f}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      } else {
+        await this.adapter.send(chatId, "Não há arquivo STOP. Nada a fazer.");
+      }
       return;
     }
     if (cmd === "/setup") {
@@ -582,6 +695,8 @@ export class Gateway {
 
   stop(): void {
     this.adapter.stop();
+    for (const ac of this.running.values()) ac.abort();
     void this.browser?.close();
+    void this.desktop?.close();
   }
 }

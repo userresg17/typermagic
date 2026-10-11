@@ -7,7 +7,7 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFile, unlink, readFile } from "node:fs/promises";
-import type { ChannelAdapter, IncomingMessage } from "./types.js";
+import type { ChannelAdapter, IncomingMessage, SendOptions } from "./types.js";
 
 interface TgUpdate {
   update_id: number;
@@ -17,6 +17,18 @@ interface TgUpdate {
     from?: { id: number };
     chat?: { id: number };
   };
+  /** clique num botão inline (confirmação/handoff) */
+  callback_query?: {
+    id: string;
+    data?: string;
+    from?: { id: number };
+    message?: { chat?: { id: number } };
+  };
+}
+
+function replyMarkup(opts?: SendOptions): Record<string, unknown> {
+  if (!opts?.buttons?.length) return {};
+  return { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => ({ text: b.text, callback_data: b.data.slice(0, 64) }))) } };
 }
 
 /** transcrição de áudio (voz-IN) injetada pelo comando gateway (usa @typer/voice, tudo local). */
@@ -51,12 +63,31 @@ export class TelegramChannel implements ChannelAdapter {
     return json.ok && json.result ? json.result : [];
   }
 
-  async send(chatId: string, text: string): Promise<void> {
+  async send(chatId: string, text: string, opts?: SendOptions): Promise<void> {
     await fetch(this.api("sendMessage"), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 4000) }),
+      body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 4000), ...replyMarkup(opts) }),
     });
+  }
+
+  /** FOTO (PNG base64) com legenda — screenshots de checkpoint e de handoff. */
+  async sendPhoto(chatId: string, pngBase64: string, caption?: string, opts?: SendOptions): Promise<void> {
+    const form = new FormData();
+    form.append("chat_id", chatId);
+    form.append("photo", new Blob([Buffer.from(pngBase64, "base64")], { type: "image/png" }), "screenshot.png");
+    if (caption) form.append("caption", caption.slice(0, 1024));
+    const rm = replyMarkup(opts);
+    if (rm.reply_markup) form.append("reply_markup", JSON.stringify(rm.reply_markup));
+    await fetch(this.api("sendPhoto"), { method: "POST", body: form });
+  }
+
+  private async answerCallback(id: string, text?: string): Promise<void> {
+    await fetch(this.api("answerCallbackQuery"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ callback_query_id: id, ...(text ? { text } : {}) }),
+    }).catch(() => {});
   }
 
   /** VOZ-OUT: envia um OGG/Opus como voz nativa, com o texto JUNTO na legenda (caption ≤ 1024). */
@@ -117,6 +148,15 @@ export class TelegramChannel implements ChannelAdapter {
       }
       for (const u of updates) {
         this.offset = u.update_id + 1;
+        // BOTÃO inline: vira mensagem com isCallback (resolve a pendência de aprovação/handoff)
+        const cq = u.callback_query;
+        if (cq?.from && cq.message?.chat && cq.data !== undefined) {
+          void this.answerCallback(cq.id);
+          const senderId = String(cq.from.id);
+          const chatId = String(cq.message.chat.id);
+          void Promise.resolve(this.cb?.({ senderId, chatId, text: cq.data, isCallback: true })).catch(() => {});
+          continue;
+        }
         const m = u.message;
         if (!m?.from || !m.chat) continue;
         const senderId = String(m.from.id);
