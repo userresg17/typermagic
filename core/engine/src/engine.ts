@@ -13,6 +13,7 @@ import {
   runToolLoop,
   reachSkillSection,
   browserSkillSection,
+  desktopSkillSection,
   memorySkillSection,
   AuditTrail,
   ApprovalGate,
@@ -459,7 +460,7 @@ class EngineImpl implements Engine {
     // Injeta as docs de capacidade (reach + browser) conforme as tools expostas: olhos
     // na internet e/ou navegador real + metodologia/regras de HITL. Vazio quando ausentes.
     const exposed = executor.tools();
-    const skills = [reachSkillSection(exposed), browserSkillSection(exposed), memorySkillSection(exposed)]
+    const skills = [reachSkillSection(exposed), browserSkillSection(exposed), desktopSkillSection(exposed), memorySkillSection(exposed)]
       .filter(Boolean)
       .join("\n\n");
     const system = [modeSystem, skills, contextBlock].filter(Boolean).join("\n\n");
@@ -470,6 +471,7 @@ class EngineImpl implements Engine {
       system,
       executor,
       maxTurns: this.config.maxTurns ?? 30,
+      ...(this.config.signal !== undefined ? { signal: this.config.signal } : {}),
       ...(history && history.length ? { history } : {}),
       onToolCall: (call, res) => {
         emit({ type: "tool.call", name: call.name, args: call.arguments });
@@ -569,6 +571,12 @@ class EngineImpl implements Engine {
       ...(testCommandStr !== undefined ? { testCommand: testCommandStr } : {}),
       // super-assistente: navegador, cofre e o canal de perguntas (browser_*/vault_*/ask_user)
       ...(this.config.browser !== undefined ? { browser: this.config.browser } : {}),
+      // macOS: desktop, handoff humano, checkpoints, cancelamento e rótulo do log
+      ...(this.config.desktop !== undefined ? { desktop: this.config.desktop } : {}),
+      ...(this.config.handoff !== undefined ? { handoff: this.config.handoff } : {}),
+      ...(this.config.checkpoint !== undefined ? { checkpoint: this.config.checkpoint } : {}),
+      ...(this.config.signal !== undefined ? { signal: this.config.signal } : {}),
+      ...(this.config.taskLabel !== undefined ? { taskLabel: this.config.taskLabel } : {}),
       ...(this.config.vault !== undefined ? { vault: this.config.vault } : {}),
       ...(this.config.ask !== undefined ? { ask: this.config.ask } : {}),
       // memória: o MESMO embedder do recall, p/ escrita (memory_write) e leitura casarem

@@ -121,3 +121,22 @@ describe("AnthropicProvider.chat — cache e uso real", () => {
     expect(body.system).toBe("instrução");
   });
 });
+
+describe("toAnthropicMessages — visão", () => {
+  it("transforma images da mensagem do usuário em blocos image base64 + texto", async () => {
+    const { toAnthropicMessages } = await import("../src/anthropic.js");
+    const out = toAnthropicMessages([
+      { role: "user", content: "o que há na tela?", images: ["QUJD", "data:image/jpeg;base64,REVG"] },
+    ]) as Array<{ role: string; content: Array<Record<string, unknown>> }>;
+    expect(out).toHaveLength(1);
+    expect(out[0]!.role).toBe("user");
+    expect(out[0]!.content).toHaveLength(3);
+    expect(out[0]!.content[0]).toEqual({ type: "image", source: { type: "base64", media_type: "image/png", data: "QUJD" } });
+    expect(out[0]!.content[1]).toEqual({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: "REVG" } });
+    expect(out[0]!.content[2]).toEqual({ type: "text", text: "o que há na tela?" });
+  });
+  it("sem images mantém o formato string", async () => {
+    const { toAnthropicMessages } = await import("../src/anthropic.js");
+    expect(toAnthropicMessages([{ role: "user", content: "oi" }])).toEqual([{ role: "user", content: "oi" }]);
+  });
+});

@@ -59,6 +59,12 @@ export interface ToolCallDeps {
   ask?: ToolDeps["ask"];
   /** caller de LLM p/ o sub-agente de navegador (browser_task) — injetado pós provider */
   llm?: ToolDeps["llm"];
+  /** controle de desktop (macOS/Linux) p/ desktop_* */
+  desktop?: ToolDeps["desktop"];
+  handoff?: ToolDeps["handoff"];
+  checkpoint?: ToolDeps["checkpoint"];
+  signal?: ToolDeps["signal"];
+  taskLabel?: ToolDeps["taskLabel"];
 }
 
 /** Executa uma ferramenta com o broker à frente. Nunca lança: devolve ToolResult
@@ -123,6 +129,11 @@ export async function callRegistryTool(
     ...(deps.vault !== undefined ? { vault: deps.vault } : {}),
     ...(deps.ask !== undefined ? { ask: deps.ask } : {}),
     ...(deps.llm !== undefined ? { llm: deps.llm } : {}),
+    ...(deps.desktop !== undefined ? { desktop: deps.desktop } : {}),
+    ...(deps.handoff !== undefined ? { handoff: deps.handoff } : {}),
+    ...(deps.checkpoint !== undefined ? { checkpoint: deps.checkpoint } : {}),
+    ...(deps.signal !== undefined ? { signal: deps.signal } : {}),
+    ...(deps.taskLabel !== undefined ? { taskLabel: deps.taskLabel } : {}),
   };
 
   const ctx: ToolContext = {

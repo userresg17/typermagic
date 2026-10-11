@@ -51,6 +51,8 @@ export {
   memorySkillSection,
   MEMORY_SKILL,
   openBrowser,
+  desktopSkillSection,
+  DESKTOP_SKILL,
 } from "./tools/index.js";
 export type { BrowserOptions } from "./tools/index.js";
 export type {
@@ -68,3 +70,11 @@ export type {
   MicroVm,
   BrowserSession,
 } from "./tools/index.js";
+
+// Fase 2 (macOS): plataforma de desktop, sub-agente de desktop, guardas e log estruturado.
+export { pickPlatform, MacOSPlatform, LinuxPlatform, findRepoRoot } from "./platform/index.js";
+export type { Platform, DesktopSession, DesktopExtras, Screenshot, ScreenSize, AxTree, AxNode, MacOSOptions } from "./platform/index.js";
+export { runDesktopAgent, serializeAx } from "./desktop/agent.js";
+export type { DesktopAgentDeps, DesktopAction, ApprovalCard } from "./desktop/agent.js";
+export { isStopRequested, stopFile, appAllowed, allowedApps, checkoutHostAllowed, parseAmountBRL, checkSpend, recordSpend, spentToday } from "./guard.js";
+export { logStep, logPath, sha256 } from "./steplog.js";

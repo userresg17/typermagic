@@ -39,7 +39,7 @@ describe("registry e descoberta", () => {
   const registry = buildDefaultRegistry();
 
   it("registra exatamente 67 ferramentas", () => {
-    expect(registry.all()).toHaveLength(67);
+    expect(registry.all()).toHaveLength(72);
   });
 
   it("o core tem 19 ferramentas", () => {
@@ -48,7 +48,7 @@ describe("registry e descoberta", () => {
 
   it("nomes são únicos", () => {
     const names = new Set(registry.all().map((t) => t.name));
-    expect(names.size).toBe(67);
+    expect(names.size).toBe(72);
   });
 
   it("search acha ferramenta lazy por contexto", () => {

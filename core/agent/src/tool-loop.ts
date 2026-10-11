@@ -5,6 +5,7 @@
 // em texto (ou estourar o teto de voltas). Desacoplado do MCP pela interface.
 
 import type { Message, Provider, ToolCall, ToolSpec } from "@typer/router";
+import { isStopRequested } from "./guard.js";
 
 export interface ToolExecutor {
   /** specs das ferramentas disponíveis (name já qualificado, ex. "fs.read") */
@@ -27,6 +28,8 @@ export interface ToolLoopOptions {
   history?: Message[];
   /** observabilidade: chamado a cada ferramenta executada */
   onToolCall?: (call: ToolCall, result: string) => void;
+  /** cancelamento (/parar): checado antes de cada volta e de cada ferramenta */
+  signal?: AbortSignal;
 }
 
 export interface ToolLoopResult {
@@ -60,6 +63,7 @@ export async function runToolLoop(
   let lastText = "";
 
   for (let turn = 1; turn <= maxTurns; turn++) {
+    if (isStopRequested(opts.signal)) throw new Error("tarefa cancelada (/parar)");
     const { text, toolCalls } = await collect(opts.provider, {
       messages,
       model: opts.model,
@@ -78,6 +82,7 @@ export async function runToolLoop(
     messages.push({ role: "assistant", content: text, toolCalls });
 
     for (const tc of toolCalls) {
+      if (isStopRequested(opts.signal)) throw new Error("tarefa cancelada (/parar)");
       calls.push(tc);
       let resultText: string;
       try {

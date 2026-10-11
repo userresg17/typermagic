@@ -32,6 +32,18 @@ export function toAnthropicMessages(messages: Message[]): unknown[] {
         blocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.arguments });
       }
       out.push({ role: "assistant", content: blocks });
+    } else if (m.role === "user" && m.images?.length) {
+      // VISÃO: screenshots anexados à mensagem do usuário viram blocos `image` (base64 PNG),
+      // seguidos do texto. Aceita data URL ou base64 cru (mesmo contrato do openai-responses).
+      const blocks: unknown[] = m.images.map((img) => {
+        const mt = img.match(/^data:(image\/[a-z+.-]+);base64,(.*)$/i);
+        return {
+          type: "image",
+          source: { type: "base64", media_type: mt ? mt[1] : "image/png", data: mt ? mt[2] : img },
+        };
+      });
+      if (m.content) blocks.push({ type: "text", text: m.content });
+      out.push({ role: "user", content: blocks });
     } else {
       out.push({ role: m.role, content: m.content });
     }

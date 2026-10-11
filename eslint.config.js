@@ -17,6 +17,8 @@ export default tseslint.config(
       "editor/workbench/**",
       "editor/extensions/**",
       "**/*.tsbuildinfo",
+      // macOS: venv do sidecar Python (traz JS de terceiros dentro de site-packages)
+      ".venv/**",
     ],
   },
   js.configs.recommended,

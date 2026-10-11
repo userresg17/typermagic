@@ -6,6 +6,7 @@
 // (retrieve/plan/verify/callTool) existem para consumidores que querem só um
 // pedaço — é o que o Typer Core Server usa hoje.
 
+import type { DesktopSession } from "@typer/agent";
 import type {
   ModeName,
   ApprovalPolicy,
@@ -93,6 +94,16 @@ export interface EngineConfig {
   vault?: { get(field: string): string | undefined; has(field: string): boolean; fields(): string[] };
   /** pergunta algo ao usuário pelo canal e espera a resposta (esclarecimento/OTP) */
   ask?: (kind: "clarify" | "otp", question: string) => Promise<string>;
+  /** controle de desktop (macOS/Linux) p/ as ferramentas desktop_* (Fase 2 macOS) */
+  desktop?: DesktopSession;
+  /** human_handoff: pausa, avisa o humano (motivo + screenshot) e espera "ok"/"cancelar" */
+  handoff?: (reason: string, pngBase64?: string) => Promise<"ok" | "cancelar">;
+  /** checkpoint: screenshot + legenda p/ o canal */
+  checkpoint?: (pngBase64: string, caption: string) => Promise<void>;
+  /** cancelamento da tarefa (/parar) — checado entre voltas e passos */
+  signal?: AbortSignal;
+  /** rótulo da tarefa p/ o log estruturado */
+  taskLabel?: string;
 }
 
 export interface TaskRequest {

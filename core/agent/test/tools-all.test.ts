@@ -176,14 +176,20 @@ const specs: Spec[] = [
   { name: "vault_fields", args: () => ({}), expect: { err: "vault_unavailable" } },
   { name: "vault_fill", args: () => ({ field: "card_number", selector: "#c" }), expect: { err: "vault_unavailable" } },
   { name: "ask_user", args: () => ({ question: "qual o tamanho?" }), expect: { err: "ask_unavailable" } },
+  // desktop (macOS) — sem ctx.deps.desktop, degradam com erro claro
+  { name: "desktop_task", args: () => ({ goal: "abrir o TextEdit" }), expect: { err: "desktop_unavailable" } },
+  { name: "desktop_screenshot", args: () => ({}), expect: { err: "desktop_unavailable" } },
+  { name: "desktop_open_app", args: () => ({ name: "TextEdit" }), expect: { err: "desktop_unavailable" } },
+  { name: "desktop_ax_tree", args: () => ({}), expect: { err: "desktop_unavailable" } },
+  { name: "desktop_script", args: () => ({ purpose: "p", source: "1" }), expect: { err: "desktop_unavailable" } },
 ];
 
 describe("cobertura: todas as 67 ferramentas estão no spec", () => {
   it("o spec cobre exatamente as do registry", () => {
     const registered = new Set(registry.all().map((t) => t.name));
     const tested = new Set(specs.map((s) => s.name));
-    expect(specs).toHaveLength(67);
-    expect(registered.size).toBe(67);
+    expect(specs).toHaveLength(72);
+    expect(registered.size).toBe(72);
     for (const n of registered) expect(tested.has(n)).toBe(true);
   });
 });

@@ -6,7 +6,9 @@
 
 import type { Embedder } from "@typer/index";
 
-export type Permission = "read" | "write" | "exec" | "network" | "meta";
+/** "desktop" = controlar tela/mouse/teclado/apps do computador (Fase 2 macOS). Nenhuma
+ *  superfície recebe por padrão — entra só por grant explícito do dono. */
+export type Permission = "read" | "write" | "exec" | "network" | "meta" | "desktop";
 export type ExecContext = "in_process" | "subprocess" | "microvm";
 export type Tier = "core" | "lazy";
 
@@ -135,6 +137,17 @@ export interface ToolDeps {
     system: string,
     messages: Array<{ role: "user" | "assistant"; content: string; images?: string[] }>,
   ) => Promise<string>;
+  /** controle de desktop (Platform: macOS sidecar pyobjc / Linux xdotool) p/ desktop_* */
+  desktop?: import("../platform/types.js").DesktopSession;
+  /** human_handoff: pausa a tarefa, avisa o humano (motivo + screenshot) e espera "ok"/"cancelar".
+   *  Substitui qualquer tentativa automática de passar por CAPTCHA/anti-bot (fora de escopo). */
+  handoff?: (reason: string, pngBase64?: string) => Promise<"ok" | "cancelar">;
+  /** checkpoint: envia um screenshot com legenda ao canal (Telegram) — observabilidade. */
+  checkpoint?: (pngBase64: string, caption: string) => Promise<void>;
+  /** cancelamento (/parar) — os loops checam entre passos. */
+  signal?: AbortSignal;
+  /** rótulo da tarefa p/ o log estruturado (JSONL) */
+  taskLabel?: string;
   /** preferir modelo/embedder local (Ollama) quando aplicável */
   local?: boolean;
   /** tem chave OpenAI? (escolha de embedder) */
