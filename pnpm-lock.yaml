@@ -72,6 +72,9 @@ importers:
       '@typer/index':
         specifier: workspace:*
         version: link:../../core/index
+      '@typer/learn':
+        specifier: workspace:*
+        version: link:../../core/learn
       '@typer/memory':
         specifier: workspace:*
         version: link:../../core/memory
@@ -102,6 +105,9 @@ importers:
       '@typer/engine':
         specifier: workspace:*
         version: link:../../core/engine
+      '@typer/learn':
+        specifier: workspace:*
+        version: link:../../core/learn
       '@typer/vault':
         specifier: workspace:*
         version: link:../../core/vault
@@ -234,6 +240,19 @@ importers:
       web-tree-sitter:
         specifier: ^0.20.8
         version: 0.20.8
+
+  core/learn:
+    dependencies:
+      '@typer/router':
+        specifier: workspace:*
+        version: link:../router
+      '@typer/skills':
+        specifier: workspace:*
+        version: link:../skills
+    devDependencies:
+      '@typer/crypto':
+        specifier: workspace:*
+        version: link:../crypto
 
   core/mcp: {}
 

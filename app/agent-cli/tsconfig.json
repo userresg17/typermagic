@@ -5,20 +5,53 @@
     "outDir": "./dist"
   },
   "references": [
-    { "path": "../../core/agent" },
-    { "path": "../../core/crypto" },
-    { "path": "../../core/edit" },
-    { "path": "../../core/engine" },
-    { "path": "../../app/gateway" },
-    { "path": "../../app/scheduler" },
-    { "path": "../../core/trajectory" },
-    { "path": "../../core/handoff" },
-    { "path": "../../core/index" },
-    { "path": "../../core/memory" },
-    { "path": "../../core/reach" },
-    { "path": "../../core/router" },
-    { "path": "../../core/skills" },
-    { "path": "../../core/voice" }
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../core/crypto"
+    },
+    {
+      "path": "../../core/edit"
+    },
+    {
+      "path": "../../core/engine"
+    },
+    {
+      "path": "../../app/gateway"
+    },
+    {
+      "path": "../../app/scheduler"
+    },
+    {
+      "path": "../../core/trajectory"
+    },
+    {
+      "path": "../../core/handoff"
+    },
+    {
+      "path": "../../core/index"
+    },
+    {
+      "path": "../../core/memory"
+    },
+    {
+      "path": "../../core/reach"
+    },
+    {
+      "path": "../../core/router"
+    },
+    {
+      "path": "../../core/skills"
+    },
+    {
+      "path": "../../core/voice"
+    },
+    {
+      "path": "../../core/learn"
+    }
   ],
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }

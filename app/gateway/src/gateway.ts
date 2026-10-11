@@ -18,6 +18,7 @@ import { createEngine, type CapabilityGrant, type EngineEvent } from "@typer/eng
 import { openBrowser, isStopRequested, stopFile, spentToday, type BrowserSession, type DesktopSession } from "@typer/agent";
 import { existsSync, unlinkSync } from "node:fs";
 import { openVault, type Vault } from "@typer/vault";
+import { learn, listSkills, readSkill, summarizeSkill, setupLearn } from "@typer/learn";
 import { RateLimiter } from "./rate-limit.js";
 import { PendingStore, type PendingKind } from "./pending.js";
 import type { ChannelAdapter, GatewayConfig, IncomingMessage } from "./types.js";
@@ -67,7 +68,7 @@ const MAX_APPROVALS_PER_TASK = 2;
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
-const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar"];
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar", "/aprender", "/skills"];
 /** data dos botões inline de confirmação/handoff */
 const BTN_OK = "ok";
 const BTN_CANCEL = "cancel";
@@ -575,6 +576,8 @@ export class Gateway {
           "/status — saúde do assistente (ferramentas, navegador, desktop, permissões, gasto do dia)",
           "/parar — aborta a tarefa em andamento AGORA (kill switch)",
           "/continuar — remove o arquivo STOP (trava total) se existir",
+          "/aprender <url> [programa] — assiste um tutorial em vídeo e aprende uma skill (candidata; só vale depois de ensaiar)",
+          "/skills [id] — lista as skills aprendidas (candidatas e seladas) ou mostra uma",
           "",
           "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
         ].join("\n"),
@@ -641,6 +644,62 @@ export class Gateway {
         }
       }
       await this.adapter.send(chatId, lines.join("\n"));
+      return;
+    }
+    if (cmd === "/skills") {
+      const id = parts[1];
+      try {
+        // listar não precisa de modelo: só lê .typer/skills
+        const skillsDir = join(this.config.root, ".typer", "skills");
+        if (id) {
+          const s = await readSkill(skillsDir, id);
+          await this.adapter.send(chatId, s ? summarizeSkill(s, 25) : `skill não encontrada: ${id}`);
+          return;
+        }
+        const all = await listSkills(skillsDir);
+        if (all.length === 0) {
+          await this.adapter.send(chatId, "Nenhuma skill ainda. Mande /aprender <url do tutorial> [programa].");
+          return;
+        }
+        const lines = all.map((s) => `• ${s.state === "sealed" || s.sealed ? "✅" : "🟡"} ${s.id} — ${s.name}${s.app ? ` (${s.app})` : ""}`);
+        await this.adapter.send(chatId, [`📚 Skills (${all.length}) — 🟡 candidata · ✅ selada`, ...lines, "", "Detalhe: /skills <id>"].join("\n"));
+      } catch (e) {
+        await this.adapter.send(chatId, `não consegui listar: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return;
+    }
+    if (cmd === "/aprender") {
+      const url = parts[1];
+      const appHint = parts.slice(2).join(" ").trim() || undefined;
+      if (!url || !/^https?:\/\//.test(url)) {
+        await this.adapter.send(chatId, "Uso: /aprender <url do vídeo> [nome do programa]\nEx.: /aprender https://youtu.be/XXXXXXXXXXX DaVinci Resolve");
+        return;
+      }
+      if (existsSync(stopFile())) {
+        await this.adapter.send(chatId, `⛔ Arquivo STOP presente (${stopFile()}) — nada roda até /continuar.`);
+        return;
+      }
+      const ac = new AbortController();
+      this.running.set(chatId, ac);
+      const t0 = Date.now();
+      try {
+        const setup = await setupLearn({ root: this.config.root, provider: this.config.provider, model: this.config.model, local: this.config.local });
+        await this.adapter.send(chatId, `🎓 Aprendendo com o tutorial… (visão: ${setup.visionModel} · destilação: ${setup.distillModel}). Pode levar alguns minutos; /parar interrompe.`);
+        const r = await learn(
+          url,
+          { workDir: setup.workDir, skillsDir: setup.skillsDir, visionModel: setup.visionModel, distillModel: setup.distillModel, appHint, signal: ac.signal, onProgress: (m) => this.adapter.send(chatId, m) },
+          { provider: setup.provider },
+        );
+        const skill = await readSkill(setup.skillsDir, r.skillId);
+        const secs = Math.round((Date.now() - t0) / 1000);
+        await this.adapter.send(chatId, (skill ? summarizeSkill(skill, 25) : r.skillId) + `\n\n⏱ ${secs}s · frames ${r.frames} · tokens ${r.usage.inputTokens}/${r.usage.outputTokens}\n🟡 Candidata: ainda não ensaiada. Próximo passo: /ensaiar ${r.skillId} (Fase 8).`);
+        this.hooks.onAudit?.({ sender: chatId, result: "ok", detail: `/aprender ${r.skillId}` });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await this.adapter.send(chatId, ac.signal.aborted ? "🛑 Aprendizado interrompido." : `✗ não consegui aprender: ${msg}`);
+      } finally {
+        this.running.delete(chatId);
+      }
       return;
     }
     if (cmd === "/continuar") {

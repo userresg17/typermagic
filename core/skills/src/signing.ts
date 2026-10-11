@@ -18,6 +18,12 @@ function payload(skill: Skill): Record<string, unknown> {
     sealed: skill.sealed,
     createdAt: skill.createdAt,
     ...(skill.manifest ? { manifest: skill.manifest } : {}),
+    // GUI (Fase 7): os passos estruturados também são assinados — um passo adulterado
+    // (ex.: inserir "apagar projeto") invalida a assinatura. Ausentes em skills antigas.
+    ...(skill.kind ? { kind: skill.kind } : {}),
+    ...(skill.app ? { app: skill.app } : {}),
+    ...(skill.appVersion ? { appVersion: skill.appVersion } : {}),
+    ...(skill.steps ? { steps: skill.steps } : {}),
   };
 }
 

@@ -18,6 +18,7 @@
   "dependencies": {
     "@typer/agent": "workspace:*",
     "@typer/engine": "workspace:*",
-    "@typer/vault": "workspace:*"
+    "@typer/vault": "workspace:*",
+    "@typer/learn": "workspace:*"
   }
 }

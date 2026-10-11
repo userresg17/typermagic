@@ -27,6 +27,7 @@
     "@typer/scheduler": "workspace:*",
     "@typer/skills": "workspace:*",
     "@typer/trajectory": "workspace:*",
-    "@typer/voice": "workspace:*"
+    "@typer/voice": "workspace:*",
+    "@typer/learn": "workspace:*"
   }
 }

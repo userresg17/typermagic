@@ -67,6 +67,32 @@ gateway. Tudo roda na CPU do Mac, nada sai da máquina. Mande um áudio no Teleg
 `🎙️ ouvi: "…"`, executa e devolve a resposta em áudio com o texto na legenda. Medido: síntese ~1,4 s,
 transcrição ~0,5 s. Pedido por texto é respondido por texto.
 
+## Aprendizado por tutorial (Fase 7 — `/aprender`)
+
+O agente assiste um tutorial em vídeo e destila uma **skill candidata** de GUI
+(programa, pré-requisitos, passos com intenção/caminho/verificação, fontes por instante).
+A candidata **não** entra no recall do agente até ser ensaiada e selada (Fase 8).
+Plano completo em `docs/PLANO-APRENDIZADO-GUI.md`.
+
+```bash
+# Telegram
+/aprender https://youtu.be/XXXXXXXXXXX DaVinci Resolve
+/skills                 # lista (🟡 candidata · ✅ selada)
+/skills <id>            # detalhe
+
+# CLI
+scripts/env.sh node app/agent-cli/dist/main.js learn <url> --app "DaVinci Resolve"
+scripts/env.sh node app/agent-cli/dist/main.js learn list
+```
+
+Etapas e artefatos (em `~/.typer/learn/<videoId>/`): `*.mp4` + `*.vtt` (yt-dlp, 720p, uma
+língua de legenda por vez para evitar 429) → `transcript.json` (VTT de-duplicado; sem legenda
+cai no Whisper local em blocos de 30 s) → `frames/` (cortes de cena + amostragem, dHash remove
+quase-iguais, teto 150) → `descriptions.json` (modelo de visão, lotes de 5 frames com a fala do
+intervalo) → `distilled.json` + `.typer/skills/<id>/SKILL.md` (state: candidate). Reexecutar
+retoma do que já existe. Modelos e pasta: `TYPER_LEARN_VISION_MODEL`, `TYPER_LEARN_MODEL`,
+`TYPER_LEARN_DIR`. Requer `yt-dlp` e `ffmpeg` (o `doctor` confere).
+
 ## Testes
 ```bash
 pnpm test                                      # 73 arquivos (núcleo + macOS), vitest

@@ -42,6 +42,48 @@ export interface Skill {
   hash?: string;
   /** confinamento de execução: none (induzida local, confiável) | subprocess | microvm (importada, quarentena) */
   confinement?: "none" | "subprocess" | "microvm";
+  // --- skills de GUI aprendidas de tutorial (Fase 7) ---
+  /** "gui" = procedimento num programa de desktop; ausente = skill de código (legado) */
+  kind?: "gui";
+  /** programa alvo (ex.: "DaVinci Resolve") e versão observada no tutorial */
+  app?: string;
+  appVersion?: string;
+  /** passos estruturados p/ o ensaio (Fase 8). O corpo (methodology) é a versão legível. */
+  steps?: GuiStep[];
+  /** de onde veio: URL, título, instantes do vídeo */
+  sources?: SkillSource[];
+  /** candidate = aprendida, ainda não ensaiada/selada; sealed = passou no ensaio */
+  state?: "candidate" | "sealed";
+  /** último ensaio (Fase 8): quando, resultado e motivo */
+  lastRehearsal?: { at: string; passed: boolean; reason?: string };
+}
+
+/** Um passo de procedimento em GUI: intenção (o quê), caminho (como), verificação. Nunca coordenadas. */
+export interface GuiStep {
+  n: number;
+  /** o que se quer obter neste passo (ex.: "criar uma timeline nova com o clipe") */
+  intent: string;
+  /** como se chega lá: menu, atalho, painel, API — em ordem de preferência */
+  how: string;
+  /** como saber que deu certo (estado observável) */
+  verify: string;
+  /** atalho de teclado observado, se houver (ex.: "cmd+b") */
+  shortcut?: string;
+  /** chamada de API equivalente, se o programa tiver scripting (ex.: "timeline.create") */
+  api?: string;
+  pitfalls?: string[];
+  /** instantes do vídeo-fonte (segundos) que embasam o passo */
+  sources?: number[];
+}
+
+export interface SkillSource {
+  url: string;
+  title?: string;
+  channel?: string;
+  /** duração do vídeo em segundos */
+  duration?: number;
+  /** licença declarada no metadado, quando houver */
+  license?: string;
 }
 
 /** Uma tarefa concluída, da qual uma skill candidata é destilada. */

@@ -7,6 +7,8 @@ export type {
   CapabilityManifest,
   SkillPermission,
   SkillExec,
+  GuiStep,
+  SkillSource,
 } from "./types.js";
 export { VerifiedSkillStore } from "./store.js";
 export type { VerifiedSkillStoreOptions } from "./store.js";

@@ -124,3 +124,51 @@ describe("gateway macOS — kill switch e confirmação por botão", () => {
     expect(t).toContain("Arquivo STOP: ausente");
   });
 });
+
+describe("gateway macOS — aprendizado por tutorial (Fase 7)", () => {
+  it("/skills sem nada lista vazio; com uma candidata em .typer/skills mostra 🟡 e detalha por id", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake" });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/skills" });
+    expect(ch.lastReply()).toMatch(/Nenhuma skill ainda/);
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(join(root, ".typer", "skills", "app-exportar"), { recursive: true });
+    await writeFile(
+      join(root, ".typer", "skills", "app-exportar", "SKILL.md"),
+      '---\nid: app-exportar\nname: Exportar\ndescription: Exporta.\ncodeVersion: gui\nsealed: false\ncreatedAt: 2026-10-11T00:00:00Z\nkind: gui\napp: App\nstate: candidate\nsteps: [{"n":1,"intent":"Abrir Deliver","how":"aba","verify":"ok"}]\n---\n\n# Exportar\n',
+    );
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/skills" });
+    expect(ch.lastReply()).toContain("🟡 app-exportar");
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/skills app-exportar" });
+    expect(ch.lastReply()).toContain("[candidate]");
+    expect(ch.lastReply()).toContain("1. Abrir Deliver");
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/skills nao-existe" });
+    expect(ch.lastReply()).toMatch(/não encontrada/);
+  });
+
+  it("/aprender sem URL explica o uso; com STOP não roda; intruso é negado", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake" });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/aprender" });
+    expect(ch.lastReply()).toMatch(/Uso: \/aprender/);
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/aprender naoeurl" });
+    expect(ch.lastReply()).toMatch(/Uso: \/aprender/);
+    await writeFile(join(root, "STOP"), "");
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/aprender https://youtu.be/XXXXXXXXXXX" });
+    expect(ch.lastReply()).toMatch(/STOP presente/);
+    await ch.inject({ senderId: "intruso", chatId: "c2", text: "/aprender https://youtu.be/XXXXXXXXXXX" });
+    expect(ch.lastReply()).toMatch(/não autorizado/i);
+  });
+
+  it("/aprender com provider fake falha com erro claro (sem modelo), sem derrubar o gateway", async () => {
+    const ch = new FakeChannel();
+    const gw = new Gateway(ch, { root, allow: ["u1"], provider: "fake" });
+    await gw.start();
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "/aprender https://youtu.be/XXXXXXXXXXX DaVinci" });
+    expect(ch.lastReply()).toMatch(/não consegui aprender|sem provider/);
+    await ch.inject({ senderId: "u1", chatId: "c1", text: "oi" });
+    expect(ch.lastReply()).toContain("eco: oi");
+  });
+});

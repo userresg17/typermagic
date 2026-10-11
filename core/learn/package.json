@@ -1,0 +1,25 @@
+{
+  "name": "@typer/learn",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Aprendizado por tutorial — vídeo + transcrição → frames por cena → descrição por visão → skill GUI candidata (Fase 7 do plano macOS)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@typer/router": "workspace:*",
+    "@typer/skills": "workspace:*"
+  },
+  "devDependencies": {
+    "@typer/crypto": "workspace:*"
+  }
+}

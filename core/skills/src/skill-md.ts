@@ -4,7 +4,7 @@
 // do registry assinado (manifest/signature/publisher/hash/confinement) entram no
 // frontmatter quando presentes — compatível com .md antigos (campos opcionais).
 
-import type { CapabilityManifest, Skill } from "./types.js";
+import type { CapabilityManifest, GuiStep, Skill, SkillSource } from "./types.js";
 
 export function serializeSkill(skill: Skill): string {
   const fm = [
@@ -21,6 +21,14 @@ export function serializeSkill(skill: Skill): string {
   if (skill.publisher) fm.push(`publisher: ${skill.publisher}`);
   if (skill.hash) fm.push(`hash: ${skill.hash}`);
   if (skill.signature) fm.push(`signature: ${skill.signature}`);
+  // skills de GUI (Fase 7): campos estruturados em JSON numa linha cada (o parser é linha-a-linha)
+  if (skill.kind) fm.push(`kind: ${skill.kind}`);
+  if (skill.app) fm.push(`app: ${skill.app}`);
+  if (skill.appVersion) fm.push(`appVersion: ${skill.appVersion}`);
+  if (skill.state) fm.push(`state: ${skill.state}`);
+  if (skill.steps) fm.push(`steps: ${JSON.stringify(skill.steps)}`);
+  if (skill.sources) fm.push(`sources: ${JSON.stringify(skill.sources)}`);
+  if (skill.lastRehearsal) fm.push(`lastRehearsal: ${JSON.stringify(skill.lastRehearsal)}`);
   fm.push("---", "");
   return [...fm, skill.methodology, ""].join("\n");
 }
@@ -49,6 +57,19 @@ export function parseSkill(raw: string): Skill | null {
       ? f.confinement
       : undefined;
 
+  const json = <T>(key: string): T | undefined => {
+    if (!f[key]) return undefined;
+    try {
+      return JSON.parse(f[key]!) as T;
+    } catch {
+      return undefined;
+    }
+  };
+  const steps = json<GuiStep[]>("steps");
+  const sources = json<SkillSource[]>("sources");
+  const lastRehearsal = json<{ at: string; passed: boolean; reason?: string }>("lastRehearsal");
+  const state = f.state === "candidate" || f.state === "sealed" ? f.state : undefined;
+
   return {
     id: f.id,
     name: f.name,
@@ -62,5 +83,12 @@ export function parseSkill(raw: string): Skill | null {
     ...(f.publisher ? { publisher: f.publisher } : {}),
     ...(f.hash ? { hash: f.hash } : {}),
     ...(f.signature ? { signature: f.signature } : {}),
+    ...(f.kind === "gui" ? { kind: "gui" as const } : {}),
+    ...(f.app ? { app: f.app } : {}),
+    ...(f.appVersion ? { appVersion: f.appVersion } : {}),
+    ...(state ? { state } : {}),
+    ...(Array.isArray(steps) ? { steps } : {}),
+    ...(Array.isArray(sources) ? { sources } : {}),
+    ...(lastRehearsal ? { lastRehearsal } : {}),
   };
 }

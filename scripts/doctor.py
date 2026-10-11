@@ -96,7 +96,8 @@ def check_versions() -> None:
     (ok if sys.version_info >= (3, 11) else err)(f"python {py} ({sys.executable})")
     rg = shutil.which("rg")
     (ok if rg else warn)("ripgrep (rg) presente" if rg else "ripgrep ausente — contexto de código sem trechos (brew install ripgrep)")
-    (ok if shutil.which("ffmpeg") else warn)("ffmpeg presente" if shutil.which("ffmpeg") else "ffmpeg ausente — só afeta voz (opcional): brew install ffmpeg")
+    (ok if shutil.which("ffmpeg") else warn)("ffmpeg presente" if shutil.which("ffmpeg") else "ffmpeg ausente — afeta voz e aprendizado por tutorial: brew install ffmpeg")
+    (ok if shutil.which("yt-dlp") else warn)("yt-dlp presente" if shutil.which("yt-dlp") else "yt-dlp ausente — necessário p/ /aprender (tutoriais): brew install yt-dlp")
 
 
 def check_build() -> None:

@@ -5,9 +5,20 @@
     "outDir": "./dist"
   },
   "references": [
-    { "path": "../../core/agent" },
-    { "path": "../../core/engine" },
-    { "path": "../../core/vault" }
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../core/engine"
+    },
+    {
+      "path": "../../core/vault"
+    },
+    {
+      "path": "../../core/learn"
+    }
   ],
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }
