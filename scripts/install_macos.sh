@@ -25,6 +25,8 @@ install_service() {
   sed -e "s|__ROOT__|$ROOT|g" -e "s|__HOME__|$HOME|g" deploy/macos/$LABEL.plist.template > "$PLIST"
   # recarrega de forma idempotente (bootout ignora se não estava carregado)
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  # espera o job sumir de verdade (bootout é assíncrono; bootstrap em cima dele dá "Input/output error")
+  for _ in $(seq 1 20); do launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1 || break; sleep 0.5; done
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   launchctl kickstart -k "gui/$(id -u)/$LABEL"
   sleep 2

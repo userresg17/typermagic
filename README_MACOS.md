@@ -60,6 +60,13 @@ tail -f ~/Library/Logs/typermagic/steps.jsonl                       # log estrut
 No Telegram: `/status`, `/help`, `/parar` (kill switch), `/continuar` (remove o arquivo STOP), `/setup` (cofre).
 Tarefas: *"abra o TextEdit e escreva 'olá'"* (desktop) · *"abra example.com e me diga o título"* (navegador).
 
+## Voz (ligada)
+`brew install ffmpeg` + `pnpm voice:setup` baixam os modelos locais em `~/.typer/voice` (Whisper base p/ ouvir,
+Piper pt-BR p/ falar) e `"voice": {"in": true, "out": true}` no `.typer/gateway.json` liga os dois no
+gateway. Tudo roda na CPU do Mac, nada sai da máquina. Mande um áudio no Telegram: o bot responde
+`🎙️ ouvi: "…"`, executa e devolve a resposta em áudio com o texto na legenda. Medido: síntese ~1,4 s,
+transcrição ~0,5 s. Pedido por texto é respondido por texto.
+
 ## Testes
 ```bash
 pnpm test                                      # 73 arquivos (núcleo + macOS), vitest
