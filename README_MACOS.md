@@ -37,6 +37,17 @@ também precisa das duas. `pnpm doctor` mostra o estado.
 
 > Por que não um `.app` assinado: exigiria certificado de desenvolvedor; o binário do venv é estável
 > (o `uv` fixa a versão) e cumpre o requisito de "binário estável". Trocar a versão do Python = re-autorizar.
+>
+> Como a permissão chega ao serviço: o LaunchAgent roda `bash → node → python`, e o macOS cobraria a
+> permissão do **bash** (1º processo do job). O sidecar se relança com `responsibility_spawnattrs_setdisclaim`
+> (`platform/macos/server.py`), passando a responder pelo **próprio binário** do python — é ele que você
+> autoriza. Medido: sem isso o screenshot falhava no serviço mesmo com a permissão concedida.
+
+### ⚠️ Enquanto o agente opera, não use o Mac
+Teclado e mouse automatizados vão para **o app que estiver na frente**. O sidecar recusa qualquer tecla/clique
+se o app em foco não for o esperado (`expect_app`, rechecado logo antes de postar), mas um clique seu no meio
+de uma ação ainda pode interferir. Em uso dedicado 24/7 isso não acontece; em um Mac de trabalho, deixe o
+agente terminar (`/parar` aborta na hora).
 
 ## Rodar
 ```bash
@@ -55,6 +66,7 @@ pnpm test                                      # 73 arquivos (núcleo + macOS), 
 .venv/bin/python -m pytest platform/macos/tests # geometria Retina (puro)
 .venv/bin/python scripts/test_macos_platform.py # Fase 2: TextEdit digita, AX, screenshot, Retina (exige TCC)
 scripts/env.sh node scripts/test_browser.mjs    # Fase 3: Brave CDP, título, estado, screenshot
+TYPER_ALLOWED_APPS=TextEdit scripts/env.sh node scripts/test_desktop_agent.mjs  # sub-agente de desktop real (LLM roteirizado)
 TYPER_TEST_MOUSE=1 pnpm vitest run core/agent/test/platform-macos.test.ts  # move o cursor real
 ```
 

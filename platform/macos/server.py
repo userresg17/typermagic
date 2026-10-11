@@ -128,7 +128,49 @@ def handle(op: str, a: dict) -> object:
     raise ValueError(f"op desconhecida: {op}")
 
 
+def respawn_disclaimed() -> None:
+    """Faz este sidecar ser o PROCESSO RESPONSÁVEL por si mesmo perante o TCC.
+    Sem isso, lançado por launchd → bash → node → python, o macOS cobra a permissão de
+    Screen Recording/Accessibility do bash/node (o 1º processo do job), e não do python3.13
+    que o dono autorizou. `responsibility_spawnattrs_setdisclaim` (libSystem) resolve: o filho
+    passa a responder pelo próprio binário. Medido em 11/10: sem isto o screenshot falhava no
+    serviço mesmo com a permissão concedida."""
+    import ctypes
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    attr = ctypes.c_void_p()
+    if libc.posix_spawnattr_init(ctypes.byref(attr)) != 0:
+        return
+    try:
+        libc.responsibility_spawnattrs_setdisclaim(ctypes.byref(attr), 1)
+    except AttributeError:
+        return  # API privada ausente: segue sem disclaim
+    argv = [sys.executable, "-I", os.path.abspath(__file__)]
+    env = dict(os.environ, TYPER_DISCLAIMED="1")
+    c_argv = (ctypes.c_char_p * (len(argv) + 1))(*[a.encode() for a in argv], None)
+    c_env = (ctypes.c_char_p * (len(env) + 1))(*[f"{k}={v}".encode() for k, v in env.items()], None)
+    pid = ctypes.c_int()
+    rc = libc.posix_spawn(ctypes.byref(pid), argv[0].encode(), None, ctypes.byref(attr), c_argv, c_env)
+    libc.posix_spawnattr_destroy(ctypes.byref(attr))
+    if rc != 0:
+        return  # não conseguiu: roda inline mesmo
+    import signal
+
+    def fwd(signum, _frame):
+        try:
+            os.kill(pid.value, signum)
+        except ProcessLookupError:
+            pass
+
+    for sg in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sg, fwd)
+    _, status = os.waitpid(pid.value, 0)
+    sys.exit(os.waitstatus_to_exitcode(status))
+
+
 def main() -> None:
+    if os.environ.get("TYPER_DISCLAIMED") != "1" and os.environ.get("TYPER_NO_DISCLAIM") != "1":
+        respawn_disclaimed()
     emit({"ready": True, "pid": os.getpid(), "display": DISPLAY, "logical_width": LOGICAL})
     for line in sys.stdin:
         line = line.strip()

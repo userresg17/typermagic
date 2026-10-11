@@ -330,6 +330,8 @@ export async function runDesktopAgent(goal: string, deps: DesktopAgentDeps): Pro
     for (const a of plan.actions.slice(0, 4)) {
       if (isStopRequested(deps.signal)) return "⛔ Parado pelo kill switch (/parar ou arquivo STOP).";
       const r = await exec(a, ctx);
+      // a UI precisa assentar antes da próxima percepção (janela nova, menu, diálogo)
+      if (r.terminal && r.doneText === undefined && !r.result.startsWith("BLOQUEADO")) await new Promise((res) => setTimeout(res, 400));
       results.push(`${a.action}: ${r.result}`);
       logStep({
         surface, task, agent: "desktop", step, action: a.action,
