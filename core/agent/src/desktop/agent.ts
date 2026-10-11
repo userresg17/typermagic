@@ -157,6 +157,8 @@ export async function runDesktopAgent(goal: string, deps: DesktopAgentDeps): Pro
   };
 
   const exec = async (a: DesktopAction, ctx: StepCtx): Promise<{ result: string; terminal: boolean; doneText?: string }> => {
+    // trava de foco: o sidecar só posta mouse/teclado se ESTE app ainda estiver na frente
+    if ("expectApp" in p) p.expectApp = ctx.app;
     try {
       switch (a.action) {
         case "open_app": {
@@ -166,6 +168,7 @@ export async function runDesktopAgent(goal: string, deps: DesktopAgentDeps): Pro
           await p.open_app(name);
           await new Promise((r) => setTimeout(r, 1200));
           if (p.focus_app) await p.focus_app(name).catch(() => {});
+          if ("expectApp" in p) p.expectApp = name;
           return { result: `abri ${name}`, terminal: true };
         }
         case "focus_app": {
@@ -174,6 +177,7 @@ export async function runDesktopAgent(goal: string, deps: DesktopAgentDeps): Pro
           if (!p.focus_app) return { result: "ERRO: plataforma sem focus_app", terminal: false };
           await p.focus_app(name);
           await new Promise((r) => setTimeout(r, 500));
+          if ("expectApp" in p) p.expectApp = name;
           return { result: `foquei ${name}`, terminal: true };
         }
         case "ax_act": {

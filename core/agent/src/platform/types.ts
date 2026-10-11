@@ -67,4 +67,8 @@ export interface DesktopExtras {
   tcc(): Promise<{ screen_recording: boolean; accessibility: boolean; binary: string; instructions: string[] }>;
 }
 
-export type DesktopSession = Platform & Partial<DesktopExtras>;
+export type DesktopSession = Platform &
+  Partial<DesktopExtras> & {
+    /** app que deve estar em foco p/ eventos de entrada (o agente define por passo) */
+    expectApp?: string;
+  };

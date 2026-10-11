@@ -49,6 +49,9 @@ export class MacOSPlatform implements Platform, DesktopExtras {
   private readonly python: string;
   private readonly timeoutMs: number;
   private readonly env: Record<string, string>;
+  /** app que DEVE estar em foco p/ qualquer evento de entrada (rechecado no sidecar antes de postar).
+   *  O agente de desktop define a cada passo; vazio = sem checagem (só testes). */
+  expectApp = "";
 
   constructor(opts: MacOSOptions = {}) {
     this.root = opts.root ?? findRepoRoot();
@@ -109,6 +112,10 @@ export class MacOSPlatform implements Platform, DesktopExtras {
     }
   }
 
+  private guard(): Record<string, string> {
+    return this.expectApp ? { expect_app: this.expectApp } : {};
+  }
+
   /** chamada RPC genérica (exposta p/ testes/diagnóstico). */
   call<T = unknown>(op: string, args: Record<string, unknown> = {}, timeoutMs = this.timeoutMs): Promise<T> {
     const p = this.ensure();
@@ -127,25 +134,25 @@ export class MacOSPlatform implements Platform, DesktopExtras {
     return this.call<Screenshot>("screenshot", {}, 20_000);
   }
   async click(x: number, y: number, button: "left" | "right" = "left"): Promise<void> {
-    await this.call("click", { x, y, button });
+    await this.call("click", { ...this.guard(),  x, y, button });
   }
   async double_click(x: number, y: number): Promise<void> {
-    await this.call("double_click", { x, y });
+    await this.call("double_click", { ...this.guard(),  x, y });
   }
   async type(text: string): Promise<void> {
-    await this.call("type", { text });
+    await this.call("type", { ...this.guard(),  text });
   }
   async key(combo: string): Promise<void> {
-    await this.call("key", { combo });
+    await this.call("key", { ...this.guard(),  combo });
   }
   async scroll(x: number, y: number, dy: number, dx = 0): Promise<void> {
-    await this.call("scroll", { x, y, dy, dx });
+    await this.call("scroll", { ...this.guard(),  x, y, dy, dx });
   }
   async drag(x1: number, y1: number, x2: number, y2: number): Promise<void> {
-    await this.call("drag", { x1, y1, x2, y2 });
+    await this.call("drag", { ...this.guard(),  x1, y1, x2, y2 });
   }
   async mouse_move(x: number, y: number): Promise<void> {
-    await this.call("mouse_move", { x, y });
+    await this.call("mouse_move", { ...this.guard(),  x, y });
   }
   mouse_location(): Promise<{ x: number; y: number }> {
     return this.call("mouse_location");

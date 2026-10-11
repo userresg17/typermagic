@@ -77,37 +77,57 @@ def scroll(x: float, y: float, dy: int, dx: int = 0) -> None:
     _post(Quartz.CGEventCreateScrollWheelEvent(None, Quartz.kCGScrollEventUnitPixel, 2, int(dy), int(dx)))
 
 
+MOD_KEYCODES = {"cmd": 55, "command": 55, "meta": 55, "shift": 56, "alt": 58, "option": 58, "ctrl": 59, "control": 59}
+
+
 def type_text(text: str) -> None:
-    """digita Unicode direto (independe de layout). Em blocos de 20 chars."""
+    """digita Unicode direto (independe de layout). Em blocos de 20 chars, SEM modificadores."""
     for i in range(0, len(text), 20):
         chunk = text[i : i + 20]
         d = Quartz.CGEventCreateKeyboardEvent(None, 0, True)
         u = Quartz.CGEventCreateKeyboardEvent(None, 0, False)
         Quartz.CGEventKeyboardSetUnicodeString(d, len(chunk), chunk)
         Quartz.CGEventKeyboardSetUnicodeString(u, len(chunk), chunk)
+        # flags=0 explícito: sem isso o evento herda o estado atual do teclado (um Cmd "preso"
+        # de um atalho anterior transformava "abc" em cmd+a, cmd+b, cmd+c — bug real, 11/10).
+        Quartz.CGEventSetFlags(d, 0)
+        Quartz.CGEventSetFlags(u, 0)
         _post(d)
         _post(u)
         time.sleep(0.01)
 
 
 def key(combo: str) -> None:
-    """combo tipo "cmd+s", "enter", "shift+tab", "cmd+shift+n"."""
+    """combo tipo "cmd+s", "enter", "shift+tab", "cmd+shift+n". Modificadores são pressionados e
+    SOLTOS como teclas reais (keycode 55/56/58/59), para o estado do teclado não ficar "preso"."""
     parts = [p.strip().lower() for p in combo.replace("-", "+").split("+") if p.strip()]
-    flags = 0
+    mods: list[str] = []
     main: str | None = None
     for p in parts:
-        if p in MODIFIERS:
-            flags |= MODIFIERS[p]
+        if p in MOD_KEYCODES:
+            mods.append(p)
         else:
             main = p
     if main is None or main not in KEYCODES:
         raise ValueError(f"tecla desconhecida em '{combo}'")
+    flags = 0
+    for m in mods:
+        flags |= MODIFIERS[m]
+        md = Quartz.CGEventCreateKeyboardEvent(None, MOD_KEYCODES[m], True)
+        Quartz.CGEventSetFlags(md, flags)
+        _post(md)
+        time.sleep(0.01)
     code = KEYCODES[main]
     d = Quartz.CGEventCreateKeyboardEvent(None, code, True)
     u = Quartz.CGEventCreateKeyboardEvent(None, code, False)
-    if flags:
-        Quartz.CGEventSetFlags(d, flags)
-        Quartz.CGEventSetFlags(u, flags)
+    Quartz.CGEventSetFlags(d, flags)
+    Quartz.CGEventSetFlags(u, flags)
     _post(d)
     time.sleep(0.02)
     _post(u)
+    for m in reversed(mods):
+        flags &= ~MODIFIERS[m]
+        mu = Quartz.CGEventCreateKeyboardEvent(None, MOD_KEYCODES[m], False)
+        Quartz.CGEventSetFlags(mu, flags)
+        _post(mu)
+        time.sleep(0.01)

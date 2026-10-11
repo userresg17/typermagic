@@ -32,7 +32,24 @@ def to_pt(x: float, y: float) -> tuple[float, float]:
     return gg.logical_to_points(*gg.clamp_logical(float(x), float(y)))
 
 
+INPUT_OPS = {"mouse_move", "click", "double_click", "drag", "scroll", "type", "key"}
+
+
+def guard_app(a: dict) -> None:
+    """Se o chamador disse QUAL app deve estar em foco (expect_app), recheca AGORA — logo antes de
+    postar o evento. Sem isso, se o usuário troca de janela entre a decisão e a execução, um
+    cmd+w vai pro app errado (aconteceu: fechou a aba do dono, 11/10)."""
+    exp = a.get("expect_app")
+    if not exp:
+        return
+    cur = ax.frontmost_app()
+    if cur["name"].lower() != str(exp).lower() and cur["localized"].lower() != str(exp).lower():
+        raise RuntimeError(f"app em foco é '{cur['name']}', esperado '{exp}' — evento NÃO enviado")
+
+
 def handle(op: str, a: dict) -> object:
+    if op in INPUT_OPS:
+        guard_app(a)
     if op == "ping":
         return {"pong": True, "pid": os.getpid()}
     if op == "screen_size":

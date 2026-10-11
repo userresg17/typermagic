@@ -33,6 +33,13 @@ INTERESTING = {
 _last_snapshot: dict[int, Any] = {}
 
 
+def _same(a, b) -> bool:
+    try:
+        return bool(a == b) or (_point(_attr(a, "position")) == _point(_attr(b, "position")) and _text(_attr(a, "title")) == _text(_attr(b, "title")))
+    except Exception:
+        return False
+
+
 def frontmost_app() -> dict:
     app = NSWorkspace.sharedWorkspace().frontmostApplication()
     if app is None:
@@ -90,7 +97,20 @@ def tree(max_nodes: int = 400, max_depth: int = 10) -> dict:
     nodes: list[dict] = []
     snapshot: dict[int, Any] = {}
     truncated = False
-    stack: list[tuple[Any, int]] = [(root, 0)]
+    # Ordem que importa p/ o agente: janela em FOCO primeiro, depois as outras janelas, e por
+    # último os itens da barra de menus (só o nível de cima: 300+ itens de submenu esgotavam o
+    # teto de nós antes de chegar ao documento — bug real no TextEdit, 11/10).
+    roots: list[tuple[Any, int]] = []
+    err, fw = AS.AXUIElementCopyAttributeValue(root, AS.kAXFocusedWindowAttribute, None)
+    focused = fw if err == 0 else None
+    err, wins = AS.AXUIElementCopyAttributeValue(root, AS.kAXWindowsAttribute, None)
+    windows = list(wins) if err == 0 and wins else []
+    ordered = ([focused] if focused is not None else []) + [w for w in windows if focused is None or not _same(w, focused)]
+    for w in reversed(ordered):
+        roots.append((w, 1))
+    err, mb = AS.AXUIElementCopyAttributeValue(root, AS.kAXMenuBarAttribute, None)
+    menubar_items = list(_attr(mb, "children") or []) if err == 0 and mb is not None else []
+    stack: list[tuple[Any, int]] = [(m, 99) for m in reversed(menubar_items)] + roots  # 99 = não descer
     while stack:
         el, depth = stack.pop()
         if len(nodes) >= max_nodes:
@@ -110,14 +130,14 @@ def tree(max_nodes: int = 400, max_depth: int = 10) -> dict:
             nid = len(nodes) + 1
             snapshot[nid] = el
             nodes.append({
-                "id": nid, "depth": depth, "role": role.replace("AX", ""), "label": label[:80],
+                "id": nid, "depth": 0 if depth == 99 else depth, "role": role.replace("AX", ""), "label": label[:80],
                 "value": val[:80] if val and val != label else "",
                 "pos": [round(pos[0]), round(pos[1])] if pos else None,
                 "size": [round(size[0]), round(size[1])] if size else None,
                 "actions": [a.replace("AX", "") for a in acts if a not in ("AXShowMenu", "AXScrollToVisible")],
                 "enabled": _attr(el, "enabled") is not False,
             })
-        if depth < max_depth:
+        if depth < max_depth and role not in ("AXMenu", "AXMenuBar"):
             children = _attr(el, "children") or []
             for ch in reversed(list(children)[:60]):
                 stack.append((ch, depth + 1))

@@ -13,6 +13,25 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "platform"))
 from macos import ax, input as inp, screen, scripting, tcc  # noqa: E402
 
+APP = "TextEdit"
+
+
+def need_front() -> None:
+    """só manda tecla se o TextEdit estiver em foco — senão a tecla iria pro app do usuário."""
+    cur = ax.frontmost_app()["name"]
+    if cur != APP:
+        raise RuntimeError(f"app em foco é {cur!r}, não {APP} — tecla NÃO enviada")
+
+
+def key(combo: str) -> None:
+    need_front()
+    inp.key(combo)
+
+
+def type_text(t: str) -> None:
+    need_front()
+    inp.type_text(t)
+
 PHRASE = "Olá do TYPER Magic no macOS"
 fails: list[str] = []
 
@@ -47,14 +66,17 @@ def main() -> int:
         fails.append("foco")
 
     def novo_doc():
-        inp.key("cmd+n")
-        time.sleep(0.8)
+        # TextEdit pode abrir com o painel "Abrir" (sem documento): fecha com Escape antes do cmd+n
+        key("escape")
+        time.sleep(0.4)
+        key("cmd+n")
+        time.sleep(1.0)
         return "cmd+n"
 
     step("novo documento", novo_doc)
 
     def digitar():
-        inp.type_text(PHRASE)
+        type_text(PHRASE)
         time.sleep(0.5)
         return f"{len(PHRASE)} chars"
 
@@ -62,7 +84,7 @@ def main() -> int:
 
     def arvore():
         t = ax.tree()
-        texts = " | ".join(n["value"] or n["label"] for n in t["nodes"] if n["role"] in ("TextArea", "StaticText"))
+        texts = " | ".join(n["value"] or n["label"] for n in t["nodes"] if n["role"] in ("TextArea", "StaticText", "Window"))
         if PHRASE not in texts:
             raise AssertionError(f"frase não apareceu na árvore AX ({len(t['nodes'])} nós): {texts[:120]!r}")
         return f"{len(t['nodes'])} nós, frase encontrada"
@@ -91,18 +113,18 @@ def main() -> int:
     step("conversão Retina (mouse em pontos conhecidos)", retina)
 
     def fechar():
-        inp.key("cmd+w")
-        time.sleep(0.6)
-        # diálogo "salvar?": Delete / Não Salvar via AX, senão cmd+delete
-        t = ax.tree()
-        for n in t["nodes"]:
-            if n["role"] == "Button" and n["label"].lower() in ("delete", "apagar", "don't save", "não salvar"):
-                ax.act(n["id"], "Press")
-                break
-        else:
-            inp.key("cmd+delete")
-        time.sleep(0.5)
-        scripting.quit_app("TextEdit")
+        # fecha SEM atalho cego: quit via AppleScript; o diálogo "salvar?" é tratado por AX só se
+        # o TextEdit estiver em foco; nunca cmd+w/cmd+delete (iam p/ o app do usuário).
+        scripting.quit_app(APP)
+        time.sleep(0.8)
+        if ax.frontmost_app()["name"] == APP:
+            t = ax.tree()
+            for n in t["nodes"]:
+                if n["role"] == "Button" and n["label"].lower() in ("delete", "apagar", "don't save", "não salvar"):
+                    ax.act(n["id"], "Press")
+                    break
+            time.sleep(0.5)
+            scripting.quit_app(APP)
         return "fechado sem salvar"
 
     step("fechar TextEdit", fechar)
