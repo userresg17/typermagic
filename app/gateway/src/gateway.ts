@@ -74,6 +74,8 @@ const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/
 /** data dos botões inline de confirmação/handoff */
 const BTN_OK = "ok";
 const BTN_CANCEL = "cancel";
+export const PT_BR_RULE =
+  "[Idioma: responda SEMPRE em português do Brasil. Use 'você', nunca 'tu' ou 'vós'; vocabulário brasileiro (celular, tela, ônibus, trem, arquivo, registrar), nunca o de Portugal (telemóvel, ecrã, autocarro, comboio, ficheiro, registar).]";
 const CONFIRM_BUTTONS = [[{ text: "✅ Confirmar", data: BTN_OK }, { text: "🚫 Cancelar", data: BTN_CANCEL }]];
 const HANDOFF_BUTTONS = [[{ text: "▶️ ok, continuar", data: BTN_OK }, { text: "🛑 cancelar", data: BTN_CANCEL }]];
 /** 1º token do comando, normalizado — tira o sufixo @nomedobot que o Telegram anexa. */
@@ -401,6 +403,9 @@ export class Gateway {
         prompt = `(O navegador JÁ está aberto em: ${where} . Se esta tarefa continua de onde paramos, NÃO recomece do zero — dê um browser_read na página atual e continue daí.)\n\n${msg.text}`;
       }
     }
+    // idioma: SEMPRE português do Brasil (o modelo às vezes escorregava p/ o de Portugal — "tu",
+    // "estás", "ecrã", "telemóvel"). Regra fixa do dono (12/10/2026).
+    prompt = `${prompt}\n\n${PT_BR_RULE}`;
     // Teto de aprovações por tarefa: corta o LOOP de "confirma de novo" quando a página
     // não finaliza (anti-bot/multi-passo) e o modelo re-clica "concluir" sem parar.
     let approvals = 0;

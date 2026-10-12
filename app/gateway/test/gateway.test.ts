@@ -147,3 +147,12 @@ describe("Gateway HITL (askUser reentrante)", () => {
     expect(await answer).toBe("sim");
   });
 });
+
+import { PT_BR_RULE } from "../src/gateway.js";
+describe("idioma", () => {
+  it("regra de português do Brasil proíbe 'tu' e vocabulário de Portugal", () => {
+    expect(PT_BR_RULE).toMatch(/português do Brasil/);
+    expect(PT_BR_RULE).toMatch(/nunca 'tu'/);
+    expect(PT_BR_RULE).toMatch(/telemóvel/);
+  });
+});

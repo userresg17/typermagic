@@ -52,6 +52,8 @@ interface GatewayFile {
   /** override de modelo (ex.: "claude-opus-5-5"). Também via TYPER_MODEL. */
   model?: string | null;
   checkpointEvery?: number;
+  /** voz própria do Jarvis (sobrepõe `voice` só no canal jarvis); o Telegram fica com `voice` */
+  jarvisVoice?: GatewayFile["voice"];
 }
 
 const list = (v: string | undefined): string[] =>
@@ -69,7 +71,8 @@ async function loadGatewayFile(root: string): Promise<GatewayFile> {
 }
 
 /** monta o modelo de TTS a partir do gateway.json (mesma voz no Telegram e no Jarvis). */
-function buildTts(file: GatewayFile): { tts: TtsModel; engine: string } {
+function buildTts(file: GatewayFile, override?: GatewayFile["voice"]): { tts: TtsModel; engine: string } {
+  if (override) file = { ...file, voice: { ...file.voice, ...override } };
   const vdir = join(homedir(), ".typer", "voice");
   const engine = file.voice?.engine ?? "piper";
   let tts: TtsModel;
@@ -217,7 +220,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
       console.error(red(`Jarvis: falta o ouvido (${existsSync(python) ? earScript : python}). Rode scripts/install_jarvis.sh`));
       return 2;
     }
-    const { tts, engine } = buildTts(file);
+    const { tts, engine } = buildTts(file, file.jarvisVoice);
     if (!ttsReady(tts)) {
       console.error(red(`Jarvis: voz (${engine}) não está instalada em ~/.typer/voice`));
       return 2;
