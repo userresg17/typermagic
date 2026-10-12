@@ -29,12 +29,29 @@ def main():
         dv = os.environ.get("MLX_TTS_VOICE", "pf_dora")
         dl = os.environ.get("MLX_TTS_LANG", "p")
 
-        def gen(text, voice, lang, speed):
+        import re
+
+        # pausas de respiração (s) depois de cada pontuação — fala de gente, não de robô
+        PAUSA = {",": 0.16, ";": 0.24, ":": 0.24, ".": 0.34, "!": 0.34, "?": 0.38, "…": 0.42}
+        mult = float(os.environ.get("MLX_TTS_PAUSE", "1.0"))
+
+        def gen_raw(text, voice, lang, speed):
             parts, sr = [], 24000
             for r in model.generate(text=text, voice=voice, lang_code=lang, speed=speed):
                 parts.append(np.array(r.audio))
                 sr = r.sample_rate
-            return np.concatenate(parts) if parts else np.zeros(1, dtype="float32"), sr
+            return (np.concatenate(parts) if parts else np.zeros(1, dtype="float32")), sr
+
+        def gen(text, voice, lang, speed):
+            pedacos = [p for p in re.split(r"(?<=[,;:.!?…])\s+", text.strip()) if p.strip()]
+            out, sr = [], 24000
+            for p in pedacos:
+                a, sr = gen_raw(p, voice, lang, speed)
+                out.append(a.astype("float32"))
+                pausa = PAUSA.get(p.rstrip()[-1:], 0.0) * mult
+                if pausa:
+                    out.append(np.zeros(int(sr * pausa), dtype="float32"))
+            return (np.concatenate(out) if out else np.zeros(1, dtype="float32")), sr
 
         gen("Pronto.", dv, dl, 1.0)  # aquece (compila os kernels)
     except Exception as e:

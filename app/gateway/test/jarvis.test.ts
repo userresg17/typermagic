@@ -147,14 +147,21 @@ describe("Jarvis: canal", () => {
 });
 
 import { falaHora } from "../src/jarvis.js";
-describe("Jarvis: hora falada curta", () => {
-  it("22:34, 22h34 e '22 horas e 34 minutos' viram '22 e 34'; hora cheia vira 'em ponto'", () => {
-    expect(falaHora("Agora são 22:34.")).toBe("Agora são 22 e 34.");
-    expect(falaHora("São 22h34")).toBe("São 22 e 34");
-    expect(falaHora("Agora são 22 horas e 34 minutos.")).toBe("Agora são 22 e 34.");
-    expect(falaHora("Reunião às 09:05")).toBe("Reunião às 9 e 5");
-    expect(falaHora("Começa 15:00")).toBe("Começa 15 em ponto");
-    expect(falaHora("Custa 1:30 de vídeo e 3x de 99")).toBe("Custa 1 e 30 de vídeo e 3x de 99");
+describe("Jarvis: hora falada como gente", () => {
+  it("hora no feminino e por extenso: 'vinte e duas e quarenta e sete'", () => {
+    expect(falaHora("Agora são 22:47.")).toBe("Agora são vinte e duas e quarenta e sete.");
+    expect(falaHora("São 22h47")).toBe("São vinte e duas e quarenta e sete");
+    expect(falaHora("Agora são 22 horas e 47 minutos.")).toBe("Agora são vinte e duas e quarenta e sete.");
+    expect(falaHora("São 22 e 47.")).toBe("São vinte e duas e quarenta e sete.");
+    expect(falaHora("Começa às 15:00")).toBe("Começa às quinze em ponto");
+    expect(falaHora("É 1 e 10")).toBe("É uma e dez");
+    expect(falaHora("Almoço 12:30, volta 00:15")).toBe("Almoço meio-dia e trinta, volta meia-noite e quinze");
+    expect(falaHora("Sai às 21 em ponto")).toBe("Sai às vinte e uma em ponto");
+  });
+  it("número antes de palavra feminina concorda; dinheiro e masculino ficam como estão", () => {
+    expect(falaHora("Achei 2 passagens e 1 opção para 2 pessoas")).toBe("Achei duas passagens e uma opção para duas pessoas");
+    expect(falaHora("Tem 200 unidades e 2 dias")).toBe("Tem duzentas unidades e 2 dias");
+    expect(falaHora("Custa 22 e 50 reais")).toBe("Custa 22 e 50 reais");
   });
 });
 
@@ -175,6 +182,19 @@ describe("Jarvis: caixinha na tela", () => {
     expect(huds.slice(0, 2)).toEqual(["listening", "thinking"]);
     expect(huds).toContain("speaking");
     expect(huds[huds.length - 1]).toBe("done");
+    ch.stop();
+  });
+});
+
+describe("Jarvis: ruído na janela de conversa", () => {
+  it("'E...' solto depois da resposta não vira pedido; pergunta de verdade vira", async () => {
+    const { ch, sp, got } = canal();
+    sp.say({ event: "command", text: "E...", followup: true });
+    await tick();
+    expect(got).toHaveLength(0);
+    sp.say({ event: "command", text: "e amanhã?", followup: true });
+    await tick();
+    expect(got).toHaveLength(1);
     ch.stop();
   });
 });

@@ -55,20 +55,47 @@ const STOP = /^(para|pare|parar|chega|cancela tudo|para tudo|stop)\W*$/i;
 
 /** instrução de estilo que vai na frente de todo pedido falado (resposta será OUVIDA). */
 export const VOICE_HINT =
-  "[Pedido falado ao Jarvis no Mac. Responda como fala natural e direta de brasileiro, curto: 1 a 3 frases, sem listas, tabelas, markdown, emojis ou links. Hora sempre no jeito falado curto: 'são 22 e 34', 'meio-dia e 10', '9 em ponto' — nunca 'horas e minutos'.]";
+  "[Pedido falado ao Jarvis no Mac. Responda como fala natural e direta de brasileiro, curto: 1 a 3 frases, sem listas, tabelas, markdown, emojis ou links. Escreva horários só com dígitos no formato 22:34 (o sistema converte para fala); use vírgulas e pontos como uma pessoa respira ao falar.]";
 
-/** hora no jeito que brasileiro fala: "22:34" / "22h34" / "22 horas e 34 minutos" → "22 e 34";
- *  "15:00" → "15 em ponto". Aplicado antes da síntese, como rede de segurança da instrução acima. */
+const UNID = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+const DEZ = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+const CEM = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+/** número por extenso (0–999). `fem` = concordância feminina: uma, duas, duzentas… */
+export function extenso(n: number, fem = false): string {
+  if (!Number.isInteger(n) || n < 0 || n > 999) return String(n);
+  let out: string;
+  if (n < 20) out = UNID[n]!;
+  else if (n < 100) out = DEZ[Math.floor(n / 10)]! + (n % 10 ? ` e ${UNID[n % 10]}` : "");
+  else if (n === 100) out = "cem";
+  else out = CEM[Math.floor(n / 100)]! + (n % 100 ? ` e ${extenso(n % 100)}` : "");
+  if (fem) out = out.replace(/\bum\b/g, "uma").replace(/\bdois\b/g, "duas").replace(/entos\b/g, "entas");
+  return out;
+}
+
+const hora = (h: string): string => {
+  const n = Number(h);
+  if (n === 0) return "meia-noite";
+  if (n === 12) return "meio-dia";
+  return extenso(n, true);
+};
+const minuto = (m: string): string => extenso(Number(m));
+
+/** substantivos femininos comuns nas respostas: o número antes deles vai no feminino */
+const FEMININOS = "horas?|pessoas?|passagens?|vezes|semanas?|cartas?|noites?|opç(?:ão|ões)|malas?|parcelas?|unidades?|mensagens?|páginas?|tarefas?|abas?|janelas?|fotos?|compras?|reservas?|diárias?|camas?|vagas?|poltronas?|escalas?|conexões|ofertas?|lojas?";
+
+/** hora e número no jeito que brasileiro FALA:
+ *  "22:34" / "22h34" / "22 horas e 34 minutos" / "são 22 e 34" → "vinte e duas e trinta e quatro";
+ *  "15:00" → "quinze em ponto"; "12:10" → "meio-dia e dez"; "2 pessoas" → "duas pessoas".
+ *  Aplicado antes da síntese (o TTS lê dígito no masculino: "vinte e dois"). */
 export function falaHora(t: string): string {
-  const fmt = (h: string, m: string): string => {
-    const hh = String(Number(h));
-    if (/^0+$/.test(m)) return `${hh} em ponto`;
-    return `${hh} e ${String(Number(m))}`;
-  };
+  const fmt = (h: string, m: string): string => (/^0+$/.test(m) ? `${hora(h)} em ponto` : `${hora(h)} e ${minuto(m)}`);
   return t
     .replace(/\b(\d{1,2})\s*horas?\s*e\s*(\d{1,2})\s*minutos?\b/gi, (_x, h: string, m: string) => fmt(h, m))
     .replace(/\b([01]?\d|2[0-3])\s*[:h]\s*([0-5]\d)\b(?:\s*min)?/gi, (_x, h: string, m: string) => fmt(h, m))
-    .replace(/\b([01]?\d|2[0-3])\s*horas?\s+em ponto\b/gi, (_x, h: string) => `${Number(h)} em ponto`);
+    .replace(/(?<!\p{L})(são|é|às|as|das|pelas|até as|desde as|a partir das)\s+([01]?\d|2[0-3])\s+e\s+([0-5]?\d)\b(?!\s*(?:reais|dólares|euros|%|por cento))/giu, (_x, pre: string, h: string, m: string) => `${pre} ${fmt(h, m)}`)
+    .replace(/\b([01]?\d|2[0-3])\s*(?:horas?\s+)?em ponto\b/gi, (_x, h: string) => `${hora(h)} em ponto`)
+    .replace(new RegExp(`\\b(\\d{1,3})\\s+(${FEMININOS})\\b`, "gi"), (_x, n: string, w: string) => `${extenso(Number(n), true)} ${w}`);
 }
 
 /** mapeia a resposta falada para o dado de um botão pendente ("sim" → "ok"). null = não é sim/não. */
@@ -239,7 +266,7 @@ export class JarvisChannel implements ChannelAdapter {
   }
 
   private async onEar(line: string): Promise<void> {
-    let ev: { event?: string; text?: string; error?: string; fatal?: boolean; device?: string; model?: string };
+    let ev: { event?: string; text?: string; error?: string; fatal?: boolean; device?: string; model?: string; followup?: boolean };
     try {
       ev = JSON.parse(line);
     } catch {
@@ -271,6 +298,12 @@ export class JarvisChannel implements ChannelAdapter {
         if (STOP.test(text)) {
           this.buttons = [];
           await this.cb?.({ senderId: this.id, chatId: this.id, text: "/parar", viaVoice: true });
+          return;
+        }
+        // ruído/eco: fala de 1 palavra sem conteúdo ("E...", "Hã", "Ah") não vira pedido
+        if (ev.followup && this.buttons.length === 0 && /^(e|é|ah|ahn|hã|hum|hm|uhum|né|tá|ok|o|a)\W*$/i.test(text)) {
+          this.log(`(ignorado: ${text})`);
+          this.hud("done");
           return;
         }
         const ans = answerFromSpeech(text, this.buttons);
