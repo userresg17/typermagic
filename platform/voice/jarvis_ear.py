@@ -73,6 +73,17 @@ def _is_name(tok: str) -> bool:
     return _lev(t, "jarvis") <= 2 or t in {"jarvi", "jarviz", "jarves", "jervis", "jorvis", "jarbas"}
 
 
+def find_wake_anywhere(text: str) -> tuple[bool, str]:
+    """Para trechos que se misturam com a fala do próprio Jarvis (o microfone capta o alto-falante):
+    só aceita SAUDAÇÃO + NOME juntos ("oi Jarvis") em qualquer ponto, e devolve o que vem depois."""
+    words = text.strip().split()
+    raw = [re.sub(r"[^\w]+", "", w.lower()) for w in words]
+    for i in range(1, len(words)):
+        if raw[i - 1] in GREETINGS and _is_name(_plain(words[i]).replace(" ", "")):
+            return True, " ".join(words[i + 1 :]).lstrip(" ,.!?;:-–—").strip()
+    return False, ""
+
+
 def split_wake(text: str) -> tuple[bool, str]:
     """("oi Jarvis, abre o navegador") → (True, "abre o navegador"). Exige o nome nas 3 primeiras
     palavras e, se o nome não for a 1ª palavra, uma saudação antes dele (evita disparar com
@@ -118,6 +129,10 @@ class Ear:
         self.vad = sherpa_onnx.VoiceActivityDetector(cfg, buffer_size_in_seconds=60)
         self.speaking = False
         self.listen_until = 0.0
+        # intervalos (relógio de parede) em que o Jarvis estava falando — eco do alto-falante
+        self.spans: list[list[float]] = []
+        self.t0: float | None = None  # relógio do 1º sample capturado
+        self.ECHO_TAIL = float(os.environ.get("JARVIS_ECHO_TAIL_S", "0.8"))
         self.audio: "queue.Queue" = queue.Queue()
 
     def transcribe(self, samples) -> str:
@@ -126,11 +141,35 @@ class Ear:
         self.asr.decode_stream(s)
         return s.result.text.strip()
 
-    def on_segment(self, samples) -> None:
+    def overlaps_own_voice(self, start: float, end: float) -> bool:
+        for a, b in self.spans:
+            if a - 0.2 < end and (b if b is not None else float("inf")) + self.ECHO_TAIL > start:
+                return True
+        return False
+
+    def on_segment(self, samples, start_wall: float | None = None) -> None:
         dur = len(samples) / SR
         if dur < 0.35:
             return
-        in_window = time.time() < self.listen_until and not self.speaking
+        end_wall = (start_wall + dur) if start_wall is not None else time.time() - 0.7
+        start_wall = start_wall if start_wall is not None else end_wall - dur
+        self.spans = [sp for sp in self.spans if sp[1] is None or sp[1] > time.time() - 120]
+        if self.speaking or self.overlaps_own_voice(start_wall, end_wall):
+            # trecho com a voz do próprio Jarvis: só um "oi Jarvis" explícito vale (interrupção)
+            text = self.transcribe(samples)
+            woke, rest = find_wake_anywhere(text)
+            if os.environ.get("JARVIS_DEBUG"):
+                emit({"event": "heard", "text": f"(eco) {text}"})
+            if not woke:
+                return
+            emit({"event": "interrupt"})
+            if len(re.sub(r"\W+", "", rest)) >= 2:
+                emit({"event": "command", "text": rest})
+            else:
+                emit({"event": "wake"})
+                self.listen_until = time.time() + 8.0
+            return
+        in_window = time.time() < self.listen_until
         if in_window:
             text = self.transcribe(samples)
             if not text or re.fullmatch(r"[\W_]*", text):
@@ -146,8 +185,6 @@ class Ear:
             if os.environ.get("JARVIS_DEBUG"):
                 emit({"event": "heard", "text": head})
             return
-        if self.speaking:
-            emit({"event": "interrupt"})
         full = head if dur <= WAKE_PROBE_S else self.transcribe(samples)
         _, rest = split_wake(full)
         if len(re.sub(r"\W+", "", rest)) >= 2:
@@ -163,9 +200,17 @@ class Ear:
             except json.JSONDecodeError:
                 continue
             if msg.get("cmd") == "speaking":
-                self.speaking = bool(msg.get("on"))
+                on = bool(msg.get("on"))
+                now = time.time()
+                if on and not self.speaking:
+                    self.spans.append([now, None])
+                    self.listen_until = 0.0
+                elif not on and self.speaking and self.spans and self.spans[-1][1] is None:
+                    self.spans[-1][1] = now
+                self.speaking = on
             elif msg.get("cmd") == "listen":
-                self.listen_until = time.time() + float(msg.get("seconds", 8))
+                # janela de conversa começa DEPOIS do rabo do eco
+                self.listen_until = time.time() + self.ECHO_TAIL + float(msg.get("seconds", 8))
         os._exit(0)  # pai fechou o stdin: encerra
 
     def run(self) -> None:
@@ -174,25 +219,36 @@ class Ear:
 
         threading.Thread(target=self.stdin_loop, daemon=True).start()
 
-        def cb(indata, _frames, _t, status):
+        def cb(indata, frames, _t, status):
             if status:
                 log(str(status))
+            if self.t0 is None:
+                self.t0 = time.time() - frames / SR
             self.audio.put(indata[:, 0].copy())
 
         dev = os.environ.get("JARVIS_MIC") or None
         with sd.InputStream(samplerate=SR, channels=1, dtype="float32", blocksize=self.window, device=dev, callback=cb):
             emit({"event": "ready", "model": MODEL, "device": str(sd.query_devices(dev, "input")["name"])})
             buf = np.zeros(0, dtype=np.float32)
+            last_lvl = 0.0
             while True:
-                buf = np.concatenate([buf, self.audio.get()])
+                blk = self.audio.get()
+                buf = np.concatenate([buf, blk])
+                # nível do microfone p/ a onda da pílula — só enquanto está ouvindo você
+                now = time.time()
+                if now < self.listen_until and not self.speaking and now - last_lvl > 0.05:
+                    emit({"event": "level", "v": round(float(np.sqrt(np.mean(blk * blk))), 4)})
+                    last_lvl = now
                 while len(buf) >= self.window:
                     self.vad.accept_waveform(buf[: self.window])
                     buf = buf[self.window :]
                 while not self.vad.empty():
-                    seg = np.array(self.vad.front.samples, dtype=np.float32)
+                    front = self.vad.front
+                    seg = np.array(front.samples, dtype=np.float32)
+                    start_wall = (self.t0 + front.start / SR) if self.t0 is not None else None
                     self.vad.pop()
                     try:
-                        self.on_segment(seg)
+                        self.on_segment(seg, start_wall)
                     except Exception as e:  # um erro de reconhecimento nunca derruba o ouvido
                         emit({"event": "error", "error": f"{type(e).__name__}: {e}"[:300]})
 

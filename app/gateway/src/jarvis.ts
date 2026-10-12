@@ -138,8 +138,9 @@ export class JarvisChannel implements ChannelAdapter {
     this.o.log?.(m);
   }
 
-  /** atualiza a caixinha na tela (listening | thinking | speaking | done | error). */
-  hud(state: string, text = ""): void {
+  /** atualiza a pílula na tela (listening | thinking | speaking | done | error). `extra.wav` = áudio
+   *  que está começando a tocar (a onda segue o envelope dele); `extra.level` = nível do microfone. */
+  hud(state: string | null, _text = "", extra: { wav?: string; level?: number } = {}): void {
     if (!this.o.hud) return;
     try {
       if (!this.hudProc || this.hudProc.exitCode !== null) {
@@ -148,7 +149,8 @@ export class JarvisChannel implements ChannelAdapter {
         this.hudProc.on("error", () => (this.hudProc = null));
         this.hudProc.on("exit", () => (this.hudProc = null));
       }
-      this.hudProc.stdin?.write(JSON.stringify({ state, text: text.slice(0, 140) }) + "\n");
+      const msg = state === null ? { level: extra.level ?? 0 } : { state, ...(extra.wav ? { wav: extra.wav } : {}) };
+      this.hudProc.stdin?.write(JSON.stringify(msg) + "\n");
     } catch {
       /* caixa é cosmética: nunca derruba a conversa */
     }
@@ -213,7 +215,7 @@ export class JarvisChannel implements ChannelAdapter {
         next = i + 1 < frases.length ? synth(frases[i + 1]!) : null;
         const wav = await cur;
         if (wav && g === this.gen) {
-          this.hud("speaking", frases[i]!);
+          this.hud("speaking", frases[i]!, { wav });
           await this.play(wav);
         }
         if (wav) void unlink(wav).catch(() => {});
@@ -283,6 +285,9 @@ export class JarvisChannel implements ChannelAdapter {
         return;
       case "interrupt":
         this.interrupt();
+        return;
+      case "level":
+        this.hud(null, "", { level: Number((ev as { v?: number }).v ?? 0) });
         return;
       case "heard":
         this.log(`(ouviu, sem ativação) ${ev.text ?? ""}`);
