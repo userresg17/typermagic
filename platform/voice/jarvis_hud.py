@@ -166,7 +166,7 @@ class Hud(AppKit.NSObject):
             return
         now = time.time()
         if self.state == "listening":
-            target = min(1.0, self.mic * 4.0)
+            target = min(1.0, math.sqrt(self.mic) * 5.0)  # fala ~0,01–0,05 rms; silêncio ~0,0002
         elif self.state == "speaking":
             i = int((now - self.env_t0) * FPS)
             target = self.env[i] if 0 <= i < len(self.env) else 0.0

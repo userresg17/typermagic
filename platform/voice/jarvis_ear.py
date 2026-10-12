@@ -47,7 +47,9 @@ def log(msg: str) -> None:
 # ---------------------------------------------------------------- palavra de ativação
 
 # comparadas na forma CRUA (minúscula, sem pontuação): "ô Jarvis" vale, "o Jarvis do filme" não.
-GREETINGS = {"oi", "oii", "oie", "ói", "ôi", "ei", "hey", "hei", "ô", "olá", "ola", "alô", "alo", "e aí", "aí"}
+GREETINGS = {"oi", "oii", "oie", "ói", "ôi", "ei", "eii", "hey", "hei", "ô", "olá", "ola", "alô", "alo", "aí", "e", "é", "eh", "em", "hein", "ê"}
+# Whisper às vezes cola a saudação no nome ("Eijarvis", "Oijarvis")
+GLUED = re.compile(r"^(oi|ei|hey|hei|o|ô|e|em)(j[aeo]r\w*)$")
 
 
 def _plain(s: str) -> str:
@@ -79,7 +81,7 @@ def find_wake_anywhere(text: str) -> tuple[bool, str]:
     words = text.strip().split()
     raw = [re.sub(r"[^\w]+", "", w.lower()) for w in words]
     for i in range(1, len(words)):
-        if raw[i - 1] in GREETINGS and _is_name(_plain(words[i]).replace(" ", "")):
+        if raw[i - 1] in (GREETINGS - {"e", "é", "eh", "em", "ê"}) and _is_name(_plain(words[i]).replace(" ", "")):
             return True, " ".join(words[i + 1 :]).lstrip(" ,.!?;:-–—").strip()
     return False, ""
 
@@ -89,11 +91,20 @@ def split_wake(text: str) -> tuple[bool, str]:
     palavras e, se o nome não for a 1ª palavra, uma saudação antes dele (evita disparar com
     "o Jarvis do filme…")."""
     words = text.strip().split()
+    # descola "Eijarvis" → "Ei jarvis"
+    sep = []
+    for w in words[:3]:
+        m = GLUED.match(_plain(w).replace(" ", ""))
+        sep.extend([m.group(1), w[len(m.group(1)):]] if m and _is_name(m.group(2)) else [w])
+    words = sep + words[3:]
     plain = [_plain(w).strip() for w in words]
     raw = [re.sub(r"[^\w]+", "", w.lower()) for w in words]
     for i, p in enumerate(plain[:3]):
         if _is_name(p.replace(" ", "")):
             before = [x for x in raw[:i] if x]
+            # "o Jarvis"/"ô Jarvis" chamando: vale quando o "o" ABRE a fala (vocativo)
+            if before == ["o"] and i == 1:
+                before = []
             if before and not all(b in GREETINGS for b in before):
                 return False, ""
             rest = " ".join(words[i + 1 :]).lstrip(" ,.!?;:-–—").strip()
