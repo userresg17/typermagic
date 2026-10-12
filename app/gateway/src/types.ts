@@ -5,6 +5,7 @@
 
 import type { CapabilityGrant, EngineFeatures } from "@typer/engine";
 import type { BrowserOptions, BrowserSession, DesktopSession } from "@typer/agent";
+import type { MeetingsHub } from "@typer/meetings";
 
 export interface IncomingMessage {
   /** id do remetente (allowlist/rate-limit por aqui) */
@@ -16,6 +17,8 @@ export interface IncomingMessage {
   viaVoice?: boolean;
   /** veio de um BOTÃO inline (callback_query) — text = data do botão ("ok"/"cancel") */
   isCallback?: boolean;
+  /** documento de texto anexado (.txt/.md/.vtt…), já baixado — p/ transcrição encaminhada como arquivo */
+  document?: { name: string; text: string };
 }
 
 /** botão inline: rótulo + dado devolvido no callback */
@@ -73,4 +76,7 @@ export interface GatewayConfig {
   model?: string | null;
   /** a cada quantos passos manda screenshot de checkpoint (default 5) */
   checkpointEvery?: number;
+  /** Central de Reuniões: ingestão do que chega com "reunião" (WhatsApp → Telegram), comando
+   *  /reunioes e as ferramentas reunioes_* p/ o agente responder perguntas. Ausente = desligada. */
+  meetings?: MeetingsHub;
 }

@@ -156,6 +156,9 @@ export interface ToolDeps {
   hasOpenAI?: boolean;
   /** comando de teste do projeto (run_tests, coverage) */
   testCommand?: string;
+  /** Central de Reuniões (reunioes_*): busca/leitura das reuniões já resumidas. Tipado solto
+   *  (@typer/meetings fica fora do @typer/agent), injetado pelo gateway. */
+  meetings?: import("./meetings.js").MeetingsDep;
   /** registry MCP p/ use_mcp_tool (tipado solto p/ não acoplar) */
   mcp?: {
     call(qualifiedName: string, args: Record<string, unknown>): Promise<unknown>;

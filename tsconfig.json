@@ -23,6 +23,7 @@
     { "path": "./core/trajectory" },
     { "path": "./core/reach" },
     { "path": "./core/learn" },
+    { "path": "./core/meetings" },
     { "path": "./app/agent-cli" },
     { "path": "./app/gateway" },
     { "path": "./app/scheduler" },

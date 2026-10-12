@@ -105,6 +105,16 @@ intervalo) → `distilled.json` + `.typer/skills/<id>/SKILL.md` (state: candidat
 retoma do que já existe. Modelos e pasta: `TYPER_LEARN_VISION_MODEL`, `TYPER_LEARN_MODEL`,
 `TYPER_LEARN_DIR`. Requer `yt-dlp` e `ffmpeg` (o `doctor` confere).
 
+## Central de Reuniões (`/reunioes`)
+
+Junta sozinha as transcrições que o time já gera — Discord (`#transcrições`), anotações do Gemini no
+Google Drive e resumos do WhatsApp encaminhados ao bot com a palavra "reunião" — resume em pt-BR
+(decisões, pendências, responsáveis; traduz o que estiver em outra língua), salva cada uma em
+`~/Reunioes/*.md`, mantém o índice `~/Reunioes/REUNIOES.md` e avisa no Telegram. Perguntas
+("o que ficou pendente com o dev?") funcionam no Telegram e no Jarvis pelas ferramentas `reunioes_*`.
+Serviço: `scripts/install_reunioes.sh` (LaunchAgent `com.typermagic.reunioes`). Passo a passo do bot
+do Discord e do OAuth do Google em `docs/CENTRAL-REUNIOES.md`.
+
 ## Testes
 ```bash
 pnpm test                                      # 73 arquivos (núcleo + macOS), vitest

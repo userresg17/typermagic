@@ -22,6 +22,8 @@ import { reachTools } from "./reach.js";
 import { browserTools } from "./browser.js";
 import { assistTools } from "./assist.js";
 import { desktopTools } from "./desktop.js";
+import { meetingsTools } from "./meetings.js";
+export { meetingsSkillSection, MEETINGS_SKILL, type MeetingsDep, type MeetingLike } from "./meetings.js";
 export { desktopSkillSection, DESKTOP_SKILL } from "./desktop.js";
 export { reachSkillSection } from "./reach.js";
 export { browserSkillSection, BROWSER_SKILL } from "./browser.js";
@@ -35,7 +37,7 @@ export type { ToolRegistry } from "./registry.js";
 export { dispatch } from "./dispatch.js";
 export { runSubprocess, StubMicroVm } from "./executors.js";
 
-/** Todas as ferramentas (core + lazy) — 67 originais + 5 desktop (macOS). */
+/** Todas as ferramentas (core + lazy) — 67 originais + 5 desktop (macOS) + 3 reuniões. */
 export const ALL_TOOLS: Tool[] = [
   ...fileTools,
   ...searchTools,
@@ -51,6 +53,7 @@ export const ALL_TOOLS: Tool[] = [
   ...browserTools,
   ...assistTools,
   ...desktopTools,
+  ...meetingsTools,
 ];
 
 /** Registry com as ferramentas registradas. */

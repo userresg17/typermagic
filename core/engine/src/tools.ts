@@ -66,6 +66,8 @@ export interface ToolCallDeps {
   signal?: ToolDeps["signal"];
   taskLabel?: ToolDeps["taskLabel"];
   browserPrompt?: ToolDeps["browserPrompt"];
+  /** Central de Reuniões (reunioes_*) */
+  meetings?: ToolDeps["meetings"];
 }
 
 /** Executa uma ferramenta com o broker à frente. Nunca lança: devolve ToolResult
@@ -136,6 +138,7 @@ export async function callRegistryTool(
     ...(deps.signal !== undefined ? { signal: deps.signal } : {}),
     ...(deps.taskLabel !== undefined ? { taskLabel: deps.taskLabel } : {}),
     ...(deps.browserPrompt !== undefined ? { browserPrompt: deps.browserPrompt } : {}),
+    ...(deps.meetings !== undefined ? { meetings: deps.meetings } : {}),
   };
 
   const ctx: ToolContext = {

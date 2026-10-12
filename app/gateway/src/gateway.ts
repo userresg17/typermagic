@@ -20,6 +20,7 @@ import { existsSync, unlinkSync } from "node:fs";
 import { openVault, type Vault } from "@typer/vault";
 import { learn, listSkills, readSkill, summarizeSkill, setupLearn, rehearse, rehearsalPlan, writeSkill } from "@typer/learn";
 import { openSkills, pickEngineEmbedder } from "@typer/engine";
+import { isMeetingForward, PLATFORM_LABEL } from "@typer/meetings";
 import { RateLimiter } from "./rate-limit.js";
 import { PendingStore, type PendingKind } from "./pending.js";
 import type { ChannelAdapter, GatewayConfig, IncomingMessage } from "./types.js";
@@ -69,7 +70,7 @@ const MAX_APPROVALS_PER_TASK = 2;
 const AFFIRMATIVE = /^\s*(sim|s|yes|y|ok|confirmo|confirmar|confirmado|aprovar|aprovo|pode|manda)\b/i;
 
 /** Comandos do gateway (escrevem no cofre direto, sem passar pelo modelo). */
-const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar", "/aprender", "/skills", "/ensaiar"];
+const COMMANDS = ["/setup", "/set", "/vault", "/forget", "/reset", "/status", "/help", "/parar", "/stop", "/continuar", "/aprender", "/skills", "/ensaiar", "/reunioes", "/reuniao"];
 /** data dos botões inline de confirmação/handoff */
 const BTN_OK = "ok";
 const BTN_CANCEL = "cancel";
@@ -241,6 +242,13 @@ export class Gateway {
       return;
     }
 
+    // 2.7. CENTRAL DE REUNIÕES: mensagem/documento encaminhado com "reunião" entra na central
+    //      (resumo + arquivo + índice) sem passar pelo agente. Regra em isMeetingForward().
+    if (this.config.meetings && !msg.isCallback && isMeetingForward(msg.text, { hasDocument: Boolean(msg.document) })) {
+      await this.ingestMeeting(chatId, msg);
+      return;
+    }
+
     // 3. Já há uma tarefa em andamento neste chat (sem pergunta pendente)? Evita
     //    dois engines concorrentes no mesmo chat.
     if (this.busy.has(chatId)) {
@@ -386,7 +394,7 @@ export class Gateway {
       this.askUser(chatId, kind, question);
     // CONTINUIDADE: diz ao agente ONDE o navegador já está, p/ ele continuar de lá em vez de
     // recomeçar do zero a cada mensagem (senão perde o progresso da reserva/carrinho/login).
-    let prompt = msg.text;
+    let prompt = msg.document ? `${msg.text}\n\n[conteúdo do arquivo ${msg.document.name}]\n${msg.document.text.slice(0, 60_000)}` : msg.text;
     if (browser) {
       const where = await browser.url().catch(() => "");
       if (where && !/^about:blank|^chrome:|^$/.test(where)) {
@@ -419,6 +427,8 @@ export class Gateway {
         signal: ac.signal,
         taskLabel: msg.text.slice(0, 80),
         ...(this.config.browserPrompt ? { browserPrompt: this.config.browserPrompt } : {}),
+        // Central de Reuniões: ferramentas reunioes_* (só-leitura) p/ perguntas sobre reuniões
+        ...(this.config.meetings ? { meetings: this.config.meetings } : {}),
       },
       // HITL: toda aprovação vira uma pergunta no canal que ESPERA o seu SIM/NÃO.
       {
@@ -580,6 +590,8 @@ export class Gateway {
           "/aprender <url> [programa] — assiste um tutorial em vídeo e aprende uma skill (candidata; só vale depois de ensaiar)",
           "/skills [id] — lista as skills aprendidas (candidatas e seladas) ou mostra uma",
           "/ensaiar <id> — executa a skill candidata no programa real, passo a passo com foto; se passar, ela é selada e entra na biblioteca",
+          "/reunioes [n|sync|status] — Central de Reuniões: últimas reuniões, puxar Discord/Drive agora, estado das fontes",
+          "/reuniao <texto> — força a entrada de um texto na central (encaminhe resumos do WhatsApp com 'reunião' que entram sozinhos)",
           "",
           "Fora os comandos, é só pedir em linguagem natural (ex.: 'compre uma camiseta...').",
         ].join("\n"),
@@ -785,6 +797,10 @@ export class Gateway {
       }
       return;
     }
+    if (cmd === "/reunioes" || cmd === "/reuniao") {
+      await this.meetingsCommand(chatId, cmd, text);
+      return;
+    }
     if (cmd === "/continuar") {
       const f = stopFile();
       if (existsSync(f)) {
@@ -803,6 +819,80 @@ export class Gateway {
       await this.runSetup(chatId);
       return;
     }
+  }
+
+  /** Central de Reuniões: resume o texto encaminhado, salva na pasta única e responde com o resumo. */
+  private async ingestMeeting(chatId: string, msg: IncomingMessage): Promise<void> {
+    const hub = this.config.meetings!;
+    const text = msg.document ? `${msg.text.replace(/^reuni[aã]o\s*[:\-–—]?\s*/i, "").trim()}\n\n${msg.document.text}`.trim() : msg.text;
+    this.busy.add(chatId);
+    await this.adapter.send(chatId, "📋 Reunião recebida — resumindo e guardando na central…");
+    try {
+      const r = await hub.ingestText(text, { origin: msg.document ? `arquivo "${msg.document.name}" enviado pelo Telegram` : "encaminhado pelo Telegram (resumo do WhatsApp)" });
+      if (r.duplicate) {
+        await this.adapter.send(chatId, `♻️ Essa reunião já estava na central: ${r.meeting.summary.titulo} (${r.meeting.id}). Nada foi duplicado.`);
+      } else {
+        await this.adapter.send(chatId, r.message);
+      }
+      this.hooks.onAudit?.({ sender: msg.senderId, result: "ok", detail: `reunião ${r.duplicate ? "duplicada" : "salva"}: ${r.meeting.id}` });
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      this.hooks.onAudit?.({ sender: msg.senderId, result: "error", detail: `reunião: ${m}` });
+      await this.adapter.send(chatId, `✗ não consegui guardar a reunião: ${clarifyError(m)}`);
+    } finally {
+      this.busy.delete(chatId);
+    }
+  }
+
+  /** /reunioes [n|sync|status] · /reuniao <texto> */
+  private async meetingsCommand(chatId: string, cmd: string, text: string): Promise<void> {
+    const hub = this.config.meetings;
+    if (!hub) {
+      await this.adapter.send(chatId, "Central de Reuniões desligada neste gateway (configure TYPER_MEETINGS_DIR e reinicie).");
+      return;
+    }
+    const rest = text.trim().split(/\s+/).slice(1).join(" ").trim();
+    if (cmd === "/reuniao") {
+      if (!rest) {
+        await this.adapter.send(chatId, "Uso: /reuniao <texto da reunião>  (ou encaminhe o resumo com a palavra 'reunião')");
+        return;
+      }
+      await this.ingestMeeting(chatId, { senderId: chatId, chatId, text: `reunião: ${rest}` });
+      return;
+    }
+    const sub = rest.split(/\s+/)[0]?.toLowerCase() ?? "";
+    if (sub === "sync") {
+      await this.adapter.send(chatId, "🔄 Puxando Discord e Drive agora…");
+      const r = await hub.pollOnce();
+      const fmt = (name: string, v: unknown): string => {
+        if (!v) return `• ${name}: não configurado`;
+        const o = v as { error?: string; ingested?: number; pending?: number };
+        if (o.error) return `• ${name}: ✗ ${o.error}`;
+        return `• ${name}: ${o.ingested ?? 0} nova(s)${o.pending ? ` · ${o.pending} lote(s) ainda assentando` : ""}`;
+      };
+      await this.adapter.send(chatId, [fmt("Discord", r.discord), fmt("Drive", r.drive)].join("\n"));
+      return;
+    }
+    if (sub === "status") {
+      const st = await hub.state();
+      const all = await hub.list();
+      const lines = [
+        `📂 Central: ${hub.dir} · ${all.length} reunião(ões)`,
+        `• Discord: ${hub.opts.discord ? `canal #${st.discord?.channelName ?? hub.opts.discord.channelName} · último poll ${st.discord?.lastPoll?.slice(0, 16) ?? "nunca"}${st.discord?.lastError ? ` · ✗ ${st.discord.lastError}` : ""}` : "não configurado (TYPER_DISCORD_TOKEN)"}`,
+        `• Drive: ${hub.opts.drive ? `último poll ${st.drive?.lastPoll?.slice(0, 16) ?? "nunca"}${st.drive?.lastError ? ` · ✗ ${st.drive.lastError}` : ""}` : "não autorizado (typermagic reunioes google-auth)"}`,
+        "• WhatsApp: encaminhe o resumo com a palavra 'reunião' aqui no chat",
+      ];
+      await this.adapter.send(chatId, lines.join("\n"));
+      return;
+    }
+    const n = Math.min(30, Math.max(1, Number(sub) || 10));
+    const all = (await hub.list()).slice(0, n);
+    if (all.length === 0) {
+      await this.adapter.send(chatId, `Nenhuma reunião na central ainda (${hub.dir}). Encaminhe um resumo com 'reunião' ou rode /reunioes sync.`);
+      return;
+    }
+    const lines = all.map((m) => `• ${m.date.slice(0, 10)} · ${PLATFORM_LABEL[m.platform]} · ${m.summary.titulo}${m.summary.participantes.length ? ` (${m.summary.participantes.slice(0, 4).join(", ")})` : ""} — ${m.id}`);
+    await this.adapter.send(chatId, [`📋 Últimas ${all.length} reunião(ões):`, ...lines, "", "Pergunte em linguagem natural (ex.: 'o que ficou pendente com o time de dev?') ou /reunioes status · /reunioes sync"].join("\n"));
   }
 
   /** Onboarding: manda o formulário COMPLETO de uma vez. A pessoa copia, preenche o que quiser

@@ -12,6 +12,7 @@ import { transcribe, asrReady, synthesize, synthesizeToWav, speechify, splitSent
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { rootOf, type Flags } from "../config.js";
+import { setupMeetings } from "../meetings-setup.js";
 import { dim, green, red, yellow } from "../render.js";
 
 interface GatewayFile {
@@ -262,6 +263,19 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
   } else {
     console.error(red(`canal desconhecido: ${channel} (use: telegram | jarvis | fake)`));
     return 2;
+  }
+
+  // Central de Reuniões: mesma pasta/configuração do `reunioes watch`. Aqui ela NÃO avisa pelo
+  // Telegram sozinha (responde no chat) e NÃO faz polling (isso é do serviço reunioes watch);
+  // serve p/ ingerir o que chega com "reunião" e p/ as ferramentas reunioes_* do agente.
+  if (channel !== "fake") {
+    try {
+      const ms = await setupMeetings({ provider: config.provider, model: config.model, local: flags.local, notify: false, log: (m) => console.error(dim(`· [reuniões] ${m}`)) });
+      config.meetings = ms.hub;
+      console.error(dim(`· Central de Reuniões ligada (${ms.hub.dir}; modelo ${ms.model})`));
+    } catch (e) {
+      console.error(yellow(`· Central de Reuniões desligada: ${e instanceof Error ? e.message : String(e)}`));
+    }
   }
 
   const hooks: GatewayHooks = {

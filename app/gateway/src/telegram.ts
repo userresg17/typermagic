@@ -13,6 +13,8 @@ interface TgUpdate {
   update_id: number;
   message?: {
     text?: string;
+    caption?: string;
+    document?: { file_id: string; file_name?: string; mime_type?: string; file_size?: number };
     voice?: { file_id: string; duration?: number };
     from?: { id: number };
     chat?: { id: number };
@@ -119,6 +121,31 @@ export class TelegramChannel implements ChannelAdapter {
     }
   }
 
+  /** DOCUMENTO de texto (transcrição encaminhada como .txt/.md/.vtt): baixa, lê como UTF-8 e
+   *  roteia com o texto junto (legenda vira o text). Até 2 MB; outros tipos são ignorados. */
+  private async handleDocument(doc: NonNullable<NonNullable<TgUpdate["message"]>["document"]>, caption: string, senderId: string, chatId: string): Promise<void> {
+    const name = doc.file_name ?? "documento";
+    const textual = /^text\//.test(doc.mime_type ?? "") || /\.(txt|md|vtt|srt|log|csv)$/i.test(name);
+    if (!textual) {
+      await this.send(chatId, `📎 recebi "${name}", mas só leio documentos de texto (.txt, .md, .vtt, .srt).`);
+      return;
+    }
+    if ((doc.file_size ?? 0) > 2 * 1024 * 1024) {
+      await this.send(chatId, `📎 "${name}" passa de 2 MB — mande um arquivo menor.`);
+      return;
+    }
+    let path = "";
+    try {
+      path = await this.downloadTgFile(doc.file_id);
+      const text = (await readFile(path, "utf8")).replace(/^\uFEFF/, "");
+      await Promise.resolve(this.cb?.({ senderId, chatId, text: caption || name, document: { name, text } })).catch(() => {});
+    } catch {
+      await this.send(chatId, `📎 não consegui baixar "${name}".`).catch(() => {});
+    } finally {
+      if (path) await unlink(path).catch(() => {});
+    }
+  }
+
   /** baixa um arquivo do Telegram (getFile → download binário) p/ um caminho temporário. */
   private async downloadTgFile(fileId: string): Promise<string> {
     const meta = (await (await fetch(`${this.api("getFile")}?file_id=${fileId}`)).json()) as {
@@ -166,6 +193,9 @@ export class TelegramChannel implements ChannelAdapter {
         if (m.voice && this.voice) {
           // VOZ: baixa o áudio, transcreve LOCAL e roteia como texto.
           void this.handleVoice(m.voice.file_id, senderId, chatId).catch(() => {});
+        } else if (m.document) {
+          // DOCUMENTO: transcrição em arquivo (vai p/ a Central de Reuniões se a legenda/nome tiver "reunião")
+          void this.handleDocument(m.document, m.caption ?? "", senderId, chatId).catch(() => {});
         } else if (m.text) {
           void Promise.resolve(this.cb?.({ senderId, chatId, text: m.text })).catch(() => {});
         }

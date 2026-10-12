@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- TYPER Magic — Central de Reuniões (vigia Discord + Google Drive) como LaunchAgent.
+     Gerado por scripts/install_reunioes.sh a partir deste template (__ROOT__/__HOME__ trocados).
+     Serviço SEPARADO do gateway: reiniciar um não derruba o outro; ambos leem a mesma pasta. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.typermagic.reunioes</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__ROOT__/scripts/env.sh</string>
+    <string>node</string>
+    <string>__ROOT__/app/agent-cli/dist/main.js</string>
+    <string>reunioes</string>
+    <string>watch</string>
+  </array>
+  <key>WorkingDirectory</key><string>__ROOT__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key><string>__HOME__</string>
+    <key>TYPER_ROOT</key><string>__ROOT__</string>
+    <key>TYPER_NO_BANNER</key><string>1</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>ExitTimeOut</key><integer>20</integer>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/typermagic/reunioes.out.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/typermagic/reunioes.err.log</string>
+</dict>
+</plist>

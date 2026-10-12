@@ -49,6 +49,7 @@ export {
   browserSkillSection,
   BROWSER_SKILL,
   memorySkillSection,
+  meetingsSkillSection,
   MEMORY_SKILL,
   openBrowser,
   openCdpBrowser,

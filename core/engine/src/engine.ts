@@ -15,6 +15,7 @@ import {
   browserSkillSection,
   desktopSkillSection,
   memorySkillSection,
+  meetingsSkillSection,
   AuditTrail,
   ApprovalGate,
   type AttemptInfo,
@@ -462,7 +463,7 @@ class EngineImpl implements Engine {
     // Injeta as docs de capacidade (reach + browser) conforme as tools expostas: olhos
     // na internet e/ou navegador real + metodologia/regras de HITL. Vazio quando ausentes.
     const exposed = executor.tools();
-    const skills = [reachSkillSection(exposed), browserSkillSection(exposed), desktopSkillSection(exposed), memorySkillSection(exposed)]
+    const skills = [reachSkillSection(exposed), browserSkillSection(exposed), desktopSkillSection(exposed), memorySkillSection(exposed), meetingsSkillSection(exposed)]
       .filter(Boolean)
       .join("\n\n");
     const system = [modeSystem, skills, contextBlock].filter(Boolean).join("\n\n");
@@ -582,6 +583,7 @@ class EngineImpl implements Engine {
       ...(this.config.browserPrompt !== undefined ? { browserPrompt: this.config.browserPrompt } : {}),
       ...(this.config.vault !== undefined ? { vault: this.config.vault } : {}),
       ...(this.config.ask !== undefined ? { ask: this.config.ask } : {}),
+      ...(this.config.meetings !== undefined ? { meetings: this.config.meetings } : {}),
       // memória: o MESMO embedder do recall, p/ escrita (memory_write) e leitura casarem
       ...(opts.embedder ? { embedder: opts.embedder } : {}),
     };

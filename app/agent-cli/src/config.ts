@@ -24,6 +24,9 @@ export interface Flags {
   provider: string | null;
   local: boolean;
   record: boolean;
+  /** reunioes importar: plataforma de origem e título forçado */
+  plataforma: string | null;
+  titulo: string | null;
   rest: string[];
 }
 
@@ -47,6 +50,8 @@ export function parseFlags(argv: string[]): Flags {
     provider: null,
     local: false,
     record: false,
+    plataforma: null,
+    titulo: null,
     rest: [],
   };
   for (let i = 0; i < argv.length; i++) {
@@ -70,6 +75,8 @@ export function parseFlags(argv: string[]): Flags {
     else if (a === "--consolidate") f.consolidate = true;
     else if (a === "--local") f.local = true;
     else if (a === "--record") f.record = true;
+    else if (a === "--plataforma") f.plataforma = argv[++i] ?? null;
+    else if (a === "--titulo") f.titulo = argv[++i] ?? null;
     else if (a === "--yes" || a === "-y") f.yes = true;
     else f.rest.push(a);
   }

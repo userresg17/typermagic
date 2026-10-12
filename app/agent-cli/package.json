@@ -28,6 +28,7 @@
     "@typer/skills": "workspace:*",
     "@typer/trajectory": "workspace:*",
     "@typer/voice": "workspace:*",
-    "@typer/learn": "workspace:*"
+    "@typer/learn": "workspace:*",
+    "@typer/meetings": "workspace:*"
   }
 }

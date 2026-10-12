@@ -49,6 +49,9 @@
     },
     {
       "path": "../../core/learn"
+    },
+    {
+      "path": "../../core/meetings"
     }
   ],
   "include": [

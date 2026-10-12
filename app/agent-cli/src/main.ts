@@ -21,6 +21,7 @@ import { handoffCmd } from "./commands/handoff.js";
 import { authCmd } from "./commands/auth.js";
 import { printBanner } from "./banner.js";
 import { gatewayCmd } from "./commands/gateway.js";
+import { reunioesCmd } from "./commands/reunioes.js";
 import { scheduleCmd } from "./commands/schedule.js";
 import { trajectoryCmd } from "./commands/trajectory.js";
 import { reachCmd } from "./commands/reach.js";
@@ -44,6 +45,7 @@ const HELP = [
   "  login   <provider>      entra com a assinatura (OAuth): anthropic | openai",
   "  auth    status|set|logout  API key (BYOK), status, ou sair (login = atalho do auth login)",
   "  gateway telegram|fake   sobe o agente num canal (allowlist + rate-limit)",
+  "  reunioes <sub>          Central de Reuniões: watch · sync · google-auth · discord-check · importar · list",
   "  schedule list|run|daemon tarefas cron (autonomia gateada pelo policy gate)",
   "  trajectory list|verify|export  trajetórias assinadas (use --record nas tarefas)",
   "  reach   doctor|read|search|video|social|login|install   olhos na internet",
@@ -74,7 +76,7 @@ async function main(): Promise<void> {
 
   const known = new Set([
     "run", "edit", "chat", "tools", "memory", "skills", "handoff", "auth", "login", "logout",
-    "gateway", "schedule", "trajectory", "reach", "learn", "repl",
+    "gateway", "schedule", "trajectory", "reach", "learn", "repl", "reunioes",
   ]);
   if (!known.has(cmd)) {
     // 1º token não é comando → atalho: trata tudo como `run <prompt>`
@@ -117,6 +119,9 @@ async function main(): Promise<void> {
     case "gateway":
       process.exit(await gatewayCmd(flags));
       break;
+    case "reunioes":
+      process.exit(await reunioesCmd(flags));
+      break;
     case "schedule":
       process.exit(await scheduleCmd(flags));
       break;
@@ -125,6 +130,7 @@ async function main(): Promise<void> {
       break;
     case "reach":
       process.exit(await reachCmd(flags));
+      break;
     case "learn":
       process.exit(await learnCmd(flags));
       break;

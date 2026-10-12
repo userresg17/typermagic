@@ -106,6 +106,8 @@ export interface EngineConfig {
   taskLabel?: string;
   /** system prompt alternativo do sub-agente de navegador (macOS) */
   browserPrompt?: string;
+  /** Central de Reuniões: injeta as ferramentas reunioes_* (busca/leitura; só-leitura). */
+  meetings?: import("@typer/agent").ToolDeps["meetings"];
 }
 
 export interface TaskRequest {
