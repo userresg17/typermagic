@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- TYPER Magic — Jarvis (conversa por voz no Mac) como LaunchAgent (usuário logado, sessão gráfica).
+     Gerado por scripts/install_macos.sh a partir deste template (__ROOT__/__HOME__ trocados).
+     Por que LaunchAgent e não LaunchDaemon: o agente controla a tela/apps e precisa da sessão
+     gráfica do usuário (TCC, CGEvent, AX); daemon roda fora dela. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.typermagic.jarvis</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__ROOT__/scripts/env.sh</string>
+    <string>node</string>
+    <string>__ROOT__/app/agent-cli/dist/main.js</string>
+    <string>gateway</string>
+    <string>jarvis</string>
+  </array>
+  <key>WorkingDirectory</key><string>__ROOT__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key><string>__HOME__</string>
+    <key>TYPER_ROOT</key><string>__ROOT__</string>
+    <key>TYPER_NO_BANNER</key><string>1</string>
+    <key>JARVIS_MIC</key><string>MacBook Pro</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>5</integer>
+  <key>ExitTimeOut</key><integer>20</integer>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/typermagic/jarvis.out.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/typermagic/jarvis.err.log</string>
+  <key>ProcessType</key><string>Interactive</string>
+</dict>
+</plist>

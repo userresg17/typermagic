@@ -199,6 +199,28 @@ export async function synthesize(text: string, outOggPath: string, model: TtsMod
   }
 }
 
+/** Sintetiza `text` JÁ PREPARADO p/ fala (sem speechify nem corte) direto num WAV — usado pelo
+ *  Jarvis, que fatia a resposta em frases e toca cada uma assim que fica pronta (latência baixa). */
+export async function synthesizeToWav(text: string, outWavPath: string, model: TtsModel): Promise<void> {
+  const t = text.trim();
+  if (!t) throw new Error("TTS: texto vazio");
+  if (model.engine === "xtts") await synthesizeXttsWav(t, outWavPath, xttsConfigOf(model));
+  else await synthesizeWav(t, outWavPath, model);
+}
+
+/** Divide um texto falável em frases curtas (para síntese em fluxo). Junta frases muito curtas. */
+export function splitSentences(text: string, min = 40, max = 240): string[] {
+  const raw = text.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const r of raw) {
+    const last = out[out.length - 1];
+    if (last !== undefined && (last.length < min || r.length < 15) && last.length + r.length < max) out[out.length - 1] = `${last} ${r}`;
+    else out.push(r);
+  }
+  // frase gigante sem ponto: quebra por vírgula
+  return out.flatMap((x) => (x.length <= max ? [x] : x.split(/(?<=,)\s+/)));
+}
+
 /** TTS pronto? sherpa: os arquivos do modelo existem. xtts: o python do venv + o worker existem. */
 export function ttsReady(model: TtsModel): boolean {
   if (model.engine === "xtts") return xttsReady(xttsConfigOf(model));

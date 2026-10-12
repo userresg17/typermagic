@@ -3,6 +3,7 @@
 export { Gateway, type GatewayHooks } from "./gateway.js";
 export { FakeChannel } from "./fake.js";
 export { TelegramChannel } from "./telegram.js";
+export { JarvisChannel, answerFromSpeech, VOICE_HINT, type JarvisOptions, type JarvisMirror } from "./jarvis.js";
 export { RateLimiter } from "./rate-limit.js";
 export { PendingStore, type PendingKind } from "./pending.js";
 export type { ChannelAdapter, IncomingMessage, GatewayConfig } from "./types.js";
