@@ -34,7 +34,10 @@ function canal(over: Partial<ConstructorParameters<typeof JarvisChannel>[0]> = {
   const ch = new JarvisChannel({
     python: "py",
     earScript: "ear.py",
-    synthToWav: async (t, wav) => void synth.push(`${t}→${wav.endsWith(".wav")}`),
+    synthToWav: async (t, wav) => {
+      if (wav.includes("jarvis-warm-")) return; // aquecimento da voz no start(): não é fala
+      synth.push(`${t}→${wav.endsWith(".wav")}`);
+    },
     prepare: (t) => t.replace(/\*\*/g, ""),
     split: (t) => t.split(/(?<=\.)\s+/),
     spawnFn: sp.fn,
@@ -139,6 +142,39 @@ describe("Jarvis: canal", () => {
     sp.say({ event: "interrupt" });
     await fala;
     expect(gen).toBeLessThan(5);
+    ch.stop();
+  });
+});
+
+import { falaHora } from "../src/jarvis.js";
+describe("Jarvis: hora falada curta", () => {
+  it("22:34, 22h34 e '22 horas e 34 minutos' viram '22 e 34'; hora cheia vira 'em ponto'", () => {
+    expect(falaHora("Agora são 22:34.")).toBe("Agora são 22 e 34.");
+    expect(falaHora("São 22h34")).toBe("São 22 e 34");
+    expect(falaHora("Agora são 22 horas e 34 minutos.")).toBe("Agora são 22 e 34.");
+    expect(falaHora("Reunião às 09:05")).toBe("Reunião às 9 e 5");
+    expect(falaHora("Começa 15:00")).toBe("Começa 15 em ponto");
+    expect(falaHora("Custa 1:30 de vídeo e 3x de 99")).toBe("Custa 1 e 30 de vídeo e 3x de 99");
+  });
+});
+
+describe("Jarvis: caixinha na tela", () => {
+  it("comando → 'thinking' com o que foi dito; fala → 'speaking'; fim → 'done'", async () => {
+    const huds: string[] = [];
+    const { ch, sp } = canal({ hud: { python: "py", script: "hud.py" } });
+    const orig = ch.hud.bind(ch);
+    ch.hud = (state: string, text = "") => {
+      huds.push(state);
+      orig(state, text);
+    };
+    sp.say({ event: "wake" });
+    sp.say({ event: "command", text: "que horas são" });
+    await tick();
+    await ch.send("jarvis", "Agora são 22:34.");
+    await tick();
+    expect(huds.slice(0, 2)).toEqual(["listening", "thinking"]);
+    expect(huds).toContain("speaking");
+    expect(huds[huds.length - 1]).toBe("done");
     ch.stop();
   });
 });

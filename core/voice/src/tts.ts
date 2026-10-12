@@ -11,7 +11,7 @@
 export interface TtsModel {
   /** engine: "piper" (rápido, sherpa), "kokoro" (multilíngue sherpa, sem pt) ou
    *  "xtts" (Coqui/PyTorch: pt-BR natural + inglês nativo, lento na CPU). */
-  engine?: "piper" | "kokoro" | "xtts";
+  engine?: "piper" | "kokoro" | "xtts" | "mlx";
   /** sherpa: .onnx do modelo. xtts: nome do modelo HF (ou "" — baixa sozinho). */
   model: string;
   /** tokens.txt do modelo (sherpa). Vazio p/ xtts. */

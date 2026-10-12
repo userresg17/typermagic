@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { Gateway, TelegramChannel, FakeChannel, JarvisChannel, type GatewayConfig, type ChannelAdapter, type GatewayHooks } from "@typer/gateway";
 import { openCdpBrowser, pickPlatform, BROWSER_AGENT_PROMPT_MACOS } from "@typer/agent";
-import { transcribe, asrReady, synthesize, synthesizeToWav, speechify, splitSentences, ttsReady, xttsWorkerPath, type AsrModel, type TtsModel } from "@typer/voice";
+import { transcribe, asrReady, synthesize, synthesizeToWav, speechify, splitSentences, ttsReady, xttsWorkerPath, mlxWorkerPath, type AsrModel, type TtsModel } from "@typer/voice";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { rootOf, type Flags } from "../config.js";
@@ -26,7 +26,10 @@ interface GatewayFile {
     in?: boolean;
     out?: boolean;
     speed?: number;
-    engine?: "piper" | "kokoro" | "xtts";
+    engine?: "piper" | "kokoro" | "xtts" | "mlx";
+    /** mlx: repo HF do modelo (default Kokoro-82M); voz em `speaker` (pf_dora); idioma em `lang` */
+    model?: string;
+    lang?: string;
     sid?: number;
     speaker?: string;
   };
@@ -66,7 +69,18 @@ function buildTts(file: GatewayFile): { tts: TtsModel; engine: string } {
   const vdir = join(homedir(), ".typer", "voice");
   const engine = file.voice?.engine ?? "piper";
   let tts: TtsModel;
-  if (engine === "xtts") {
+  if (engine === "mlx") {
+    tts = {
+      engine: "mlx",
+      model: file.voice?.model ?? "mlx-community/Kokoro-82M-bf16",
+      tokens: "",
+      python: join(vdir, "mlx-venv", "bin", "python"),
+      worker: mlxWorkerPath,
+      language: file.voice?.lang ?? "p",
+      speaker: file.voice?.speaker ?? "pf_dora",
+      speed: file.voice?.speed ?? 1.1,
+    };
+  } else if (engine === "xtts") {
     tts = {
       engine: "xtts",
       model: "", // baixa o xtts_v2 sozinho no 1º uso
@@ -176,7 +190,7 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
           await synthesize(text, out, tts);
           return out;
         };
-        const label = engine === "xtts" ? "xtts pt-BR (natural, lento)" : engine === "kokoro" ? "kokoro multilíngue" : "piper pt_BR";
+        const label = engine === "mlx" ? `mlx na GPU (${tts.model})` : engine === "xtts" ? "xtts pt-BR (natural, lento)" : engine === "kokoro" ? "kokoro multilíngue" : "piper pt_BR";
         console.error(dim(`· voz-OUT ligada (TTS local: ${label})`));
       } else {
         console.error(yellow(`· voz-OUT pedida (${engine}), mas o modelo não está em ~/.typer/voice — rode o setup de voz`));
@@ -209,10 +223,13 @@ export async function gatewayCmd(flags: Flags): Promise<number> {
       const init: RequestInit = body instanceof FormData ? { method: "POST", body } : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
       await fetch(`https://api.telegram.org/bot${tg.token}/${method}`, { ...init, signal: AbortSignal.timeout(20000) });
     };
-    const respell = engine !== "xtts" && engine !== "kokoro";
+    const respell = engine !== "xtts" && engine !== "kokoro" && engine !== "mlx";
+    const hudScript = join(process.env.TYPER_ROOT ?? repoRoot, "platform", "voice", "jarvis_hud.py");
+    const hudPython = join(process.env.TYPER_ROOT ?? repoRoot, ".venv", "bin", "python");
     adapter = new JarvisChannel({
       python,
       earScript,
+      ...(existsSync(hudScript) && existsSync(hudPython) ? { hud: { python: hudPython, script: hudScript } } : {}),
       synthToWav: (text, wav) => synthesizeToWav(text, wav, tts),
       prepare: (t) => speechify(t, respell),
       split: (t) => splitSentences(t),

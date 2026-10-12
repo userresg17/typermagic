@@ -37,6 +37,8 @@ export interface JarvisOptions {
   spokenMax?: number;
   /** player de áudio (default afplay) */
   player?: string;
+  /** caixinha flutuante na tela (platform/voice/jarvis_hud.py): ausente = sem caixa */
+  hud?: { python: string; script: string };
   /** env extra p/ o ouvido (JARVIS_MIC, JARVIS_ASR…) */
   earEnv?: Record<string, string>;
   log?: (m: string) => void;
@@ -52,7 +54,22 @@ const NO = /^(n[aã]o|nao|cancela\w*|para|pare|negativo|nem|esquece|aborta\w*)\b
 const STOP = /^(para|pare|parar|chega|cancela tudo|para tudo|stop)\W*$/i;
 
 /** instrução de estilo que vai na frente de todo pedido falado (resposta será OUVIDA). */
-export const VOICE_HINT = "[Pedido falado ao Jarvis no Mac. Responda como fala natural, curto: 1 a 3 frases, sem listas, tabelas, markdown, emojis ou links.]";
+export const VOICE_HINT =
+  "[Pedido falado ao Jarvis no Mac. Responda como fala natural e direta de brasileiro, curto: 1 a 3 frases, sem listas, tabelas, markdown, emojis ou links. Hora sempre no jeito falado curto: 'são 22 e 34', 'meio-dia e 10', '9 em ponto' — nunca 'horas e minutos'.]";
+
+/** hora no jeito que brasileiro fala: "22:34" / "22h34" / "22 horas e 34 minutos" → "22 e 34";
+ *  "15:00" → "15 em ponto". Aplicado antes da síntese, como rede de segurança da instrução acima. */
+export function falaHora(t: string): string {
+  const fmt = (h: string, m: string): string => {
+    const hh = String(Number(h));
+    if (/^0+$/.test(m)) return `${hh} em ponto`;
+    return `${hh} e ${String(Number(m))}`;
+  };
+  return t
+    .replace(/\b(\d{1,2})\s*horas?\s*e\s*(\d{1,2})\s*minutos?\b/gi, (_x, h: string, m: string) => fmt(h, m))
+    .replace(/\b([01]?\d|2[0-3])\s*[:h]\s*([0-5]\d)\b(?:\s*min)?/gi, (_x, h: string, m: string) => fmt(h, m))
+    .replace(/\b([01]?\d|2[0-3])\s*horas?\s+em ponto\b/gi, (_x, h: string) => `${Number(h)} em ponto`);
+}
 
 /** mapeia a resposta falada para o dado de um botão pendente ("sim" → "ok"). null = não é sim/não. */
 export function answerFromSpeech(text: string, buttons: Button[]): string | null {
@@ -79,6 +96,8 @@ export class JarvisChannel implements ChannelAdapter {
   private pendingSpeech = 0;
   private seq = 0;
   private readonly id: string;
+  private hudProc: ChildProcess | null = null;
+  private inFlight = 0;
 
   constructor(private readonly o: JarvisOptions) {
     this.id = o.senderId ?? "jarvis";
@@ -90,6 +109,22 @@ export class JarvisChannel implements ChannelAdapter {
 
   private log(m: string): void {
     this.o.log?.(m);
+  }
+
+  /** atualiza a caixinha na tela (listening | thinking | speaking | done | error). */
+  hud(state: string, text = ""): void {
+    if (!this.o.hud) return;
+    try {
+      if (!this.hudProc || this.hudProc.exitCode !== null) {
+        const sp = this.o.spawnFn ?? spawn;
+        this.hudProc = sp(this.o.hud.python, ["-I", this.o.hud.script], { stdio: ["pipe", "ignore", "ignore"] });
+        this.hudProc.on("error", () => (this.hudProc = null));
+        this.hudProc.on("exit", () => (this.hudProc = null));
+      }
+      this.hudProc.stdin?.write(JSON.stringify({ state, text: text.slice(0, 140) }) + "\n");
+    } catch {
+      /* caixa é cosmética: nunca derruba a conversa */
+    }
   }
 
   private earSend(obj: Record<string, unknown>): void {
@@ -126,10 +161,11 @@ export class JarvisChannel implements ChannelAdapter {
 
   /** fala um texto: sintetiza frase a frase, tocando a anterior enquanto gera a próxima. */
   speak(text: string): Promise<void> {
-    const spoken = this.o.prepare(text);
+    const spoken = this.o.prepare(falaHora(text));
     if (!spoken) return Promise.resolve();
     const frases = this.o.split(spoken);
     const g = this.gen;
+    this.log(`🔊 ${spoken.slice(0, 160)}${spoken.length > 160 ? "…" : ""}`);
     this.pendingSpeech++;
     this.earSend({ cmd: "speaking", on: true });
     const job = async (): Promise<void> => {
@@ -149,7 +185,10 @@ export class JarvisChannel implements ChannelAdapter {
         const cur = next ?? synth(frases[i]!);
         next = i + 1 < frases.length ? synth(frases[i + 1]!) : null;
         const wav = await cur;
-        if (wav && g === this.gen) await this.play(wav);
+        if (wav && g === this.gen) {
+          this.hud("speaking", frases[i]!);
+          await this.play(wav);
+        }
         if (wav) void unlink(wav).catch(() => {});
       }
       if (next) void next.then((w) => { if (w) void unlink(w).catch(() => {}); });
@@ -158,6 +197,8 @@ export class JarvisChannel implements ChannelAdapter {
       this.pendingSpeech--;
       if (this.pendingSpeech === 0) {
         this.earSend({ cmd: "speaking", on: false });
+        if (this.inFlight > 0) this.hud("thinking", "trabalhando no pedido…");
+        else this.hud("done");
         // janela de conversa: dá para responder sem chamar "oi Jarvis" de novo
         this.earSend({ cmd: "listen", seconds: this.buttons.length ? 20 : 8 });
       }
@@ -176,7 +217,8 @@ export class JarvisChannel implements ChannelAdapter {
       return;
     }
     if (/^🔎/.test(t)) {
-      await this.speak("Tô vendo isso, já te falo.");
+      // tarefa longa: a caixinha na tela já avisa (falar "tô vendo isso" toda vez cansava)
+      this.hud("thinking", "trabalhando nisso — pode levar 1–2 min");
       return;
     }
     if (t.length > max || /\|.*\|/.test(t) || (t.match(/\n/g)?.length ?? 0) > 6) {
@@ -210,6 +252,7 @@ export class JarvisChannel implements ChannelAdapter {
       case "wake":
         this.interrupt();
         this.chime(SOUND_WAKE);
+        this.hud("listening", "pode falar");
         return;
       case "interrupt":
         this.interrupt();
@@ -221,7 +264,7 @@ export class JarvisChannel implements ChannelAdapter {
         this.log(`ouvido: ${ev.error ?? "erro"}`);
         return;
       case "command": {
-        const text = (ev.text ?? "").trim();
+        const text = (ev.text ?? "").trim().replace(/^["'“”]+|["'“”]+$/g, "").trim();
         if (!text) return;
         this.log(`🎙️ ${text}`);
         this.interrupt();
@@ -234,14 +277,23 @@ export class JarvisChannel implements ChannelAdapter {
         if (ans !== null) {
           this.buttons = [];
           this.chime(SOUND_ACK);
+          this.hud("thinking", ans === "ok" ? "confirmado ✓" : "cancelado");
           await this.cb?.({ senderId: this.id, chatId: this.id, text: ans, viaVoice: true, isCallback: true });
           return;
         }
         this.chime(SOUND_ACK);
+        this.hud("thinking", `“${text}”`);
+        this.inFlight++;
         // sem await: o gateway é reentrante (a próxima fala pode responder uma confirmação)
-        void Promise.resolve(this.cb?.({ senderId: this.id, chatId: this.id, text: `${VOICE_HINT}\n${text}`, viaVoice: true })).catch((e) =>
-          this.log(`tarefa falhou: ${e instanceof Error ? e.message : String(e)}`),
-        );
+        void Promise.resolve(this.cb?.({ senderId: this.id, chatId: this.id, text: `${VOICE_HINT}\n${text}`, viaVoice: true }))
+          .catch((e) => {
+            this.log(`tarefa falhou: ${e instanceof Error ? e.message : String(e)}`);
+            this.hud("error", "a tarefa falhou — veja o Telegram/log");
+          })
+          .finally(() => {
+            this.inFlight = Math.max(0, this.inFlight - 1);
+            if (this.inFlight === 0 && this.pendingSpeech === 0) this.hud("done");
+          });
         return;
       }
     }
@@ -266,6 +318,13 @@ export class JarvisChannel implements ChannelAdapter {
   start(): Promise<void> {
     this.stopped = false;
     this.spawnEar();
+    // aquece a voz (o XTTS carrega ~2 GB na 1ª síntese: sem isso a 1ª resposta demora ~20 s)
+    const warm = join(tmpdir(), `jarvis-warm-${process.pid}.wav`);
+    void this.o
+      .synthToWav("Pronto.", warm)
+      .then(() => this.log("voz aquecida"))
+      .catch(() => {})
+      .finally(() => void unlink(warm).catch(() => {}));
     // bloqueante como os outros canais: só resolve no stop()
     return new Promise((resolve) => {
       const iv = setInterval(() => {
@@ -280,6 +339,7 @@ export class JarvisChannel implements ChannelAdapter {
   stop(): void {
     this.stopped = true;
     this.interrupt();
+    this.hudProc?.stdin?.end();
     this.ear?.kill("SIGTERM");
   }
 }

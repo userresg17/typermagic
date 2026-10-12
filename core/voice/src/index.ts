@@ -9,11 +9,15 @@ import { toWav16k, toOggOpus } from "./audio.js";
 import { transcribeWav, type AsrModel } from "./asr.js";
 import { synthesizeWav, type TtsModel } from "./tts.js";
 import { synthesizeXttsWav, xttsReady, type XttsConfig } from "./xtts.js";
+import { synthesizeMlxWav, mlxReady, type MlxTtsConfig } from "./mlx.js";
 
 export { toWav16k, toOggOpus } from "./audio.js";
 export { transcribeWav, type AsrModel } from "./asr.js";
 export { synthesizeWav, type TtsModel } from "./tts.js";
 export { xttsReady, type XttsConfig } from "./xtts.js";
+export { mlxReady, type MlxTtsConfig } from "./mlx.js";
+/** worker de voz na GPU do Mac (mlx-audio). */
+export const mlxWorkerPath: string = fileURLToPath(new URL("../py/mlx_worker.py", import.meta.url));
 
 /** caminho do worker Python do XTTS (resolvido a partir do pacote, não do cwd). dist/index.js
  *  → ../py/xtts_worker.py = core/voice/py/xtts_worker.py. */
@@ -164,6 +168,18 @@ export function speechify(text: string, respellEnglish = true): string {
   return s;
 }
 
+/** config do worker MLX a partir do TtsModel (model=repo HF, speaker=voz, language=código). */
+function mlxConfigOf(model: TtsModel): MlxTtsConfig {
+  return {
+    python: model.python ?? "",
+    worker: model.worker ?? "",
+    ...(model.model ? { model: model.model } : {}),
+    ...(model.speaker ? { voice: model.speaker } : {}),
+    ...(model.language ? { lang: model.language } : {}),
+    ...(model.speed ? { speed: model.speed } : {}),
+  };
+}
+
 /** monta a config do worker XTTS a partir do TtsModel. */
 function xttsConfigOf(model: TtsModel): XttsConfig {
   return {
@@ -181,12 +197,13 @@ function xttsConfigOf(model: TtsModel): XttsConfig {
  *  Limpa o texto p/ fala (speechify), gera um WAV temporário e converte p/ OGG. */
 export async function synthesize(text: string, outOggPath: string, model: TtsModel): Promise<void> {
   // Kokoro/XTTS pronunciam inglês nativo → NÃO respella; Piper (só pt) → respella.
-  const respell = model.engine !== "kokoro" && model.engine !== "xtts";
+  const respell = model.engine !== "kokoro" && model.engine !== "xtts" && model.engine !== "mlx";
   const cap = model.engine === "xtts" ? XTTS_SPOKEN_MAX : SPOKEN_MAX;
   const spoken = capSpoken(speechify(text, respell).trim(), cap);
   if (!spoken) throw new Error("TTS: nada a falar depois de limpar o texto");
   const wav = join(tmpdir(), `typer-tts-${process.pid}-${seq++}.wav`);
   if (model.engine === "xtts") await synthesizeXttsWav(spoken, wav, xttsConfigOf(model));
+  else if (model.engine === "mlx") await synthesizeMlxWav(spoken, wav, mlxConfigOf(model));
   else await synthesizeWav(spoken, wav, model);
   try {
     await toOggOpus(wav, outOggPath);
@@ -205,6 +222,7 @@ export async function synthesizeToWav(text: string, outWavPath: string, model: T
   const t = text.trim();
   if (!t) throw new Error("TTS: texto vazio");
   if (model.engine === "xtts") await synthesizeXttsWav(t, outWavPath, xttsConfigOf(model));
+  else if (model.engine === "mlx") await synthesizeMlxWav(t, outWavPath, mlxConfigOf(model));
   else await synthesizeWav(t, outWavPath, model);
 }
 
@@ -224,5 +242,6 @@ export function splitSentences(text: string, min = 40, max = 240): string[] {
 /** TTS pronto? sherpa: os arquivos do modelo existem. xtts: o python do venv + o worker existem. */
 export function ttsReady(model: TtsModel): boolean {
   if (model.engine === "xtts") return xttsReady(xttsConfigOf(model));
+  if (model.engine === "mlx") return mlxReady(mlxConfigOf(model));
   return existsSync(model.model) && existsSync(model.tokens);
 }
