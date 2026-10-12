@@ -95,7 +95,9 @@ export function falaHora(t: string): string {
     .replace(/\b([01]?\d|2[0-3])\s*[:h]\s*([0-5]\d)\b(?:\s*min)?/gi, (_x, h: string, m: string) => fmt(h, m))
     .replace(/(?<!\p{L})(são|é|às|as|das|pelas|até as|desde as|a partir das)\s+([01]?\d|2[0-3])\s+e\s+([0-5]?\d)\b(?!\s*(?:reais|dólares|euros|%|por cento))/giu, (_x, pre: string, h: string, m: string) => `${pre} ${fmt(h, m)}`)
     .replace(/\b([01]?\d|2[0-3])\s*(?:horas?\s+)?em ponto\b/gi, (_x, h: string) => `${hora(h)} em ponto`)
-    .replace(new RegExp(`\\b(\\d{1,3})\\s+(${FEMININOS})\\b`, "gi"), (_x, n: string, w: string) => `${extenso(Number(n), true)} ${w}`);
+    .replace(new RegExp(`\\b(\\d{1,3})\\s+(${FEMININOS})\\b`, "gi"), (_x, n: string, w: string) => `${extenso(Number(n), true)} ${w}`)
+    .replace(/\bem ponto(?:\s+em ponto)+\b/gi, "em ponto") // "23:00 em ponto" não vira "em ponto em ponto"
+    .replace(/\b(em ponto)\s+horas?\b/gi, "$1");
 }
 
 /** mapeia a resposta falada para o dado de um botão pendente ("sim" → "ok"). null = não é sim/não. */

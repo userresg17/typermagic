@@ -157,6 +157,8 @@ describe("Jarvis: hora falada como gente", () => {
     expect(falaHora("É 1 e 10")).toBe("É uma e dez");
     expect(falaHora("Almoço 12:30, volta 00:15")).toBe("Almoço meio-dia e trinta, volta meia-noite e quinze");
     expect(falaHora("Sai às 21 em ponto")).toBe("Sai às vinte e uma em ponto");
+    expect(falaHora("Agora são 23:00 em ponto.")).toBe("Agora são vinte e três em ponto.");
+    expect(falaHora("São 23:00 horas")).toBe("São vinte e três em ponto");
   });
   it("número antes de palavra feminina concorda; dinheiro e masculino ficam como estão", () => {
     expect(falaHora("Achei 2 passagens e 1 opção para 2 pessoas")).toBe("Achei duas passagens e uma opção para duas pessoas");
