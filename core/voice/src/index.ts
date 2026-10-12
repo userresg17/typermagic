@@ -177,6 +177,8 @@ function mlxConfigOf(model: TtsModel): MlxTtsConfig {
     ...(model.speaker ? { voice: model.speaker } : {}),
     ...(model.language ? { lang: model.language } : {}),
     ...(model.speed ? { speed: model.speed } : {}),
+    ...(model.speakerWav ? { refAudio: model.speakerWav } : {}),
+    ...(model.refText ? { refText: model.refText } : {}),
   };
 }
 

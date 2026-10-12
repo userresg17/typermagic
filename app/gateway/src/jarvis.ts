@@ -308,7 +308,8 @@ export class JarvisChannel implements ChannelAdapter {
           return;
         }
         // ruído/eco: fala de 1 palavra sem conteúdo ("E...", "Hã", "Ah") não vira pedido
-        if (ev.followup && this.buttons.length === 0 && /^(e|é|ah|ahn|hã|hum|hm|uhum|né|tá|ok|o|a)\W*$/i.test(text)) {
+        // ruído/eco na janela de conversa: palavra solta ("Jax", "E...", "hã") não vira pedido
+        if (ev.followup && this.buttons.length === 0 && !STOP.test(text) && (/^(e|é|ah|ahn|hã|hum|hm|uhum|né|tá|ok|o|a)\W*$/i.test(text) || (text.split(/\s+/).length === 1 && text.replace(/\P{L}/gu, "").length <= 4))) {
           this.log(`(ignorado: ${text})`);
           this.hud("done");
           return;

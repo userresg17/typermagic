@@ -22,8 +22,10 @@ export interface TtsModel {
   worker?: string;
   /** xtts: locutor embutido (default = 1º do modelo) */
   speaker?: string;
-  /** xtts: wav de referência p/ clonar a voz */
+  /** xtts/mlx: wav de referência p/ clonar a voz */
   speakerWav?: string;
+  /** mlx: transcrição do wav de referência */
+  refText?: string;
   /** xtts: idioma alvo (default "pt") */
   language?: string;
   /** dir de dados fonéticos (espeak-ng-data) */

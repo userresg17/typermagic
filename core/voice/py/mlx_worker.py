@@ -28,6 +28,9 @@ def main():
         model = load_model(repo)
         dv = os.environ.get("MLX_TTS_VOICE", "pf_dora")
         dl = os.environ.get("MLX_TTS_LANG", "p")
+        # voz de referência fixa (clonagem): mantém o MESMO timbre em toda frase (Qwen3-TTS Base)
+        ref_audio = os.environ.get("MLX_TTS_REF_AUDIO") or None
+        ref_text = os.environ.get("MLX_TTS_REF_TEXT") or None
 
         import re
 
@@ -37,7 +40,8 @@ def main():
 
         def gen_raw(text, voice, lang, speed):
             parts, sr = [], 24000
-            for r in model.generate(text=text, voice=voice, lang_code=lang, speed=speed):
+            kw = {"ref_audio": ref_audio, "ref_text": ref_text} if ref_audio else {"voice": voice}
+            for r in model.generate(text=text, lang_code=lang, speed=speed, **kw):
                 parts.append(np.array(r.audio))
                 sr = r.sample_rate
             return (np.concatenate(parts) if parts else np.zeros(1, dtype="float32")), sr

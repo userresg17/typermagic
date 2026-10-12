@@ -30,6 +30,9 @@ interface GatewayFile {
     /** mlx: repo HF do modelo (default Kokoro-82M); voz em `speaker` (pf_dora); idioma em `lang` */
     model?: string;
     lang?: string;
+    /** mlx: voz fixa por referência (wav + transcrição) — ex.: a voz "mordomo" desenhada */
+    refAudio?: string;
+    refText?: string;
     sid?: number;
     speaker?: string;
   };
@@ -79,6 +82,8 @@ function buildTts(file: GatewayFile): { tts: TtsModel; engine: string } {
       language: file.voice?.lang ?? "p",
       speaker: file.voice?.speaker ?? "pf_dora",
       speed: file.voice?.speed ?? 1.1,
+      ...(file.voice?.refAudio ? { speakerWav: file.voice.refAudio.replace(/^~/, homedir()) } : {}),
+      ...(file.voice?.refText ? { refText: file.voice.refText } : {}),
     };
   } else if (engine === "xtts") {
     tts = {

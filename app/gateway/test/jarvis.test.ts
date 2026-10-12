@@ -194,6 +194,9 @@ describe("Jarvis: ruído na janela de conversa", () => {
     sp.say({ event: "command", text: "E...", followup: true });
     await tick();
     expect(got).toHaveLength(0);
+    sp.say({ event: "command", text: "Jax", followup: true });
+    await tick();
+    expect(got).toHaveLength(0);
     sp.say({ event: "command", text: "e amanhã?", followup: true });
     await tick();
     expect(got).toHaveLength(1);

@@ -18,6 +18,9 @@ export interface MlxTtsConfig {
   /** código de idioma do modelo (Kokoro pt-BR: "p") */
   lang?: string;
   speed?: number;
+  /** wav de referência (voz fixa por clonagem) + transcrição dele */
+  refAudio?: string;
+  refText?: string;
 }
 
 let proc: ChildProcess | null = null;
@@ -32,6 +35,8 @@ function startWorker(cfg: MlxTtsConfig): Promise<void> {
     if (cfg.model) env.MLX_TTS_MODEL = cfg.model;
     if (cfg.voice) env.MLX_TTS_VOICE = cfg.voice;
     if (cfg.lang) env.MLX_TTS_LANG = cfg.lang;
+    if (cfg.refAudio) env.MLX_TTS_REF_AUDIO = cfg.refAudio;
+    if (cfg.refText) env.MLX_TTS_REF_TEXT = cfg.refText;
     const p = spawn(cfg.python, [cfg.worker], { env, stdio: ["pipe", "pipe", "pipe"] });
     proc = p;
     let settled = false;
