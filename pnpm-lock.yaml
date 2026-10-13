@@ -118,6 +118,15 @@ importers:
         specifier: workspace:*
         version: link:../../core/vault
 
+  app/kestrel-bridge:
+    dependencies:
+      '@typer/engine':
+        specifier: workspace:*
+        version: link:../../core/engine
+      '@typer/meetings':
+        specifier: workspace:*
+        version: link:../../core/meetings
+
   app/scheduler:
     dependencies:
       '@typer/engine':

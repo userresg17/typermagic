@@ -102,6 +102,8 @@ export interface EngineConfig {
   checkpoint?: (pngBase64: string, caption: string) => Promise<void>;
   /** cancelamento da tarefa (/parar) — checado entre voltas e passos */
   signal?: AbortSignal;
+  /** Instrução de resposta da superfície; não altera permissões nem o modo. */
+  responseInstruction?: string;
   /** rótulo da tarefa p/ o log estruturado */
   taskLabel?: string;
   /** system prompt alternativo do sub-agente de navegador (macOS) */
@@ -111,6 +113,8 @@ export interface EngineConfig {
 }
 
 export interface TaskRequest {
+  /** Dados de referência separados do pedido explícito. Nunca são ordens. */
+  context?: { source: string; text: string };
   /** instrução do usuário (canal de instrução — nunca misturado com conteúdo) */
   prompt: string;
   /** arquivos-âncora para o contexto */

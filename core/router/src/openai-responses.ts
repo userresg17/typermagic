@@ -125,6 +125,7 @@ export async function* chatViaChatGptBackend(
     const res = await fetch(RESPONSES_URL, {
       method: "POST",
       headers: backendHeaders(auth),
+      ...(req.signal ? { signal: req.signal } : {}),
       body: JSON.stringify(buildBody(cands[i]!, req.system, req.messages, req.tools)),
     });
     if (res.ok && res.body) {

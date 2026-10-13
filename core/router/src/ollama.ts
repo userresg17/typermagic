@@ -75,6 +75,7 @@ export class OllamaProvider implements Provider {
     const res = await fetch(`${baseUrl()}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
+      ...(req.signal ? { signal: req.signal } : {}),
       body: JSON.stringify({
         model: req.model,
         messages: toOllamaMessages(req.system, req.messages),
