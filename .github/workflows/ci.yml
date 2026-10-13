@@ -39,6 +39,8 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITLEAKS_CONFIG: .gitleaks.toml
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
 
   # Guard: impede religar o privado por engano (server/editor/CLI antiga) — o público
   # é só núcleo + Engine + agent-cli. Falha se qualquer referência reaparecer.
