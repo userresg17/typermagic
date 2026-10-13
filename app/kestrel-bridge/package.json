@@ -1,0 +1,9 @@
+{
+  "name": "@typer/kestrel-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/bridge.js",
+  "scripts": { "build": "tsc -b", "start": "node dist/server.js" },
+  "dependencies": { "@typer/engine": "workspace:*", "@typer/meetings": "workspace:*" }
+}

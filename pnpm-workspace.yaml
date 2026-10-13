@@ -4,3 +4,4 @@ packages:
   - "app/gateway"
   - "app/scheduler"
   - "app/serverless"
+  - "app/kestrel-bridge"

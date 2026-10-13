@@ -33,6 +33,8 @@ export interface ToolCall {
 }
 
 export interface ChatRequest {
+  /** Cancelamento da tarefa até o transporte HTTP do modelo. */
+  signal?: AbortSignal;
   messages: Message[];
   model: string;
   maxTokens?: number;

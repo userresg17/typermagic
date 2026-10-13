@@ -29,6 +29,7 @@ export class LlamaCppProvider implements Provider {
     const res = await fetch(`${baseUrl()}/v1/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
+      ...(req.signal ? { signal: req.signal } : {}),
       body: JSON.stringify({
         model: req.model,
         messages: toMessages(req.system, req.messages),

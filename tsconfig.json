@@ -27,6 +27,7 @@
     { "path": "./app/agent-cli" },
     { "path": "./app/gateway" },
     { "path": "./app/scheduler" },
-    { "path": "./app/serverless" }
+    { "path": "./app/serverless" },
+    { "path": "./app/kestrel-bridge" }
   ]
 }

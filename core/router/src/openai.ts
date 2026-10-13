@@ -76,6 +76,7 @@ export class OpenAIProvider implements Provider {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "content-type": "application/json", ...authHeaders(auth, "bearer") },
+      ...(req.signal ? { signal: req.signal } : {}),
       body: JSON.stringify({
         model: req.model,
         max_tokens: req.maxTokens ?? 1024,

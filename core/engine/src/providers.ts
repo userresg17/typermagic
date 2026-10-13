@@ -25,10 +25,17 @@ export async function buildEngineProvider(opts: {
   provider: string | null;
   model: string | null;
   task: Task;
+  signal?: AbortSignal;
 }): Promise<ProviderBundle> {
   const { providers, preferred, online } = await buildProviders(opts.local, opts.provider);
   const meter = new CostMeter();
-  const provider = new MeteredProvider(route(opts.task, providers, preferred), meter, opts.task);
+  const metered = new MeteredProvider(route(opts.task, providers, preferred), meter, opts.task);
+  const provider: Provider = {
+    id: metered.id,
+    chat: (req) => metered.chat({ ...req, ...(opts.signal ? { signal: opts.signal } : {}) }),
+    fim: (req) => metered.fim(req),
+    countTokens: (text) => metered.countTokens(text),
+  };
   const model = modelFor(preferred, opts.task, opts.model);
   return { provider, model, online, meter };
 }

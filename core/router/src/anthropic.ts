@@ -121,6 +121,7 @@ export class AnthropicProvider implements Provider {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: anthropicHeaders(auth),
+      ...(req.signal ? { signal: req.signal } : {}),
       body: JSON.stringify({
         model: req.model,
         max_tokens: req.maxTokens ?? 1024,
